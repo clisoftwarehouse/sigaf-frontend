@@ -1,0 +1,8 @@
+import { createClasses } from '@/app/ui-kit/theme/create-classes';
+
+// ----------------------------------------------------------------------
+
+export const labelClasses = {
+  root: createClasses('label__root'),
+  icon: createClasses('label__icon'),
+};

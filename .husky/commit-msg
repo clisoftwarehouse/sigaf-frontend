@@ -1,0 +1,1 @@
+yarn --no-install commitlint --edit
