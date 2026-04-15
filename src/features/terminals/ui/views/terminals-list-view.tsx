@@ -1,30 +1,25 @@
+import type { GridColDef } from '@mui/x-data-grid';
+import type { Terminal } from '../../model/types';
+
 import { toast } from 'sonner';
 import { useMemo, useState } from 'react';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
-import Table from '@mui/material/Table';
-import Stack from '@mui/material/Stack';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
-import TableRow from '@mui/material/TableRow';
-import MenuItem from '@mui/material/MenuItem';
-import TableHead from '@mui/material/TableHead';
-import TableCell from '@mui/material/TableCell';
-import TableBody from '@mui/material/TableBody';
+import Tooltip from '@mui/material/Tooltip';
 import Container from '@mui/material/Container';
-import TextField from '@mui/material/TextField';
+import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
-import TableContainer from '@mui/material/TableContainer';
 
 import { paths } from '@/app/routes/paths';
 import { useRouter } from '@/app/routes/hooks';
 import { Iconify } from '@/app/components/iconify';
-import { EmptyState } from '@/shared/ui/empty-state';
 import { PageHeader } from '@/shared/ui/page-header';
 import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
-import { TableSkeleton } from '@/shared/ui/table-skeleton';
-import { useBranchesQuery } from '@/features/branches/api/branches.queries';
+import { useBranchOptions } from '@/features/branches/api/branches.options';
+import { DataTable, createFkFilterOperators } from '@/app/components/data-table';
 
 import { useTerminalsQuery, useDeleteTerminalMutation } from '../../api/terminals.queries';
 
@@ -32,19 +27,16 @@ import { useTerminalsQuery, useDeleteTerminalMutation } from '../../api/terminal
 
 export function TerminalsListView() {
   const router = useRouter();
-  const [branchId, setBranchId] = useState<string>('');
   const [toDelete, setToDelete] = useState<{ id: string; name: string } | null>(null);
 
-  const { data: branches = [] } = useBranchesQuery();
-  const branchById = useMemo(
-    () => new Map(branches.map((b) => [b.id, b.name] as const)),
-    [branches]
-  );
-
-  const filters = useMemo(() => ({ branchId: branchId || undefined }), [branchId]);
-
-  const { data: terminals = [], isLoading, isError, error, refetch } = useTerminalsQuery(filters);
+  const { data: terminals = [], isLoading, isError, error, refetch } = useTerminalsQuery();
   const deleteMutation = useDeleteTerminalMutation();
+
+  const { data: branchOpts = [] } = useBranchOptions();
+  const branchNameById = useMemo(
+    () => new Map(branchOpts.map((o) => [o.id, o.label] as const)),
+    [branchOpts]
+  );
 
   const confirmDelete = async () => {
     if (!toDelete) return;
@@ -56,6 +48,103 @@ export function TerminalsListView() {
       toast.error((err as Error).message);
     }
   };
+
+  const branchFilterOperators = useMemo(
+    () => createFkFilterOperators<string>({ useOptions: useBranchOptions }),
+    []
+  );
+
+  const columns = useMemo<GridColDef<Terminal>[]>(
+    () => [
+      {
+        field: 'code',
+        headerName: 'Código',
+        flex: 1,
+        minWidth: 140,
+        renderCell: ({ row }) => (
+          <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
+            {row.code}
+          </Typography>
+        ),
+      },
+      {
+        field: 'name',
+        headerName: 'Nombre',
+        flex: 2,
+        minWidth: 180,
+        valueGetter: (value: string | null | undefined) => value ?? '—',
+      },
+      {
+        field: 'branchId',
+        headerName: 'Sucursal',
+        flex: 1.5,
+        minWidth: 180,
+        filterOperators: branchFilterOperators,
+        valueFormatter: (value: string) => branchNameById.get(value) ?? value,
+        sortComparator: (a, b) =>
+          (branchNameById.get(a) ?? '').localeCompare(branchNameById.get(b) ?? ''),
+      },
+      {
+        field: 'hardware',
+        headerName: 'Hardware',
+        sortable: false,
+        filterable: false,
+        flex: 1.5,
+        minWidth: 200,
+        valueGetter: (_v, row) => {
+          const parts = [
+            row.fiscalPrinterConfig && 'impresora',
+            row.scaleConfig && 'báscula',
+            row.cashDrawerConfig && 'gaveta',
+          ].filter(Boolean) as string[];
+          return parts.length > 0 ? parts.join(', ') : '—';
+        },
+      },
+      {
+        field: 'isActive',
+        headerName: 'Activo',
+        type: 'boolean',
+        flex: 1,
+        minWidth: 110,
+      },
+      {
+        field: 'lastSyncAt',
+        headerName: 'Última sync',
+        type: 'dateTime',
+        flex: 1,
+        minWidth: 180,
+        valueGetter: (value: string | null) => (value ? new Date(value) : null),
+      },
+      {
+        field: 'actions',
+        type: 'actions',
+        headerName: 'Acciones',
+        width: 110,
+        align: 'right',
+        headerAlign: 'right',
+        renderCell: ({ row }) => (
+          <>
+            <Tooltip title="Editar">
+              <IconButton
+                onClick={() => router.push(paths.dashboard.organization.terminals.edit(row.id))}
+              >
+                <Iconify icon="solar:pen-bold" />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Eliminar">
+              <IconButton
+                color="error"
+                onClick={() => setToDelete({ id: row.id, name: row.code })}
+              >
+                <Iconify icon="solar:trash-bin-trash-bold" />
+              </IconButton>
+            </Tooltip>
+          </>
+        ),
+      },
+    ],
+    [router, branchFilterOperators, branchNameById]
+  );
 
   return (
     <Container maxWidth="xl">
@@ -75,28 +164,6 @@ export function TerminalsListView() {
       />
 
       <Card>
-        <Stack
-          direction={{ xs: 'column', md: 'row' }}
-          spacing={2}
-          sx={{ p: 2.5, alignItems: { md: 'center' } }}
-        >
-          <TextField
-            select
-            value={branchId}
-            onChange={(e) => setBranchId(e.target.value)}
-            label="Filtrar por sucursal"
-            sx={{ minWidth: 260 }}
-            slotProps={{ inputLabel: { shrink: true } }}
-          >
-            <MenuItem value="">Todas las sucursales</MenuItem>
-            {branches.map((b) => (
-              <MenuItem key={b.id} value={b.id}>
-                {b.name}
-              </MenuItem>
-            ))}
-          </TextField>
-        </Stack>
-
         {isError && (
           <Box sx={{ p: 2 }}>
             <Alert
@@ -112,66 +179,20 @@ export function TerminalsListView() {
           </Box>
         )}
 
-        <TableContainer>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Código</TableCell>
-                <TableCell>Nombre</TableCell>
-                <TableCell>Sucursal</TableCell>
-                <TableCell>Hardware</TableCell>
-                <TableCell align="right">Acciones</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {isLoading && <TableSkeleton rows={5} columns={5} />}
-
-              {!isLoading && terminals.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={5} sx={{ p: 0, borderBottom: 0 }}>
-                    <EmptyState icon="inbox" title="Sin terminales" description="No hay terminales POS registrados." />
-                  </TableCell>
-                </TableRow>
-              )}
-
-              {terminals.map((t) => {
-                const hardware = [
-                  t.fiscalPrinterConfig && 'impresora',
-                  t.scaleConfig && 'báscula',
-                  t.cashDrawerConfig && 'gaveta',
-                ].filter(Boolean) as string[];
-
-                return (
-                  <TableRow key={t.id} hover>
-                    <TableCell sx={{ fontFamily: 'monospace' }}>{t.code}</TableCell>
-                    <TableCell>{t.name ?? '—'}</TableCell>
-                    <TableCell sx={{ color: 'text.secondary' }}>
-                      {branchById.get(t.branchId) ?? t.branchId}
-                    </TableCell>
-                    <TableCell sx={{ color: 'text.secondary' }}>
-                      {hardware.length > 0 ? hardware.join(', ') : '—'}
-                    </TableCell>
-                    <TableCell align="right">
-                      <IconButton
-                        onClick={() =>
-                          router.push(paths.dashboard.organization.terminals.edit(t.id))
-                        }
-                      >
-                        <Iconify icon="solar:pen-bold" />
-                      </IconButton>
-                      <IconButton
-                        color="error"
-                        onClick={() => setToDelete({ id: t.id, name: t.code })}
-                      >
-                        <Iconify icon="solar:trash-bin-trash-bold" />
-                      </IconButton>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </TableContainer>
+        <Box sx={{ width: '100%' }}>
+          <DataTable
+            columns={columns}
+            rows={terminals}
+            loading={isLoading}
+            disableRowSelectionOnClick
+            autoHeight
+            initialState={{
+              columns: {
+                columnVisibilityModel: { isActive: false, lastSyncAt: false },
+              },
+            }}
+          />
+        </Box>
       </Card>
 
       <ConfirmDialog

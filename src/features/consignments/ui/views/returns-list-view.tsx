@@ -1,29 +1,22 @@
-import { useMemo, useState } from 'react';
+import type { GridColDef } from '@mui/x-data-grid';
+import type { ConsignmentReturn } from '../../model/types';
+
+import { useMemo } from 'react';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
-import Table from '@mui/material/Table';
-import Stack from '@mui/material/Stack';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
-import TableRow from '@mui/material/TableRow';
-import MenuItem from '@mui/material/MenuItem';
-import TableHead from '@mui/material/TableHead';
-import TableCell from '@mui/material/TableCell';
-import TableBody from '@mui/material/TableBody';
 import Container from '@mui/material/Container';
-import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
-import TableContainer from '@mui/material/TableContainer';
 
 import { paths } from '@/app/routes/paths';
 import { useRouter } from '@/app/routes/hooks';
 import { Iconify } from '@/app/components/iconify';
-import { EmptyState } from '@/shared/ui/empty-state';
 import { PageHeader } from '@/shared/ui/page-header';
-import { TableSkeleton } from '@/shared/ui/table-skeleton';
-import { useBranchesQuery } from '@/features/branches/api/branches.queries';
-import { useSuppliersQuery } from '@/features/suppliers/api/suppliers.queries';
+import { useBranchOptions } from '@/features/branches/api/branches.options';
+import { useSupplierOptions } from '@/features/suppliers/api/suppliers.options';
+import { DataTable, createFkFilterOperators } from '@/app/components/data-table';
 
 import { useReturnsQuery } from '../../api/consignments.queries';
 
@@ -31,29 +24,85 @@ import { useReturnsQuery } from '../../api/consignments.queries';
 
 export function ReturnsListView() {
   const router = useRouter();
-  const [branchId, setBranchId] = useState('');
-  const [supplierId, setSupplierId] = useState('');
 
-  const { data: branches = [] } = useBranchesQuery();
-  const branchById = useMemo(
-    () => new Map(branches.map((b) => [b.id, b.name] as const)),
-    [branches]
-  );
-  const { data: suppliers = [] } = useSuppliersQuery({ isActive: true });
-  const supplierById = useMemo(
-    () => new Map(suppliers.map((s) => [s.id, s.businessName] as const)),
-    [suppliers]
-  );
+  const { data: returns = [], isLoading, isError, error, refetch } = useReturnsQuery({});
 
-  const params = useMemo(
-    () => ({
-      branchId: branchId || undefined,
-      supplierId: supplierId || undefined,
-    }),
-    [branchId, supplierId]
+  const { data: branchOpts = [] } = useBranchOptions();
+  const { data: supplierOpts = [] } = useSupplierOptions();
+  const branchNameById = useMemo(
+    () => new Map(branchOpts.map((o) => [o.id, o.label] as const)),
+    [branchOpts]
+  );
+  const supplierNameById = useMemo(
+    () => new Map(supplierOpts.map((o) => [o.id, o.label] as const)),
+    [supplierOpts]
   );
 
-  const { data: returns = [], isLoading, isError, error, refetch } = useReturnsQuery(params);
+  const branchFilterOperators = useMemo(
+    () => createFkFilterOperators<string>({ useOptions: useBranchOptions }),
+    []
+  );
+  const supplierFilterOperators = useMemo(
+    () => createFkFilterOperators<string>({ useOptions: useSupplierOptions }),
+    []
+  );
+
+  const columns = useMemo<GridColDef<ConsignmentReturn>[]>(
+    () => [
+      {
+        field: 'createdAt',
+        headerName: 'Fecha',
+        type: 'dateTime',
+        flex: 1,
+        minWidth: 160,
+        valueGetter: (value: string) => new Date(value),
+      },
+      {
+        field: 'supplierId',
+        headerName: 'Proveedor',
+        flex: 2,
+        minWidth: 220,
+        filterOperators: supplierFilterOperators,
+        valueFormatter: (value: string) => supplierNameById.get(value) ?? value,
+        renderCell: ({ row }) => (
+          <Typography variant="subtitle2">
+            {supplierNameById.get(row.supplierId) ?? row.supplierId}
+          </Typography>
+        ),
+        sortComparator: (a, b) =>
+          (supplierNameById.get(a) ?? '').localeCompare(supplierNameById.get(b) ?? ''),
+      },
+      {
+        field: 'branchId',
+        headerName: 'Sucursal',
+        flex: 1.5,
+        minWidth: 180,
+        filterOperators: branchFilterOperators,
+        valueFormatter: (value: string) => branchNameById.get(value) ?? value,
+        sortComparator: (a, b) =>
+          (branchNameById.get(a) ?? '').localeCompare(branchNameById.get(b) ?? ''),
+      },
+      {
+        field: 'reason',
+        headerName: 'Motivo',
+        flex: 1.5,
+        minWidth: 160,
+        renderCell: ({ row }) => (
+          <Typography variant="body2" sx={{ textTransform: 'capitalize' }}>
+            {row.reason}
+          </Typography>
+        ),
+      },
+      {
+        field: 'notes',
+        headerName: 'Notas',
+        flex: 2,
+        minWidth: 240,
+        valueGetter: (value: string | null) => value ?? '—',
+      },
+    ],
+    [branchFilterOperators, supplierFilterOperators, branchNameById, supplierNameById]
+  );
 
   return (
     <Container maxWidth="xl">
@@ -73,44 +122,6 @@ export function ReturnsListView() {
       />
 
       <Card>
-        <Stack
-          direction={{ xs: 'column', md: 'row' }}
-          spacing={2}
-          sx={{ p: 2.5, flexWrap: 'wrap' }}
-        >
-          <TextField
-            select
-            label="Sucursal"
-            value={branchId}
-            onChange={(e) => setBranchId(e.target.value)}
-            sx={{ minWidth: 220 }}
-            slotProps={{ inputLabel: { shrink: true } }}
-          >
-            <MenuItem value="">Todas</MenuItem>
-            {branches.map((b) => (
-              <MenuItem key={b.id} value={b.id}>
-                {b.name}
-              </MenuItem>
-            ))}
-          </TextField>
-
-          <TextField
-            select
-            label="Proveedor"
-            value={supplierId}
-            onChange={(e) => setSupplierId(e.target.value)}
-            sx={{ minWidth: 260 }}
-            slotProps={{ inputLabel: { shrink: true } }}
-          >
-            <MenuItem value="">Todos</MenuItem>
-            {suppliers.map((s) => (
-              <MenuItem key={s.id} value={s.id}>
-                {s.businessName}
-              </MenuItem>
-            ))}
-          </TextField>
-        </Stack>
-
         {isError && (
           <Box sx={{ p: 2 }}>
             <Alert
@@ -126,56 +137,15 @@ export function ReturnsListView() {
           </Box>
         )}
 
-        <TableContainer>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Fecha</TableCell>
-                <TableCell>Proveedor</TableCell>
-                <TableCell>Sucursal</TableCell>
-                <TableCell>Motivo</TableCell>
-                <TableCell>Notas</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {isLoading && <TableSkeleton rows={5} columns={5} />}
-
-              {!isLoading && returns.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={5} sx={{ p: 0, borderBottom: 0 }}>
-                    <EmptyState
-                      icon="inbox"
-                      title="Sin devoluciones"
-                      description="No hay devoluciones registradas con esos filtros."
-                    />
-                  </TableCell>
-                </TableRow>
-              )}
-
-              {returns.map((r) => (
-                <TableRow key={r.id} hover>
-                  <TableCell sx={{ color: 'text.secondary' }}>
-                    {new Date(r.createdAt).toLocaleDateString('es-VE')}
-                  </TableCell>
-                  <TableCell>
-                    <Typography variant="subtitle2">
-                      {supplierById.get(r.supplierId) ?? r.supplierId}
-                    </Typography>
-                  </TableCell>
-                  <TableCell sx={{ color: 'text.secondary' }}>
-                    {branchById.get(r.branchId) ?? r.branchId}
-                  </TableCell>
-                  <TableCell sx={{ textTransform: 'capitalize' }}>{r.reason}</TableCell>
-                  <TableCell sx={{ color: 'text.secondary', maxWidth: 280 }}>
-                    <Typography variant="caption" noWrap>
-                      {r.notes ?? '—'}
-                    </Typography>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
+        <Box sx={{ width: '100%' }}>
+          <DataTable
+            columns={columns}
+            rows={returns}
+            loading={isLoading}
+            disableRowSelectionOnClick
+            autoHeight
+          />
+        </Box>
       </Card>
     </Container>
   );

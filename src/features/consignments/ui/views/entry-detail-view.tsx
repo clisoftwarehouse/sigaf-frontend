@@ -1,21 +1,20 @@
+import type { GridColDef } from '@mui/x-data-grid';
+import type { ConsignmentEntryItem } from '../../model/types';
+
+import { useMemo } from 'react';
 import { useParams } from 'react-router';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Chip from '@mui/material/Chip';
 import Stack from '@mui/material/Stack';
-import Table from '@mui/material/Table';
 import Alert from '@mui/material/Alert';
-import TableRow from '@mui/material/TableRow';
-import TableHead from '@mui/material/TableHead';
-import TableCell from '@mui/material/TableCell';
-import TableBody from '@mui/material/TableBody';
 import Container from '@mui/material/Container';
 import Typography from '@mui/material/Typography';
-import TableContainer from '@mui/material/TableContainer';
 import CircularProgress from '@mui/material/CircularProgress';
 
 import { PageHeader } from '@/shared/ui/page-header';
+import { DataTable } from '@/app/components/data-table';
 
 import { useEntryQuery } from '../../api/consignments.queries';
 import { CONSIGNMENT_STATUS_COLOR } from '../../model/constants';
@@ -25,6 +24,66 @@ import { CONSIGNMENT_STATUS_COLOR } from '../../model/constants';
 export function EntryDetailView() {
   const { id } = useParams<{ id: string }>();
   const { data: entry, isLoading, isError, error } = useEntryQuery(id);
+
+  const itemColumns = useMemo<GridColDef<ConsignmentEntryItem>[]>(
+    () => [
+      {
+        field: 'lotNumber',
+        headerName: 'Lote',
+        flex: 1,
+        minWidth: 140,
+        renderCell: ({ row }) => (
+          <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
+            {row.lotNumber}
+          </Typography>
+        ),
+      },
+      {
+        field: 'expirationDate',
+        headerName: 'Vencimiento',
+        type: 'date',
+        flex: 1,
+        minWidth: 140,
+        valueGetter: (value: string) => (value ? new Date(value) : null),
+      },
+      {
+        field: 'quantity',
+        headerName: 'Cantidad',
+        type: 'number',
+        flex: 1,
+        minWidth: 120,
+        valueGetter: (value: number | string) => Number(value) || 0,
+      },
+      {
+        field: 'quantityRemaining',
+        headerName: 'Restante',
+        type: 'number',
+        flex: 1,
+        minWidth: 120,
+        valueGetter: (value: number | string) => Number(value) || 0,
+        cellClassName: 'remaining-cell',
+      },
+      {
+        field: 'costUsd',
+        headerName: 'Costo',
+        type: 'number',
+        flex: 1,
+        minWidth: 120,
+        valueGetter: (value: number | string) => Number(value) || 0,
+        valueFormatter: (value: number) => `$${value.toFixed(2)}`,
+      },
+      {
+        field: 'salePrice',
+        headerName: 'Precio',
+        type: 'number',
+        flex: 1,
+        minWidth: 120,
+        valueGetter: (value: number | string) => Number(value) || 0,
+        valueFormatter: (value: number) => `$${value.toFixed(2)}`,
+      },
+    ],
+    []
+  );
 
   return (
     <Container maxWidth="lg">
@@ -99,36 +158,19 @@ export function EntryDetailView() {
             <Typography variant="subtitle2" sx={{ p: 2.5, color: 'text.secondary' }}>
               Ítems ({entry.items?.length ?? 0})
             </Typography>
-            <TableContainer>
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Lote</TableCell>
-                    <TableCell>Vencimiento</TableCell>
-                    <TableCell align="right">Cantidad</TableCell>
-                    <TableCell align="right">Restante</TableCell>
-                    <TableCell align="right">Costo</TableCell>
-                    <TableCell align="right">Precio</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {entry.items?.map((i) => (
-                    <TableRow key={i.id}>
-                      <TableCell sx={{ fontFamily: 'monospace' }}>{i.lotNumber}</TableCell>
-                      <TableCell sx={{ color: 'text.secondary' }}>{i.expirationDate}</TableCell>
-                      <TableCell align="right">{Number(i.quantity) || 0}</TableCell>
-                      <TableCell align="right" sx={{ fontWeight: 600 }}>
-                        {Number(i.quantityRemaining) || 0}
-                      </TableCell>
-                      <TableCell align="right" sx={{ color: 'text.secondary' }}>
-                        ${(Number(i.costUsd) || 0).toFixed(2)}
-                      </TableCell>
-                      <TableCell align="right">${(Number(i.salePrice) || 0).toFixed(2)}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
+            <Box
+              sx={{
+                width: '100%',
+                '& .remaining-cell': { fontWeight: 600 },
+              }}
+            >
+              <DataTable
+                columns={itemColumns}
+                rows={entry.items ?? []}
+                disableRowSelectionOnClick
+                autoHeight
+              />
+            </Box>
           </Card>
         </>
       )}

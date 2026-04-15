@@ -1,20 +1,19 @@
+import type { GridColDef } from '@mui/x-data-grid';
+import type { GoodsReceiptItem } from '../../model/types';
+
+import { useMemo } from 'react';
 import { useParams } from 'react-router';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Stack from '@mui/material/Stack';
-import Table from '@mui/material/Table';
 import Alert from '@mui/material/Alert';
-import TableRow from '@mui/material/TableRow';
-import TableHead from '@mui/material/TableHead';
-import TableCell from '@mui/material/TableCell';
-import TableBody from '@mui/material/TableBody';
 import Container from '@mui/material/Container';
 import Typography from '@mui/material/Typography';
-import TableContainer from '@mui/material/TableContainer';
 import CircularProgress from '@mui/material/CircularProgress';
 
 import { PageHeader } from '@/shared/ui/page-header';
+import { DataTable } from '@/app/components/data-table';
 
 import { useReceiptQuery } from '../../api/purchases.queries';
 
@@ -23,6 +22,51 @@ import { useReceiptQuery } from '../../api/purchases.queries';
 export function ReceiptDetailView() {
   const { id } = useParams<{ id: string }>();
   const { data: receipt, isLoading, isError, error } = useReceiptQuery(id);
+
+  const itemColumns = useMemo<GridColDef<GoodsReceiptItem>[]>(
+    () => [
+      {
+        field: 'productId',
+        headerName: 'Producto',
+        flex: 2,
+        minWidth: 200,
+        renderCell: ({ row }) => (
+          <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
+            {row.productId.slice(0, 8)}
+          </Typography>
+        ),
+      },
+      {
+        field: 'lotId',
+        headerName: 'Lote creado',
+        flex: 2,
+        minWidth: 180,
+        renderCell: ({ row }) => (
+          <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
+            {row.lotId.slice(0, 8)}
+          </Typography>
+        ),
+      },
+      {
+        field: 'quantity',
+        headerName: 'Cantidad',
+        type: 'number',
+        flex: 1,
+        minWidth: 120,
+        valueGetter: (value: number | string) => Number(value) || 0,
+      },
+      {
+        field: 'unitCostUsd',
+        headerName: 'Costo unitario',
+        type: 'number',
+        flex: 1,
+        minWidth: 140,
+        valueGetter: (value: number | string) => Number(value) || 0,
+        valueFormatter: (value: number) => `$${value.toFixed(2)}`,
+      },
+    ],
+    []
+  );
 
   return (
     <Container maxWidth="lg">
@@ -84,32 +128,14 @@ export function ReceiptDetailView() {
             <Typography variant="subtitle2" sx={{ p: 2.5, color: 'text.secondary' }}>
               Ítems recibidos ({receipt.items?.length ?? 0})
             </Typography>
-            <TableContainer>
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Producto</TableCell>
-                    <TableCell>Lote creado</TableCell>
-                    <TableCell align="right">Cantidad</TableCell>
-                    <TableCell align="right">Costo unitario</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {receipt.items?.map((i) => (
-                    <TableRow key={i.id}>
-                      <TableCell sx={{ fontFamily: 'monospace' }}>
-                        {i.productId.slice(0, 8)}
-                      </TableCell>
-                      <TableCell sx={{ fontFamily: 'monospace' }}>{i.lotId.slice(0, 8)}</TableCell>
-                      <TableCell align="right">{Number(i.quantity) || 0}</TableCell>
-                      <TableCell align="right">
-                        ${(Number(i.unitCostUsd) || 0).toFixed(2)}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
+            <Box sx={{ width: '100%' }}>
+              <DataTable
+                columns={itemColumns}
+                rows={receipt.items ?? []}
+                disableRowSelectionOnClick
+                autoHeight
+              />
+            </Box>
           </Card>
         </>
       )}

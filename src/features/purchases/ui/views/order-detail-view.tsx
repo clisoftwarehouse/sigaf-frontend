@@ -1,24 +1,23 @@
+import type { GridColDef } from '@mui/x-data-grid';
+import type { PurchaseOrderItem } from '../../model/types';
+
 import { toast } from 'sonner';
+import { useMemo } from 'react';
 import { useParams } from 'react-router';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Chip from '@mui/material/Chip';
 import Stack from '@mui/material/Stack';
-import Table from '@mui/material/Table';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
-import TableRow from '@mui/material/TableRow';
-import TableHead from '@mui/material/TableHead';
-import TableCell from '@mui/material/TableCell';
-import TableBody from '@mui/material/TableBody';
 import Container from '@mui/material/Container';
 import Typography from '@mui/material/Typography';
-import TableContainer from '@mui/material/TableContainer';
 import CircularProgress from '@mui/material/CircularProgress';
 
 import { Iconify } from '@/app/components/iconify';
 import { PageHeader } from '@/shared/ui/page-header';
+import { DataTable } from '@/app/components/data-table';
 
 import { ORDER_STATUS_LABEL, ORDER_STATUS_COLOR } from '../../model/constants';
 import { useOrderQuery, useApproveOrderMutation } from '../../api/purchases.queries';
@@ -41,6 +40,58 @@ export function OrderDetailView() {
   };
 
   const canApprove = order?.status === 'draft';
+
+  const itemColumns = useMemo<GridColDef<PurchaseOrderItem>[]>(
+    () => [
+      {
+        field: 'productId',
+        headerName: 'Producto',
+        flex: 2,
+        minWidth: 220,
+        renderCell: ({ row }) => (
+          <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
+            {row.productId.slice(0, 8)}
+          </Typography>
+        ),
+      },
+      {
+        field: 'quantity',
+        headerName: 'Cantidad',
+        type: 'number',
+        flex: 1,
+        minWidth: 120,
+        valueGetter: (value: number | string) => Number(value) || 0,
+      },
+      {
+        field: 'quantityReceived',
+        headerName: 'Recibido',
+        type: 'number',
+        flex: 1,
+        minWidth: 120,
+        valueGetter: (value: number | string) => Number(value) || 0,
+      },
+      {
+        field: 'unitCostUsd',
+        headerName: 'Costo',
+        type: 'number',
+        flex: 1,
+        minWidth: 120,
+        valueGetter: (value: number | string) => Number(value) || 0,
+        valueFormatter: (value: number) => `$${value.toFixed(2)}`,
+      },
+      {
+        field: 'discountPct',
+        headerName: 'Descuento',
+        type: 'number',
+        flex: 1,
+        minWidth: 120,
+        valueGetter: (value: number | string | null) =>
+          value == null ? null : Number(value),
+        valueFormatter: (value: number | null) => (value == null ? '—' : `${value.toFixed(2)}%`),
+      },
+    ],
+    []
+  );
 
   return (
     <Container maxWidth="lg">
@@ -125,36 +176,14 @@ export function OrderDetailView() {
             <Typography variant="subtitle2" sx={{ p: 2.5, color: 'text.secondary' }}>
               Ítems ({order.items?.length ?? 0})
             </Typography>
-            <TableContainer>
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Producto</TableCell>
-                    <TableCell align="right">Cantidad</TableCell>
-                    <TableCell align="right">Recibido</TableCell>
-                    <TableCell align="right">Costo</TableCell>
-                    <TableCell align="right">Descuento</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {order.items?.map((i) => (
-                    <TableRow key={i.id}>
-                      <TableCell sx={{ fontFamily: 'monospace' }}>
-                        {i.productId.slice(0, 8)}
-                      </TableCell>
-                      <TableCell align="right">{Number(i.quantity) || 0}</TableCell>
-                      <TableCell align="right">{Number(i.quantityReceived) || 0}</TableCell>
-                      <TableCell align="right">
-                        ${(Number(i.unitCostUsd) || 0).toFixed(2)}
-                      </TableCell>
-                      <TableCell align="right">
-                        {i.discountPct != null ? `${Number(i.discountPct).toFixed(2)}%` : '—'}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
+            <Box sx={{ width: '100%' }}>
+              <DataTable
+                columns={itemColumns}
+                rows={order.items ?? []}
+                disableRowSelectionOnClick
+                autoHeight
+              />
+            </Box>
           </Card>
         </>
       )}

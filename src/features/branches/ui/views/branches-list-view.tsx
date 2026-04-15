@@ -1,27 +1,24 @@
+import type { GridColDef } from '@mui/x-data-grid';
+import type { Branch } from '../../model/types';
+
 import { toast } from 'sonner';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
-import Table from '@mui/material/Table';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
-import TableRow from '@mui/material/TableRow';
-import TableHead from '@mui/material/TableHead';
-import TableCell from '@mui/material/TableCell';
-import TableBody from '@mui/material/TableBody';
+import Tooltip from '@mui/material/Tooltip';
 import Container from '@mui/material/Container';
 import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
-import TableContainer from '@mui/material/TableContainer';
 
 import { paths } from '@/app/routes/paths';
 import { useRouter } from '@/app/routes/hooks';
 import { Iconify } from '@/app/components/iconify';
-import { EmptyState } from '@/shared/ui/empty-state';
 import { PageHeader } from '@/shared/ui/page-header';
+import { DataTable } from '@/app/components/data-table';
 import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
-import { TableSkeleton } from '@/shared/ui/table-skeleton';
 
 import { useBranchesQuery, useDeleteBranchMutation } from '../../api/branches.queries';
 
@@ -44,6 +41,70 @@ export function BranchesListView() {
       toast.error((err as Error).message);
     }
   };
+
+  const columns = useMemo<GridColDef<Branch>[]>(
+    () => [
+      {
+        field: 'name',
+        headerName: 'Nombre',
+        flex: 2,
+        minWidth: 180,
+        renderCell: ({ row }) => <Typography variant="subtitle2">{row.name}</Typography>,
+      },
+      {
+        field: 'rif',
+        headerName: 'RIF',
+        flex: 1,
+        minWidth: 140,
+        renderCell: ({ row }) => (
+          <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
+            {row.rif}
+          </Typography>
+        ),
+      },
+      {
+        field: 'address',
+        headerName: 'Dirección',
+        flex: 3,
+        minWidth: 240,
+      },
+      {
+        field: 'contact',
+        headerName: 'Contacto',
+        flex: 1,
+        minWidth: 180,
+        valueGetter: (_value, row) => row.phone ?? row.email ?? '—',
+      },
+      {
+        field: 'actions',
+        type: 'actions',
+        headerName: 'Acciones',
+        width: 110,
+        align: 'right',
+        headerAlign: 'right',
+        renderCell: ({ row }) => (
+          <>
+            <Tooltip title="Editar">
+              <IconButton
+                onClick={() => router.push(paths.dashboard.organization.branches.edit(row.id))}
+              >
+                <Iconify icon="solar:pen-bold" />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Eliminar">
+              <IconButton
+                color="error"
+                onClick={() => setToDelete({ id: row.id, name: row.name })}
+              >
+                <Iconify icon="solar:trash-bin-trash-bold" />
+              </IconButton>
+            </Tooltip>
+          </>
+        ),
+      },
+    ],
+    [router]
+  );
 
   return (
     <Container maxWidth="xl">
@@ -78,60 +139,15 @@ export function BranchesListView() {
           </Box>
         )}
 
-        <TableContainer>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Nombre</TableCell>
-                <TableCell>RIF</TableCell>
-                <TableCell>Dirección</TableCell>
-                <TableCell>Contacto</TableCell>
-                <TableCell align="right">Acciones</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {isLoading && <TableSkeleton rows={4} columns={5} />}
-
-              {!isLoading && branches.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={5} sx={{ p: 0, borderBottom: 0 }}>
-                    <EmptyState icon="inbox" title="Sin sucursales" description="Aún no has registrado sucursales." />
-                  </TableCell>
-                </TableRow>
-              )}
-
-              {branches.map((b) => (
-                <TableRow key={b.id} hover>
-                  <TableCell>
-                    <Typography variant="subtitle2">{b.name}</Typography>
-                  </TableCell>
-                  <TableCell sx={{ fontFamily: 'monospace' }}>{b.rif}</TableCell>
-                  <TableCell sx={{ color: 'text.secondary', maxWidth: 260 }}>
-                    <Typography variant="body2" noWrap>
-                      {b.address}
-                    </Typography>
-                  </TableCell>
-                  <TableCell sx={{ color: 'text.secondary' }}>
-                    {b.phone ?? b.email ?? '—'}
-                  </TableCell>
-                  <TableCell align="right">
-                    <IconButton
-                      onClick={() => router.push(paths.dashboard.organization.branches.edit(b.id))}
-                    >
-                      <Iconify icon="solar:pen-bold" />
-                    </IconButton>
-                    <IconButton
-                      color="error"
-                      onClick={() => setToDelete({ id: b.id, name: b.name })}
-                    >
-                      <Iconify icon="solar:trash-bin-trash-bold" />
-                    </IconButton>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
+        <Box sx={{ width: '100%' }}>
+          <DataTable
+            columns={columns}
+            rows={branches}
+            loading={isLoading}
+            disableRowSelectionOnClick
+            autoHeight
+          />
+        </Box>
       </Card>
 
       <ConfirmDialog

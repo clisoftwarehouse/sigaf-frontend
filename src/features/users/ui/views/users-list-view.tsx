@@ -1,57 +1,45 @@
+import type { GridColDef } from '@mui/x-data-grid';
+import type { SigafUser } from '../../model/types';
+
 import { toast } from 'sonner';
 import { useMemo, useState } from 'react';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Chip from '@mui/material/Chip';
-import Table from '@mui/material/Table';
-import Stack from '@mui/material/Stack';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
-import TableRow from '@mui/material/TableRow';
-import MenuItem from '@mui/material/MenuItem';
-import TableHead from '@mui/material/TableHead';
-import TableCell from '@mui/material/TableCell';
-import TableBody from '@mui/material/TableBody';
+import Tooltip from '@mui/material/Tooltip';
 import Container from '@mui/material/Container';
-import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
-import TableContainer from '@mui/material/TableContainer';
 
 import { paths } from '@/app/routes/paths';
 import { useRouter } from '@/app/routes/hooks';
 import { Iconify } from '@/app/components/iconify';
-import { EmptyState } from '@/shared/ui/empty-state';
 import { PageHeader } from '@/shared/ui/page-header';
 import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
-import { TableSkeleton } from '@/shared/ui/table-skeleton';
-import { useRolesQuery } from '@/features/roles/api/roles.queries';
+import { useRoleOptions } from '@/features/roles/api/roles.options';
+import { DataTable, createFkFilterOperators } from '@/app/components/data-table';
 
 import { useUsersQuery, useDeleteUserMutation } from '../../api/users.queries';
 
 // ----------------------------------------------------------------------
 
-const PAGE_SIZE = 20;
-
 export function UsersListView() {
   const router = useRouter();
-  const [page, setPage] = useState(1);
-  const [roleId, setRoleId] = useState<string>('');
   const [toDelete, setToDelete] = useState<{ id: string; name: string } | null>(null);
 
-  const { data: roles = [] } = useRolesQuery();
-
-  const args = useMemo(
-    () => ({ page, limit: PAGE_SIZE, filters: roleId ? { roleId } : undefined }),
-    [page, roleId]
-  );
-
-  const { data, isLoading, isError, error, refetch, isFetching } = useUsersQuery(args);
+  const {
+    data,
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = useUsersQuery({ page: 1, limit: 1000 });
   const deleteMutation = useDeleteUserMutation();
 
   const users = data?.data ?? [];
-  const hasNextPage = data?.hasNextPage ?? false;
 
   const confirmDelete = async () => {
     if (!toDelete) return;
@@ -63,6 +51,120 @@ export function UsersListView() {
       toast.error((err as Error).message);
     }
   };
+
+  const roleFilterOperators = useMemo(
+    () =>
+      createFkFilterOperators<SigafUser['role']>({
+        useOptions: useRoleOptions,
+        getIds: (role) => (role?.id ? [role.id] : []),
+      }),
+    []
+  );
+
+  const columns = useMemo<GridColDef<SigafUser>[]>(
+    () => [
+      {
+        field: 'username',
+        headerName: 'Usuario',
+        flex: 1,
+        minWidth: 160,
+        renderCell: ({ row }) => (
+          <Typography variant="subtitle2" sx={{ fontFamily: 'monospace' }}>
+            {row.username}
+          </Typography>
+        ),
+      },
+      {
+        field: 'fullName',
+        headerName: 'Nombre completo',
+        flex: 2,
+        minWidth: 200,
+      },
+      {
+        field: 'role',
+        headerName: 'Rol',
+        flex: 1,
+        minWidth: 160,
+        filterOperators: roleFilterOperators,
+        valueGetter: (_value, row) => row.role ?? null,
+        valueFormatter: (value: SigafUser['role']) => value?.name ?? '—',
+        renderCell: ({ row }) => (
+          <Typography variant="body2" sx={{ textTransform: 'capitalize', color: 'text.secondary' }}>
+            {row.role?.name ?? '—'}
+          </Typography>
+        ),
+        sortComparator: (a, b) => (a?.name ?? '').localeCompare(b?.name ?? ''),
+      },
+      {
+        field: 'email',
+        headerName: 'Email',
+        flex: 2,
+        minWidth: 200,
+        valueGetter: (value: string | null | undefined) => value ?? '—',
+      },
+      {
+        field: 'phone',
+        headerName: 'Teléfono',
+        flex: 1,
+        minWidth: 140,
+        valueGetter: (value: string | null | undefined) => value ?? '—',
+      },
+      {
+        field: 'isActive',
+        headerName: 'Activo',
+        type: 'boolean',
+        flex: 1,
+        minWidth: 110,
+        renderCell: ({ row }) =>
+          row.isActive ? (
+            <Chip size="small" color="success" label="Activo" />
+          ) : (
+            <Chip size="small" variant="outlined" label="Inactivo" />
+          ),
+      },
+      {
+        field: 'cedula',
+        headerName: 'Cédula',
+        flex: 1,
+        minWidth: 140,
+        valueGetter: (value: string | null | undefined) => value ?? '—',
+      },
+      {
+        field: 'lastLoginAt',
+        headerName: 'Último ingreso',
+        type: 'dateTime',
+        flex: 1,
+        minWidth: 180,
+        valueGetter: (value: string | null | undefined) => (value ? new Date(value) : null),
+      },
+      {
+        field: 'actions',
+        type: 'actions',
+        headerName: 'Acciones',
+        width: 110,
+        align: 'right',
+        headerAlign: 'right',
+        renderCell: ({ row }) => (
+          <>
+            <Tooltip title="Editar">
+              <IconButton onClick={() => router.push(paths.dashboard.admin.users.edit(row.id))}>
+                <Iconify icon="solar:pen-bold" />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Eliminar">
+              <IconButton
+                color="error"
+                onClick={() => setToDelete({ id: row.id, name: row.username })}
+              >
+                <Iconify icon="solar:trash-bin-trash-bold" />
+              </IconButton>
+            </Tooltip>
+          </>
+        ),
+      },
+    ],
+    [router, roleFilterOperators]
+  );
 
   return (
     <Container maxWidth="xl">
@@ -82,31 +184,6 @@ export function UsersListView() {
       />
 
       <Card>
-        <Stack
-          direction={{ xs: 'column', md: 'row' }}
-          spacing={2}
-          sx={{ p: 2.5, alignItems: { md: 'center' } }}
-        >
-          <TextField
-            select
-            label="Filtrar por rol"
-            value={roleId}
-            onChange={(e) => {
-              setRoleId(e.target.value);
-              setPage(1);
-            }}
-            sx={{ minWidth: 240 }}
-            slotProps={{ inputLabel: { shrink: true } }}
-          >
-            <MenuItem value="">Todos los roles</MenuItem>
-            {roles.map((r) => (
-              <MenuItem key={r.id} value={r.id} sx={{ textTransform: 'capitalize' }}>
-                {r.name}
-              </MenuItem>
-            ))}
-          </TextField>
-        </Stack>
-
         {isError && (
           <Box sx={{ p: 2 }}>
             <Alert
@@ -122,99 +199,19 @@ export function UsersListView() {
           </Box>
         )}
 
-        <TableContainer>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Usuario</TableCell>
-                <TableCell>Nombre completo</TableCell>
-                <TableCell>Rol</TableCell>
-                <TableCell>Contacto</TableCell>
-                <TableCell>Estado</TableCell>
-                <TableCell align="right">Acciones</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {isLoading && <TableSkeleton rows={6} columns={6} />}
-
-              {!isLoading && users.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={6} sx={{ p: 0, borderBottom: 0 }}>
-                    <EmptyState icon="inbox" title="Sin usuarios" description="No hay usuarios que coincidan con los filtros." />
-                  </TableCell>
-                </TableRow>
-              )}
-
-              {users.map((u) => (
-                <TableRow key={u.id} hover>
-                  <TableCell>
-                    <Typography variant="subtitle2" sx={{ fontFamily: 'monospace' }}>
-                      {u.username}
-                    </Typography>
-                  </TableCell>
-                  <TableCell>{u.fullName}</TableCell>
-                  <TableCell sx={{ color: 'text.secondary', textTransform: 'capitalize' }}>
-                    {u.role?.name ?? '—'}
-                  </TableCell>
-                  <TableCell sx={{ color: 'text.secondary' }}>
-                    {u.email ?? u.phone ?? '—'}
-                  </TableCell>
-                  <TableCell>
-                    {u.isActive ? (
-                      <Chip size="small" color="success" label="Activo" />
-                    ) : (
-                      <Chip size="small" variant="outlined" label="Inactivo" />
-                    )}
-                  </TableCell>
-                  <TableCell align="right">
-                    <IconButton
-                      onClick={() => router.push(paths.dashboard.admin.users.edit(u.id))}
-                    >
-                      <Iconify icon="solar:pen-bold" />
-                    </IconButton>
-                    <IconButton
-                      color="error"
-                      onClick={() => setToDelete({ id: u.id, name: u.username })}
-                    >
-                      <Iconify icon="solar:trash-bin-trash-bold" />
-                    </IconButton>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            p: 2,
-            borderTop: (theme) => `dashed 1px ${theme.vars.palette.divider}`,
-          }}
-        >
-          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-            Página {page}
-          </Typography>
-          <Stack direction="row" spacing={1}>
-            <Button
-              size="small"
-              variant="outlined"
-              disabled={page <= 1 || isFetching}
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-            >
-              Anterior
-            </Button>
-            <Button
-              size="small"
-              variant="outlined"
-              disabled={!hasNextPage || isFetching}
-              onClick={() => setPage((p) => p + 1)}
-            >
-              Siguiente
-            </Button>
-          </Stack>
+        <Box sx={{ width: '100%' }}>
+          <DataTable
+            columns={columns}
+            rows={users}
+            loading={isLoading}
+            disableRowSelectionOnClick
+            autoHeight
+            initialState={{
+              columns: {
+                columnVisibilityModel: { cedula: false, lastLoginAt: false, phone: false },
+              },
+            }}
+          />
         </Box>
       </Card>
 

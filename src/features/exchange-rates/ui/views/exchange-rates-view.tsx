@@ -1,4 +1,5 @@
-import type { CreateExchangeRatePayload } from '../../model/types';
+import type { GridColDef } from '@mui/x-data-grid';
+import type { ExchangeRate , CreateExchangeRatePayload } from '../../model/types';
 
 import * as z from 'zod';
 import { toast } from 'sonner';
@@ -9,21 +10,14 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Stack from '@mui/material/Stack';
-import Table from '@mui/material/Table';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
-import TableRow from '@mui/material/TableRow';
-import TableHead from '@mui/material/TableHead';
-import TableCell from '@mui/material/TableCell';
-import TableBody from '@mui/material/TableBody';
 import Container from '@mui/material/Container';
 import Typography from '@mui/material/Typography';
-import TableContainer from '@mui/material/TableContainer';
 
-import { EmptyState } from '@/shared/ui/empty-state';
 import { PageHeader } from '@/shared/ui/page-header';
+import { DataTable } from '@/app/components/data-table';
 import { Form, Field } from '@/app/components/hook-form';
-import { TableSkeleton } from '@/shared/ui/table-skeleton';
 
 import {
   useExchangeRatesQuery,
@@ -49,7 +43,7 @@ const RateSchema = z.object({
 type RateFormValues = z.infer<typeof RateSchema>;
 
 export function ExchangeRatesView() {
-  const [limit] = useState(50);
+  const [limit] = useState(1000);
 
   const {
     data: rates = [],
@@ -113,6 +107,57 @@ export function ExchangeRatesView() {
       </Card>
     );
   }, [latest]);
+
+  const columns = useMemo<GridColDef<ExchangeRate>[]>(
+    () => [
+      {
+        field: 'effectiveDate',
+        headerName: 'Fecha efectiva',
+        type: 'date',
+        flex: 1,
+        minWidth: 160,
+        valueGetter: (value: string) => (value ? new Date(value) : null),
+      },
+      {
+        field: 'pair',
+        headerName: 'Par',
+        flex: 1,
+        minWidth: 140,
+        valueGetter: (_v, row) => `${row.currencyFrom} → ${row.currencyTo}`,
+        renderCell: ({ value }) => (
+          <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
+            {value}
+          </Typography>
+        ),
+      },
+      {
+        field: 'rate',
+        headerName: 'Tasa',
+        type: 'number',
+        flex: 1,
+        minWidth: 140,
+        valueGetter: (value: number | string) =>
+          typeof value === 'string' ? Number(value) : value,
+        valueFormatter: (value: number) =>
+          value.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 4 }),
+      },
+      {
+        field: 'source',
+        headerName: 'Fuente',
+        flex: 1,
+        minWidth: 140,
+      },
+      {
+        field: 'createdAt',
+        headerName: 'Registrado',
+        type: 'dateTime',
+        flex: 1,
+        minWidth: 180,
+        valueGetter: (value: string) => (value ? new Date(value) : null),
+      },
+    ],
+    []
+  );
 
   return (
     <Container maxWidth="lg">
@@ -181,7 +226,7 @@ export function ExchangeRatesView() {
 
       <Card>
         <Box sx={{ p: 2.5 }}>
-          <Typography variant="subtitle2">Historial (últimas {limit})</Typography>
+          <Typography variant="subtitle2">Historial</Typography>
         </Box>
 
         {isError && (
@@ -199,52 +244,15 @@ export function ExchangeRatesView() {
           </Box>
         )}
 
-        <TableContainer>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Fecha efectiva</TableCell>
-                <TableCell>Par</TableCell>
-                <TableCell align="right">Tasa</TableCell>
-                <TableCell>Fuente</TableCell>
-                <TableCell>Registrado</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {isLoading && <TableSkeleton rows={5} columns={5} />}
-
-              {!isLoading && rates.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={5} sx={{ p: 0, borderBottom: 0 }}>
-                    <EmptyState icon="inbox" title="Sin tasas registradas" description="Aún no se ha registrado ninguna tasa de cambio." />
-                  </TableCell>
-                </TableRow>
-              )}
-
-              {rates.map((r) => {
-                const rate = typeof r.rate === 'string' ? Number(r.rate) : r.rate;
-                return (
-                  <TableRow key={r.id} hover>
-                    <TableCell>{r.effectiveDate}</TableCell>
-                    <TableCell sx={{ fontFamily: 'monospace' }}>
-                      {r.currencyFrom} → {r.currencyTo}
-                    </TableCell>
-                    <TableCell align="right">
-                      {rate.toLocaleString('es-VE', {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 4,
-                      })}
-                    </TableCell>
-                    <TableCell sx={{ color: 'text.secondary' }}>{r.source}</TableCell>
-                    <TableCell sx={{ color: 'text.secondary' }}>
-                      {new Date(r.createdAt).toLocaleString('es-VE')}
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </TableContainer>
+        <Box sx={{ width: '100%' }}>
+          <DataTable
+            columns={columns}
+            rows={rates}
+            loading={isLoading}
+            disableRowSelectionOnClick
+            autoHeight
+          />
+        </Box>
       </Card>
     </Container>
   );

@@ -1,3 +1,6 @@
+import type { GridColDef } from '@mui/x-data-grid';
+import type { InventoryLot } from '../../model/types';
+
 import { useMemo } from 'react';
 import { useParams } from 'react-router';
 
@@ -5,33 +8,36 @@ import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Chip from '@mui/material/Chip';
 import Stack from '@mui/material/Stack';
-import Table from '@mui/material/Table';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
 import Divider from '@mui/material/Divider';
-import TableRow from '@mui/material/TableRow';
-import TableHead from '@mui/material/TableHead';
-import TableCell from '@mui/material/TableCell';
-import TableBody from '@mui/material/TableBody';
 import Container from '@mui/material/Container';
 import Typography from '@mui/material/Typography';
-import TableContainer from '@mui/material/TableContainer';
 import CircularProgress from '@mui/material/CircularProgress';
 
 import { paths } from '@/app/routes/paths';
 import { useRouter } from '@/app/routes/hooks';
 import { Iconify } from '@/app/components/iconify';
-import { EmptyState } from '@/shared/ui/empty-state';
 import { PageHeader } from '@/shared/ui/page-header';
+import { DataTable } from '@/app/components/data-table';
 import { useBrandsQuery } from '@/features/brands/api/brands.queries';
 import { PRODUCT_TYPE_LABEL } from '@/features/products/model/constants';
 import { useProductQuery } from '@/features/products/api/products.queries';
+import { useBranchOptions } from '@/features/branches/api/branches.options';
 import { useCategoriesQuery } from '@/features/categories/api/categories.queries';
 
 import { ExpirySignalChip } from '../components/expiry-signal-chip';
 import { useFefoQuery, useStockQuery } from '../../api/inventory.queries';
 
 // ----------------------------------------------------------------------
+
+type StockRow = {
+  productId: string;
+  branchId: string;
+  totalQuantity: number | string;
+  lotCount: number;
+  nearestExpiration: string | null;
+};
 
 export function InventoryProductDetailView() {
   const { id } = useParams<{ id: string }>();
@@ -43,6 +49,11 @@ export function InventoryProductDetailView() {
 
   const { flat: categories } = useCategoriesQuery();
   const { data: brands = [] } = useBrandsQuery();
+  const { data: branchOpts = [] } = useBranchOptions();
+  const branchNameById = useMemo(
+    () => new Map(branchOpts.map((o) => [o.id, o.label] as const)),
+    [branchOpts]
+  );
 
   const categoryName = useMemo(
     () => (product ? categories.find((c) => c.id === product.categoryId)?.name ?? '—' : '—'),
@@ -54,7 +65,114 @@ export function InventoryProductDetailView() {
     [brands, product]
   );
 
-  const branchBreakdown = stockData?.data ?? [];
+  const branchBreakdown = (stockData?.data ?? []) as StockRow[];
+  const branchRows = useMemo(
+    () => branchBreakdown.map((r) => ({ ...r, id: `${r.productId}-${r.branchId}` })),
+    [branchBreakdown]
+  );
+
+  const branchColumns = useMemo<GridColDef<StockRow & { id: string }>[]>(
+    () => [
+      {
+        field: 'branchId',
+        headerName: 'Sucursal',
+        flex: 2,
+        minWidth: 200,
+        valueFormatter: (value: string) => branchNameById.get(value) ?? value,
+      },
+      {
+        field: 'totalQuantity',
+        headerName: 'Cantidad',
+        type: 'number',
+        flex: 1,
+        minWidth: 120,
+        valueGetter: (value: number | string) => Number(value) || 0,
+      },
+      {
+        field: 'lotCount',
+        headerName: 'Lotes',
+        type: 'number',
+        flex: 1,
+        minWidth: 100,
+      },
+      {
+        field: 'nearestExpiration',
+        headerName: 'Próximo vencimiento',
+        type: 'date',
+        flex: 1,
+        minWidth: 180,
+        valueGetter: (value: string | null) => (value ? new Date(value) : null),
+      },
+    ],
+    [branchNameById]
+  );
+
+  const fefoColumns = useMemo<GridColDef<InventoryLot & { _idx?: number }>[]>(
+    () => [
+      {
+        field: 'lotNumber',
+        headerName: 'Lote',
+        flex: 1.5,
+        minWidth: 160,
+        renderCell: ({ row }) => (
+          <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
+            {row.lotNumber}
+          </Typography>
+        ),
+      },
+      {
+        field: 'branchId',
+        headerName: 'Sucursal',
+        flex: 1.5,
+        minWidth: 180,
+        valueFormatter: (value: string) => branchNameById.get(value) ?? value,
+      },
+      {
+        field: 'expirationDate',
+        headerName: 'Vencimiento',
+        type: 'date',
+        flex: 1,
+        minWidth: 140,
+        valueGetter: (value: string) => (value ? new Date(value) : null),
+      },
+      {
+        field: 'expirySignal',
+        headerName: 'Señal',
+        flex: 1,
+        minWidth: 130,
+        renderCell: ({ row }) => <ExpirySignalChip signal={row.expirySignal} />,
+      },
+      {
+        field: 'quantityAvailable',
+        headerName: 'Disponible',
+        type: 'number',
+        flex: 1,
+        minWidth: 120,
+        valueGetter: (value: number | string) => Number(value) || 0,
+      },
+      {
+        field: 'salePrice',
+        headerName: 'Precio',
+        type: 'number',
+        flex: 1,
+        minWidth: 120,
+        valueGetter: (value: number | string) => Number(value) || 0,
+        valueFormatter: (value: number) => `$${value.toFixed(2)}`,
+      },
+      {
+        field: 'status',
+        headerName: 'Estado',
+        flex: 1,
+        minWidth: 130,
+        renderCell: ({ row }) => (
+          <Typography variant="body2" sx={{ textTransform: 'capitalize' }}>
+            {row.status}
+          </Typography>
+        ),
+      },
+    ],
+    [branchNameById]
+  );
 
   return (
     <Container maxWidth="xl">
@@ -66,7 +184,12 @@ export function InventoryProductDetailView() {
           <Button
             variant="outlined"
             color="inherit"
-            startIcon={<Iconify icon="solar:double-alt-arrow-right-bold-duotone" sx={{ transform: 'scaleX(-1)' }} />}
+            startIcon={
+              <Iconify
+                icon="solar:double-alt-arrow-right-bold-duotone"
+                sx={{ transform: 'scaleX(-1)' }}
+              />
+            }
             onClick={() => router.push(paths.dashboard.inventory.stock)}
           >
             Volver al stock
@@ -84,7 +207,6 @@ export function InventoryProductDetailView() {
 
       {product && (
         <Stack spacing={3}>
-          {/* ── Header summary ─────────────────────────────────────── */}
           <Card sx={{ p: 3 }}>
             <Stack
               direction={{ xs: 'column', sm: 'row' }}
@@ -161,44 +283,22 @@ export function InventoryProductDetailView() {
             )}
           </Card>
 
-          {/* ── Stock breakdown by branch ──────────────────────────── */}
-          {branchBreakdown.length > 0 && (
+          {branchRows.length > 0 && (
             <Card>
               <Typography variant="subtitle2" sx={{ p: 2.5, color: 'text.secondary' }}>
                 Stock por sucursal
               </Typography>
-              <TableContainer>
-                <Table size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Sucursal</TableCell>
-                      <TableCell align="right">Cantidad</TableCell>
-                      <TableCell align="right">Lotes</TableCell>
-                      <TableCell>Próximo vencimiento</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {branchBreakdown.map((row) => (
-                      <TableRow key={`${row.productId}-${row.branchId}`}>
-                        <TableCell sx={{ fontFamily: 'monospace', color: 'text.secondary' }}>
-                          {row.branchId.slice(0, 8)}
-                        </TableCell>
-                        <TableCell align="right">{Number(row.totalQuantity) || 0}</TableCell>
-                        <TableCell align="right">{row.lotCount}</TableCell>
-                        <TableCell sx={{ color: 'text.secondary' }}>
-                          {row.nearestExpiration
-                            ? new Date(row.nearestExpiration).toISOString().slice(0, 10)
-                            : '—'}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
+              <Box sx={{ width: '100%' }}>
+                <DataTable
+                  columns={branchColumns}
+                  rows={branchRows}
+                  disableRowSelectionOnClick
+                  autoHeight
+                />
+              </Box>
             </Card>
           )}
 
-          {/* ── FEFO lot list ──────────────────────────────────────── */}
           <Card>
             <Box sx={{ p: 2.5 }}>
               <Typography variant="subtitle2" sx={{ color: 'text.secondary' }}>
@@ -210,69 +310,15 @@ export function InventoryProductDetailView() {
               </Typography>
             </Box>
 
-            <TableContainer>
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell>#</TableCell>
-                    <TableCell>Lote</TableCell>
-                    <TableCell>Sucursal</TableCell>
-                    <TableCell>Vencimiento</TableCell>
-                    <TableCell align="right">Disponible</TableCell>
-                    <TableCell align="right">Precio</TableCell>
-                    <TableCell>Estado</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {loadingLots && (
-                    <TableRow>
-                      <TableCell colSpan={7} align="center" sx={{ py: 6 }}>
-                        <CircularProgress size={28} />
-                      </TableCell>
-                    </TableRow>
-                  )}
-
-                  {!loadingLots && fefoLots.length === 0 && (
-                    <TableRow>
-                      <TableCell colSpan={7} sx={{ p: 0, borderBottom: 0 }}>
-                        <EmptyState
-                          icon="box"
-                          title="Sin lotes disponibles"
-                          description="Este producto no tiene lotes con stock disponible en este momento."
-                        />
-                      </TableCell>
-                    </TableRow>
-                  )}
-
-                  {fefoLots.map((lot, idx) => {
-                    const available = Number(lot.quantityAvailable) || 0;
-                    const price = Number(lot.salePrice) || 0;
-                    return (
-                      <TableRow key={lot.id} hover>
-                        <TableCell>
-                          <Typography variant="subtitle2">#{idx + 1}</Typography>
-                        </TableCell>
-                        <TableCell sx={{ fontFamily: 'monospace' }}>{lot.lotNumber}</TableCell>
-                        <TableCell sx={{ fontFamily: 'monospace', color: 'text.secondary' }}>
-                          {lot.branchId.slice(0, 8)}
-                        </TableCell>
-                        <TableCell>
-                          <Stack spacing={0.5}>
-                            <Typography variant="body2">{lot.expirationDate}</Typography>
-                            <ExpirySignalChip signal={lot.expirySignal} />
-                          </Stack>
-                        </TableCell>
-                        <TableCell align="right">{available}</TableCell>
-                        <TableCell align="right" sx={{ color: 'text.secondary' }}>
-                          ${price.toFixed(2)}
-                        </TableCell>
-                        <TableCell sx={{ textTransform: 'capitalize' }}>{lot.status}</TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </TableContainer>
+            <Box sx={{ width: '100%' }}>
+              <DataTable
+                columns={fefoColumns}
+                rows={fefoLots}
+                loading={loadingLots}
+                disableRowSelectionOnClick
+                autoHeight
+              />
+            </Box>
           </Card>
         </Stack>
       )}
