@@ -60,8 +60,12 @@ export async function approveOrder(id: string): Promise<PurchaseOrder> {
 
 // ─── Receipts ───────────────────────────────────────────────────────────
 
-export async function fetchReceipts(filters: GoodsReceiptFilters = {}): Promise<GoodsReceipt[]> {
-  const res = await axios.get<GoodsReceipt[]>(endpoints.purchases.receipts, { params: filters });
+export async function fetchReceipts(
+  filters: GoodsReceiptFilters = {}
+): Promise<PaginatedResponse<GoodsReceipt>> {
+  const res = await axios.get<PaginatedResponse<GoodsReceipt>>(endpoints.purchases.receipts, {
+    params: filters,
+  });
   return res.data;
 }
 

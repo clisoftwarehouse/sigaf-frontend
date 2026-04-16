@@ -177,3 +177,23 @@ export type CyclicScheduleFilters = {
   branchId?: string;
   isActive?: boolean;
 };
+
+// ----------------------------------------------------------------------
+
+export type AccuracyTrendPoint = {
+  date: string;
+  accuracyPct: number;
+};
+
+export type AccuracyMetrics = {
+  avgAccuracyPct: number;
+  totalCounts: number;
+  totalAdjustments: number;
+  trend: AccuracyTrendPoint[];
+};
+
+export type AccuracyFilters = {
+  branchId?: string;
+  from?: string;
+  to?: string;
+};

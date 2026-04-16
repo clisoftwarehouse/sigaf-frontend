@@ -28,7 +28,7 @@ import { useReceiptsQuery } from '../../api/purchases.queries';
 export function ReceiptsListView() {
   const router = useRouter();
 
-  const { data: receipts = [], isLoading, isError, error, refetch } = useReceiptsQuery();
+  const { data: receipts, isLoading, isError, error, refetch } = useReceiptsQuery();
 
   const { data: branchOpts = [] } = useBranchOptions();
   const { data: supplierOpts = [] } = useSupplierOptions();
@@ -162,7 +162,7 @@ export function ReceiptsListView() {
         <Box sx={{ width: '100%' }}>
           <DataTable
             columns={columns}
-            rows={receipts}
+            rows={receipts?.data}
             loading={isLoading}
             disableRowSelectionOnClick
             autoHeight

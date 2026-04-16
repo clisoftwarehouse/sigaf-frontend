@@ -1,6 +1,8 @@
 import type {
   InventoryCount,
   CyclicSchedule,
+  AccuracyFilters,
+  AccuracyMetrics,
   InventoryCountItem,
   InventoryCountFilters,
   CyclicScheduleFilters,
@@ -118,5 +120,17 @@ export async function updateCyclicSchedule(
   payload: UpdateCyclicSchedulePayload
 ): Promise<CyclicSchedule> {
   const res = await axios.put<CyclicSchedule>(`${ROOT}/counts/cyclic-schedules/${id}`, payload);
+  return res.data;
+}
+
+// ----------------------------------------------------------------------
+// Accuracy
+
+export async function fetchAccuracy(filters: AccuracyFilters = {}): Promise<AccuracyMetrics> {
+  const params: Record<string, string> = {};
+  if (filters.branchId) params.branchId = filters.branchId;
+  if (filters.from) params.from = filters.from;
+  if (filters.to) params.to = filters.to;
+  const res = await axios.get<AccuracyMetrics>(`${ROOT}/counts/accuracy`, { params });
   return res.data;
 }

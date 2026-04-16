@@ -1514,6 +1514,11 @@ ansi-styles@^6.2.1, ansi-styles@^6.2.3:
   resolved "https://registry.yarnpkg.com/ansi-styles/-/ansi-styles-6.2.3.tgz#c044d5dcc521a076413472597a1acb1f103c4041"
   integrity sha512-4Dj6M28JB+oAH8kFkTLUo+a2jwOFkuqb3yucU0CANcRRUbxS0cP0nZYCGjcc3BNXwRIsUVmDGgzawme7zvJHvg==
 
+apexcharts@^5.10.6:
+  version "5.10.6"
+  resolved "https://registry.yarnpkg.com/apexcharts/-/apexcharts-5.10.6.tgz#7b284ee778b75a96544044ac725413991a5111dc"
+  integrity sha512-FJQGbso3iRuOwUYnj0yUhkWeKeJE6aboVol+ae09lsc+lbLMWZqSRbrAWVa/qishLiaeG2icxdvmVkm+9n6kOQ==
+
 argparse@^2.0.1:
   version "2.0.1"
   resolved "https://registry.npmjs.org/argparse/-/argparse-2.0.1.tgz"
@@ -3937,6 +3942,13 @@ punycode@^2.1.0:
   version "2.3.1"
   resolved "https://registry.npmjs.org/punycode/-/punycode-2.3.1.tgz"
   integrity sha512-vYt7UD1U9Wg6138shLtLOvdAu+8DsC/ilFtEVHcH+wydcSpNE20AfSOduf6MkRFahL5FY7X1oU7nKVZFtfq8Fg==
+
+react-apexcharts@^2.1.0:
+  version "2.1.0"
+  resolved "https://registry.yarnpkg.com/react-apexcharts/-/react-apexcharts-2.1.0.tgz#74f05b4bf1ad24114ed53c35823b62396c55a51f"
+  integrity sha512-xrmeTKRKHh3cvvLc8SasqFjlOgIqGpyHc81qjnRtcjUM0Fu7qEjgVRWGPokGFjqhwRZVgEym8zmuEyYr5LMYIg==
+  dependencies:
+    prop-types "^15.8.1"
 
 react-dom@^19.2.3:
   version "19.2.3"

@@ -1,4 +1,5 @@
 import type {
+  AccuracyFilters,
   InventoryCountFilters,
   CyclicScheduleFilters,
   CreateInventoryCountPayload,
@@ -15,6 +16,7 @@ import {
   fetchCounts,
   cancelCount,
   approveCount,
+  fetchAccuracy,
   completeCount,
   updateCountItem,
   recountCountItem,
@@ -159,5 +161,15 @@ export function useUpdateCyclicScheduleMutation() {
     mutationFn: ({ id, payload }: { id: string; payload: UpdateCyclicSchedulePayload }) =>
       updateCyclicSchedule(id, payload),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['inventory-cyclic-schedules'] }),
+  });
+}
+
+// ----------------------------------------------------------------------
+// Accuracy
+
+export function useAccuracyQuery(filters: AccuracyFilters = {}) {
+  return useQuery({
+    queryKey: ['inventory-accuracy', filters] as const,
+    queryFn: () => fetchAccuracy(filters),
   });
 }

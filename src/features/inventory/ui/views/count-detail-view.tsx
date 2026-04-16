@@ -43,6 +43,7 @@ import {
   useCompleteCountMutation,
   useUpdateCountItemMutation,
   useRecountCountItemMutation,
+  useBulkUpdateCountItemsMutation,
 } from '../../api/counts.queries';
 
 // ----------------------------------------------------------------------
@@ -58,6 +59,7 @@ export function CountDetailView() {
   const cancelMutation = useCancelCountMutation();
   const updateItemMutation = useUpdateCountItemMutation(id ?? '');
   const recountMutation = useRecountCountItemMutation(id ?? '');
+  const bulkMutation = useBulkUpdateCountItemsMutation(id ?? '');
 
   const { data: productOpts = [] } = useProductOptions();
   const productNameById = useMemo(
@@ -122,6 +124,23 @@ export function CountDetailView() {
       toast.success('Toma cancelada');
       setCancelOpen(false);
       setCancelReason('');
+    } catch (err) {
+      toast.error((err as Error).message);
+    }
+  };
+
+  const runBulkConfirmPending = async () => {
+    if (!count?.items) return;
+    const pending = count.items
+      .filter((i) => i.countedQuantity == null)
+      .map((i) => ({ itemId: i.id, countedQuantity: Number(i.systemQuantity) || 0 }));
+    if (pending.length === 0) {
+      toast.info('No hay ítems pendientes');
+      return;
+    }
+    try {
+      await bulkMutation.mutateAsync(pending);
+      toast.success(`${pending.length} ítems confirmados con la cantidad del sistema`);
     } catch (err) {
       toast.error((err as Error).message);
     }
@@ -338,6 +357,17 @@ export function CountDetailView() {
                   >
                     Iniciar
                   </Button>
+                )}
+                {canEditItems && (
+                  <Tooltip title="Rellena los ítems sin contar con la cantidad del sistema">
+                    <Button
+                      variant="outlined"
+                      loading={bulkMutation.isPending}
+                      onClick={runBulkConfirmPending}
+                    >
+                      Confirmar sin diferencias
+                    </Button>
+                  </Tooltip>
                 )}
                 {canComplete && (
                   <Button
