@@ -1,6 +1,8 @@
-import { useQuery } from '@tanstack/react-query';
+import type { CreateRolePayload, UpdateRolePayload } from '../model/types';
 
-import { fetchRole, fetchRoles } from './roles.api';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+
+import { fetchRole, createRole, fetchRoles, updateRole } from './roles.api';
 
 // ----------------------------------------------------------------------
 
@@ -23,5 +25,27 @@ export function useRoleQuery(id: string | undefined) {
     queryKey: roleKeys.detail(id ?? ''),
     queryFn: () => fetchRole(id as string),
     enabled: Boolean(id),
+  });
+}
+
+export function useCreateRoleMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: CreateRolePayload) => createRole(payload),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: roleKeys.all });
+    },
+  });
+}
+
+export function useUpdateRoleMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, payload }: { id: string; payload: UpdateRolePayload }) =>
+      updateRole(id, payload),
+    onSuccess: (_data, { id }) => {
+      qc.invalidateQueries({ queryKey: roleKeys.all });
+      qc.invalidateQueries({ queryKey: roleKeys.detail(id) });
+    },
   });
 }

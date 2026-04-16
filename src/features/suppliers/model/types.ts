@@ -36,3 +36,60 @@ export type SupplierFilters = {
   isDrugstore?: boolean;
   isActive?: boolean;
 };
+
+// ----------------------------------------------------------------------
+
+export type SupplierContact = {
+  id: string;
+  supplierId: string;
+  fullName: string;
+  role: string | null;
+  department: string | null;
+  email: string | null;
+  phone: string | null;
+  mobile: string | null;
+  isPrimary: boolean;
+  isActive: boolean;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type CreateSupplierContactPayload = {
+  fullName: string;
+  role?: string;
+  department?: string;
+  email?: string;
+  phone?: string;
+  mobile?: string;
+  isPrimary?: boolean;
+  isActive?: boolean;
+  notes?: string;
+};
+
+export type UpdateSupplierContactPayload = Partial<CreateSupplierContactPayload>;
+
+// ----------------------------------------------------------------------
+
+export type SupplierProduct = {
+  id: string;
+  supplierId: string;
+  productId: string;
+  supplierSku: string | null;
+  costUsd: number | string | null;
+  lastCostUsd: number | string | null;
+  discountPct: number | string | null;
+  isAvailable: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type CreateSupplierProductPayload = {
+  productId: string;
+  supplierSku?: string;
+  costUsd?: number;
+  discountPct?: number;
+  isAvailable?: boolean;
+};
+
+export type UpdateSupplierProductPayload = Partial<Omit<CreateSupplierProductPayload, 'productId'>>;

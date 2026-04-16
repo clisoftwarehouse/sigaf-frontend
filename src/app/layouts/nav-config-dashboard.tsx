@@ -102,6 +102,16 @@ export const navData: NavSectionProps['data'] = [
           { title: 'Stock', path: paths.dashboard.inventory.stock, icon: ICONS.stock },
           { title: 'Lotes', path: paths.dashboard.inventory.lots.root, icon: ICONS.lots },
           {
+            title: 'Tomas',
+            path: paths.dashboard.inventory.counts.root,
+            icon: ICONS.lots,
+          },
+          {
+            title: 'Conteo cíclico',
+            path: paths.dashboard.inventory.cyclicSchedules,
+            icon: ICONS.lots,
+          },
+          {
             title: 'Kardex',
             path: paths.dashboard.inventory.kardex,
             icon: ICONS.kardex,
@@ -159,7 +169,7 @@ export const navData: NavSectionProps['data'] = [
         icon: ICONS.admin,
         children: [
           { title: 'Usuarios', path: paths.dashboard.admin.users.root, icon: ICONS.users },
-          { title: 'Roles', path: paths.dashboard.admin.roles, icon: ICONS.roles },
+          { title: 'Roles', path: paths.dashboard.admin.roles.root, icon: ICONS.roles },
           {
             title: 'Permisos',
             path: paths.dashboard.admin.permissions,
@@ -170,6 +180,11 @@ export const navData: NavSectionProps['data'] = [
             title: 'Tasas de cambio',
             path: paths.dashboard.admin.exchangeRates,
             icon: ICONS.rates,
+          },
+          {
+            title: 'Auditoría',
+            path: paths.dashboard.admin.auditLog,
+            icon: ICONS.config,
           },
         ],
       },

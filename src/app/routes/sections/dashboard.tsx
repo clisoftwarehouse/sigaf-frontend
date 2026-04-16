@@ -6,6 +6,7 @@ import { Outlet, Navigate } from 'react-router';
 import { paths } from '@/app/routes/paths';
 import { CONFIG } from '@/app/global-config';
 import { AuthGuard } from '@/features/auth/ui/guard';
+import { auditRoutes } from '@/features/audit/routes';
 import { usersRoutes } from '@/features/users/routes';
 import { rolesRoutes } from '@/features/roles/routes';
 import { brandsRoutes } from '@/features/brands/routes';
@@ -116,6 +117,7 @@ export const dashboardRoutes: RouteObject[] = [
           ...permissionsRoutes,
           ...configRoutes,
           ...exchangeRatesRoutes,
+          ...auditRoutes,
         ],
       },
     ],

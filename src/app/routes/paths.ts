@@ -43,6 +43,12 @@ export const paths = {
       lots: crud(`${inventory}/lots`),
       productDetail: (id: string) => `${inventory}/products/${id}`,
       kardex: `${inventory}/kardex`,
+      counts: {
+        root: `${inventory}/counts`,
+        new: `${inventory}/counts/new`,
+        detail: (id: string) => `${inventory}/counts/${id}`,
+      },
+      cyclicSchedules: `${inventory}/cyclic-schedules`,
     },
     purchases: {
       root: purchases,
@@ -64,10 +70,11 @@ export const paths = {
     admin: {
       root: admin,
       users: crud(`${admin}/users`),
-      roles: `${admin}/roles`,
+      roles: crud(`${admin}/roles`),
       permissions: `${admin}/permissions`,
       config: `${admin}/config`,
       exchangeRates: `${admin}/exchange-rates`,
+      auditLog: `${admin}/audit-log`,
     },
   },
 };

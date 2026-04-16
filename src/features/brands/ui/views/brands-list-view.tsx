@@ -21,6 +21,7 @@ import { PageHeader } from '@/shared/ui/page-header';
 import { DataTable } from '@/app/components/data-table';
 import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
 
+import { BRAND_TYPE_LABEL, BRAND_TYPE_OPTIONS } from '../../model/types';
 import { useBrandsQuery, useDeleteBrandMutation } from '../../api/brands.queries';
 
 // ----------------------------------------------------------------------
@@ -50,24 +51,84 @@ export function BrandsListView() {
         headerName: 'Nombre',
         flex: 2,
         minWidth: 200,
-        renderCell: ({ row }) => <Typography variant="subtitle2">{row.name}</Typography>,
+        renderCell: ({ row }) => (
+          <Box>
+            <Typography variant="subtitle2">{row.name}</Typography>
+            {row.businessName && (
+              <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
+                {row.businessName}
+              </Typography>
+            )}
+          </Box>
+        ),
       },
       {
-        field: 'isLaboratory',
-        headerName: 'Tipo',
+        field: 'brandType',
+        headerName: 'Categoría',
         type: 'singleSelect',
         flex: 1,
         minWidth: 160,
-        valueOptions: [
-          { value: true, label: 'Laboratorio' },
-          { value: false, label: 'Marca' },
-        ],
+        valueOptions: BRAND_TYPE_OPTIONS,
+        renderCell: ({ row }) => (
+          <Chip
+            size="small"
+            variant="outlined"
+            label={BRAND_TYPE_LABEL[row.brandType] ?? row.brandType}
+          />
+        ),
+      },
+      {
+        field: 'isLaboratory',
+        headerName: 'Laboratorio',
+        type: 'boolean',
+        flex: 1,
+        minWidth: 130,
         renderCell: ({ row }) =>
           row.isLaboratory ? (
             <Chip size="small" color="info" label="Laboratorio" />
           ) : (
             <Chip size="small" variant="outlined" label="Marca" />
           ),
+      },
+      {
+        field: 'rif',
+        headerName: 'RIF',
+        flex: 1,
+        minWidth: 140,
+        valueGetter: (value: string | null) => value ?? '—',
+        renderCell: ({ value }) => (
+          <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
+            {value}
+          </Typography>
+        ),
+      },
+      {
+        field: 'countryOfOrigin',
+        headerName: 'País',
+        flex: 1,
+        minWidth: 140,
+        valueGetter: (value: string | null) => value ?? '—',
+      },
+      {
+        field: 'isImporter',
+        headerName: 'Importador',
+        type: 'boolean',
+        flex: 1,
+        minWidth: 130,
+      },
+      {
+        field: 'isManufacturer',
+        headerName: 'Fabricante',
+        type: 'boolean',
+        flex: 1,
+        minWidth: 130,
+      },
+      {
+        field: 'isActive',
+        headerName: 'Activo',
+        type: 'boolean',
+        flex: 1,
+        minWidth: 110,
       },
       {
         field: 'createdAt',
@@ -143,6 +204,23 @@ export function BrandsListView() {
             loading={isLoading}
             disableRowSelectionOnClick
             autoHeight
+            initialState={{
+              columns: {
+                columnVisibilityModel: {
+                  countryOfOrigin: false,
+                  isImporter: false,
+                  isManufacturer: false,
+                  createdAt: false,
+                  isActive: false,
+                },
+              },
+              filter: {
+                filterModel: {
+                  items: [{ field: 'isActive', operator: 'is', value: 'true' }],
+                  quickFilterValues: [''],
+                },
+              },
+            }}
           />
         </Box>
       </Card>

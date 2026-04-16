@@ -5,11 +5,18 @@ import { useMemo } from 'react';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
+import Chip from '@mui/material/Chip';
+import Stack from '@mui/material/Stack';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
+import Tooltip from '@mui/material/Tooltip';
 import Container from '@mui/material/Container';
 import Typography from '@mui/material/Typography';
+import IconButton from '@mui/material/IconButton';
 
+import { paths } from '@/app/routes/paths';
+import { useRouter } from '@/app/routes/hooks';
+import { Iconify } from '@/app/components/iconify';
 import { PageHeader } from '@/shared/ui/page-header';
 import { DataTable } from '@/app/components/data-table';
 
@@ -18,6 +25,7 @@ import { useRolesQuery } from '../../api/roles.queries';
 // ----------------------------------------------------------------------
 
 export function RolesListView() {
+  const router = useRouter();
   const { data: roles = [], isLoading, isError, error, refetch } = useRolesQuery();
 
   const columns = useMemo<GridColDef<Role>[]>(
@@ -41,26 +49,52 @@ export function RolesListView() {
         valueGetter: (value: string | null | undefined) => value ?? '—',
       },
       {
-        field: 'id',
-        headerName: 'ID',
+        field: 'permissions',
+        headerName: 'Permisos',
         flex: 1,
-        minWidth: 240,
+        minWidth: 140,
+        sortable: false,
+        filterable: false,
         renderCell: ({ row }) => (
-          <Typography variant="body2" sx={{ fontFamily: 'monospace', color: 'text.disabled' }}>
-            {row.id}
-          </Typography>
+          <Stack direction="row" spacing={0.5} alignItems="center" sx={{ height: '100%' }}>
+            <Chip size="small" variant="outlined" label={row.permissions?.length ?? 0} />
+          </Stack>
+        ),
+      },
+      {
+        field: 'actions',
+        type: 'actions',
+        headerName: 'Acciones',
+        width: 80,
+        align: 'right',
+        headerAlign: 'right',
+        renderCell: ({ row }) => (
+          <Tooltip title="Editar">
+            <IconButton onClick={() => router.push(paths.dashboard.admin.roles.edit(row.id))}>
+              <Iconify icon="solar:pen-bold" />
+            </IconButton>
+          </Tooltip>
         ),
       },
     ],
-    []
+    [router]
   );
 
   return (
     <Container maxWidth="lg">
       <PageHeader
         title="Roles"
-        subtitle="Los roles se definen en el backend y controlan el acceso a los módulos."
+        subtitle="Los roles controlan el acceso a los módulos mediante permisos granulares."
         crumbs={[{ label: 'Administración' }, { label: 'Roles' }]}
+        action={
+          <Button
+            variant="contained"
+            startIcon={<Iconify icon="solar:add-circle-bold" />}
+            onClick={() => router.push(paths.dashboard.admin.roles.new)}
+          >
+            Nuevo rol
+          </Button>
+        }
       />
 
       <Card>

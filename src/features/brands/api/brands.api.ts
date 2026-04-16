@@ -8,6 +8,8 @@ export async function fetchBrands(filters: BrandFilters = {}): Promise<Brand[]> 
   const params: Record<string, string> = {};
   if (filters.search) params.search = filters.search;
   if (filters.isLaboratory !== undefined) params.isLaboratory = String(filters.isLaboratory);
+  if (filters.brandType) params.brandType = filters.brandType;
+  if (filters.isActive !== undefined) params.isActive = String(filters.isActive);
 
   const res = await axios.get<Brand[]>(endpoints.brands.root, { params });
   return res.data;
