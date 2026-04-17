@@ -17,6 +17,8 @@ import { Form, Field } from '@/app/components/hook-form';
 export const ActiveIngredientSchema = z.object({
   name: z.string().min(1, { message: 'El nombre es obligatorio' }).max(200),
   therapeuticGroup: z.string().max(100).optional().or(z.literal('')),
+  atcCode: z.string().max(20).optional().or(z.literal('')),
+  innName: z.string().max(200).optional().or(z.literal('')),
 });
 
 export type ActiveIngredientFormValues = z.infer<typeof ActiveIngredientSchema>;
@@ -34,6 +36,8 @@ export function ActiveIngredientForm({ current, submitting, onSubmit, onCancel }
     defaultValues: {
       name: current?.name ?? '',
       therapeuticGroup: current?.therapeuticGroup ?? '',
+      atcCode: current?.atcCode ?? '',
+      innName: current?.innName ?? '',
     },
   });
 
@@ -41,7 +45,12 @@ export function ActiveIngredientForm({ current, submitting, onSubmit, onCancel }
 
   useEffect(() => {
     if (current) {
-      reset({ name: current.name, therapeuticGroup: current.therapeuticGroup ?? '' });
+      reset({
+        name: current.name,
+        therapeuticGroup: current.therapeuticGroup ?? '',
+        atcCode: current.atcCode ?? '',
+        innName: current.innName ?? '',
+      });
     }
   }, [current, reset]);
 
@@ -49,6 +58,8 @@ export function ActiveIngredientForm({ current, submitting, onSubmit, onCancel }
     await onSubmit({
       name: values.name.trim(),
       therapeuticGroup: values.therapeuticGroup ? values.therapeuticGroup.trim() : undefined,
+      atcCode: values.atcCode ? values.atcCode.trim().toUpperCase() : undefined,
+      innName: values.innName ? values.innName.trim() : undefined,
     });
   });
 
@@ -62,6 +73,24 @@ export function ActiveIngredientForm({ current, submitting, onSubmit, onCancel }
             placeholder="Ej. Losartán Potásico"
             slotProps={{ inputLabel: { shrink: true } }}
           />
+
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+            <Field.Text
+              name="atcCode"
+              label="Código ATC (opcional)"
+              placeholder="Ej. C09CA01"
+              helperText="Clasificación internacional ATC (WHO). Se puede autocompletar desde Vademecum."
+              slotProps={{ inputLabel: { shrink: true } }}
+              sx={{ flex: 1 }}
+            />
+            <Field.Text
+              name="innName"
+              label="Nombre INN (opcional)"
+              placeholder="Denominación Común Internacional"
+              slotProps={{ inputLabel: { shrink: true } }}
+              sx={{ flex: 1 }}
+            />
+          </Stack>
 
           <Field.Text
             name="therapeuticGroup"

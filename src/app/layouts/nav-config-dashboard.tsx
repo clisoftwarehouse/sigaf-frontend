@@ -27,6 +27,9 @@ const ICONS = {
   permissions: <Iconify icon="solar:shield-keyhole-bold-duotone" width={22} />,
   config: <Iconify icon="solar:settings-bold-duotone" width={22} />,
   rates: <Iconify icon="solar:wad-of-money-bold" width={22} />,
+  imports: <Iconify icon="solar:import-bold" width={22} />,
+  prices: <Iconify icon="solar:tag-horizontal-bold-duotone" width={22} />,
+  promotions: <Iconify icon="solar:cup-star-bold" width={22} />,
   purchases: <Iconify icon="solar:cart-plus-bold" width={22} />,
   orders: <Iconify icon="solar:bill-list-bold-duotone" width={22} />,
   receipts: <Iconify icon="solar:inbox-in-bold-duotone" width={22} />,
@@ -92,6 +95,16 @@ export const navData: NavSectionProps['data'] = [
             path: paths.dashboard.catalog.suppliers.root,
             icon: ICONS.suppliers,
           },
+          {
+            title: 'Precios',
+            path: paths.dashboard.catalog.prices,
+            icon: ICONS.prices,
+          },
+          {
+            title: 'Promociones',
+            path: paths.dashboard.catalog.promotions,
+            icon: ICONS.promotions,
+          },
         ],
       },
       {
@@ -100,7 +113,6 @@ export const navData: NavSectionProps['data'] = [
         icon: ICONS.inventory,
         children: [
           { title: 'Stock', path: paths.dashboard.inventory.stock, icon: ICONS.stock },
-          { title: 'Lotes', path: paths.dashboard.inventory.lots.root, icon: ICONS.lots },
           {
             title: 'Tomas',
             path: paths.dashboard.inventory.counts.root,
@@ -185,6 +197,11 @@ export const navData: NavSectionProps['data'] = [
             title: 'Auditoría',
             path: paths.dashboard.admin.auditLog,
             icon: ICONS.config,
+          },
+          {
+            title: 'Importaciones',
+            path: paths.dashboard.admin.imports,
+            icon: ICONS.imports,
           },
         ],
       },

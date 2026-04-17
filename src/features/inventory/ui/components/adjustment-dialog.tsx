@@ -6,7 +6,6 @@ import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 
-import Box from '@mui/material/Box';
 import Alert from '@mui/material/Alert';
 import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
@@ -99,12 +98,7 @@ export function AdjustmentDialog({ lot, onClose }: Props) {
   });
 
   return (
-    <Dialog
-      open={!!lot}
-      onClose={mutation.isPending ? undefined : onClose}
-      maxWidth="sm"
-      fullWidth
-    >
+    <Dialog open={!!lot} onClose={mutation.isPending ? undefined : onClose} maxWidth="sm" fullWidth>
       <Form methods={methods} onSubmit={submit}>
         <DialogTitle>Nuevo ajuste de inventario</DialogTitle>
         <DialogContent>
@@ -113,32 +107,37 @@ export function AdjustmentDialog({ lot, onClose }: Props) {
               Lote <strong>{lot.lotNumber}</strong> · disponible: {available}
             </Alert>
 
-            <Field.Select
-              name="adjustmentType"
-              label="Tipo de ajuste"
-              slotProps={{ inputLabel: { shrink: true } }}
-            >
-              {ADJUSTMENT_TYPE_OPTIONS.map((o) => (
-                <MenuItem key={o.value} value={o.value}>
-                  {o.label}
-                </MenuItem>
-              ))}
-            </Field.Select>
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+              <Field.Select
+                name="adjustmentType"
+                label="Tipo de ajuste"
+                slotProps={{ inputLabel: { shrink: true } }}
+                sx={{ flex: 1 }}
+              >
+                {ADJUSTMENT_TYPE_OPTIONS.map((o) => (
+                  <MenuItem key={o.value} value={o.value}>
+                    {o.label}
+                  </MenuItem>
+                ))}
+              </Field.Select>
 
-            <Field.Select
-              name="direction"
-              label="Dirección"
-              slotProps={{ inputLabel: { shrink: true } }}
-            >
-              <MenuItem value="out">Salida (−)</MenuItem>
-              <MenuItem value="in">Entrada (+)</MenuItem>
-            </Field.Select>
+              <Field.Select
+                name="direction"
+                label="Dirección"
+                slotProps={{ inputLabel: { shrink: true } }}
+                sx={{ flex: 1 }}
+              >
+                <MenuItem value="out">Salida (−)</MenuItem>
+                <MenuItem value="in">Entrada (+)</MenuItem>
+              </Field.Select>
+            </Stack>
 
             <Field.Text
               name="quantity"
               label="Cantidad"
               placeholder="Ej. 5"
-              slotProps={{ inputLabel: { shrink: true } }}
+              type="number"
+              slotProps={{ inputLabel: { shrink: true }, htmlInput: { min: 0, step: 0.001 } }}
             />
 
             <Field.Text
@@ -155,15 +154,13 @@ export function AdjustmentDialog({ lot, onClose }: Props) {
             </Typography>
           </Stack>
         </DialogContent>
-        <DialogActions>
-          <Box sx={{ display: 'flex', gap: 1.5, p: 1 }}>
-            <Button color="inherit" onClick={onClose} disabled={mutation.isPending}>
-              Cancelar
-            </Button>
-            <Button type="submit" variant="contained" loading={mutation.isPending}>
-              Registrar ajuste
-            </Button>
-          </Box>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button color="inherit" onClick={onClose} disabled={mutation.isPending}>
+            Cancelar
+          </Button>
+          <Button type="submit" variant="contained" loading={mutation.isPending}>
+            Registrar ajuste
+          </Button>
         </DialogActions>
       </Form>
     </Dialog>

@@ -6,6 +6,7 @@ import { useMemo, useState } from 'react';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
+import Stack from '@mui/material/Stack';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
 import Tooltip from '@mui/material/Tooltip';
@@ -20,6 +21,7 @@ import { PageHeader } from '@/shared/ui/page-header';
 import { DataTable } from '@/app/components/data-table';
 import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
 
+import { VademecumSearchDialog } from '../components/vademecum-search-dialog';
 import {
   useActiveIngredientsQuery,
   useDeleteActiveIngredientMutation,
@@ -30,14 +32,9 @@ import {
 export function ActiveIngredientsListView() {
   const router = useRouter();
   const [toDelete, setToDelete] = useState<{ id: string; name: string } | null>(null);
+  const [vademecumOpen, setVademecumOpen] = useState(false);
 
-  const {
-    data: items = [],
-    isLoading,
-    isError,
-    error,
-    refetch,
-  } = useActiveIngredientsQuery({});
+  const { data: items = [], isLoading, isError, error, refetch } = useActiveIngredientsQuery({});
   const deleteMutation = useDeleteActiveIngredientMutation();
 
   const confirmDelete = async () => {
@@ -58,7 +55,32 @@ export function ActiveIngredientsListView() {
         headerName: 'Nombre',
         flex: 2,
         minWidth: 220,
-        renderCell: ({ row }) => <Typography variant="subtitle2">{row.name}</Typography>,
+        renderCell: ({ row }) => (
+          <Box>
+            <Typography variant="subtitle2">{row.name}</Typography>
+            {row.innName && (
+              <Typography variant="caption" sx={{ color: 'text.disabled', display: 'block' }}>
+                INN: {row.innName}
+              </Typography>
+            )}
+          </Box>
+        ),
+      },
+      {
+        field: 'atcCode',
+        headerName: 'Código ATC',
+        flex: 1,
+        minWidth: 140,
+        renderCell: ({ row }) =>
+          row.atcCode ? (
+            <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
+              {row.atcCode}
+            </Typography>
+          ) : (
+            <Typography variant="body2" sx={{ color: 'text.disabled' }}>
+              —
+            </Typography>
+          ),
       },
       {
         field: 'therapeuticGroup',
@@ -78,18 +100,13 @@ export function ActiveIngredientsListView() {
           <>
             <Tooltip title="Editar">
               <IconButton
-                onClick={() =>
-                  router.push(paths.dashboard.catalog.activeIngredients.edit(row.id))
-                }
+                onClick={() => router.push(paths.dashboard.catalog.activeIngredients.edit(row.id))}
               >
                 <Iconify icon="solar:pen-bold" />
               </IconButton>
             </Tooltip>
             <Tooltip title="Eliminar">
-              <IconButton
-                color="error"
-                onClick={() => setToDelete({ id: row.id, name: row.name })}
-              >
+              <IconButton color="error" onClick={() => setToDelete({ id: row.id, name: row.name })}>
                 <Iconify icon="solar:trash-bin-trash-bold" />
               </IconButton>
             </Tooltip>
@@ -107,13 +124,22 @@ export function ActiveIngredientsListView() {
         subtitle="Usados para sustitución de medicamentos genéricos."
         crumbs={[{ label: 'Catálogo' }, { label: 'Principios activos' }]}
         action={
-          <Button
-            variant="contained"
-            startIcon={<Iconify icon="solar:add-circle-bold" />}
-            onClick={() => router.push(paths.dashboard.catalog.activeIngredients.new)}
-          >
-            Nuevo principio activo
-          </Button>
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} useFlexGap flexWrap="wrap">
+            <Button
+              variant="outlined"
+              startIcon={<Iconify icon="solar:download-bold" />}
+              onClick={() => setVademecumOpen(true)}
+            >
+              Importar desde Vademecum
+            </Button>
+            <Button
+              variant="contained"
+              startIcon={<Iconify icon="solar:add-circle-bold" />}
+              onClick={() => router.push(paths.dashboard.catalog.activeIngredients.new)}
+            >
+              Nuevo principio activo
+            </Button>
+          </Stack>
         }
       />
 
@@ -158,6 +184,13 @@ export function ActiveIngredientsListView() {
         loading={deleteMutation.isPending}
         onConfirm={confirmDelete}
         onClose={() => setToDelete(null)}
+      />
+
+      <VademecumSearchDialog
+        open={vademecumOpen}
+        mode="import"
+        onClose={() => setVademecumOpen(false)}
+        onImported={() => setVademecumOpen(false)}
       />
     </Container>
   );

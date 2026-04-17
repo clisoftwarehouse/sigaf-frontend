@@ -1,6 +1,7 @@
 import type {
   ExchangeRate,
   ExchangeRateFilters,
+  OverrideRatePayload,
   CreateExchangeRatePayload,
 } from '../model/types';
 
@@ -34,5 +35,15 @@ export async function createExchangeRate(
   payload: CreateExchangeRatePayload
 ): Promise<ExchangeRate> {
   const res = await axios.post<ExchangeRate>(endpoints.exchangeRates.root, payload);
+  return res.data;
+}
+
+export async function fetchBcvRate(): Promise<ExchangeRate> {
+  const res = await axios.post<ExchangeRate>(endpoints.exchangeRates.fetchBcv);
+  return res.data;
+}
+
+export async function overrideExchangeRate(payload: OverrideRatePayload): Promise<ExchangeRate> {
+  const res = await axios.post<ExchangeRate>(endpoints.exchangeRates.override, payload);
   return res.data;
 }

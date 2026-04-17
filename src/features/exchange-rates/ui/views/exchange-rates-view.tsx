@@ -1,5 +1,5 @@
 import type { GridColDef } from '@mui/x-data-grid';
-import type { ExchangeRate , CreateExchangeRatePayload } from '../../model/types';
+import type { ExchangeRate, OverrideRatePayload } from '../../model/types';
 
 import * as z from 'zod';
 import { toast } from 'sonner';
@@ -9,20 +9,23 @@ import { zodResolver } from '@hookform/resolvers/zod';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
+import Chip from '@mui/material/Chip';
 import Stack from '@mui/material/Stack';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
 import Container from '@mui/material/Container';
 import Typography from '@mui/material/Typography';
 
+import { Iconify } from '@/app/components/iconify';
 import { PageHeader } from '@/shared/ui/page-header';
 import { DataTable } from '@/app/components/data-table';
 import { Form, Field } from '@/app/components/hook-form';
 
 import {
   useExchangeRatesQuery,
+  useFetchBcvRateMutation,
   useLatestExchangeRateQuery,
-  useCreateExchangeRateMutation,
+  useOverrideExchangeRateMutation,
 } from '../../api/exchange-rates.queries';
 
 // ----------------------------------------------------------------------
@@ -36,8 +39,8 @@ const RateSchema = z.object({
     .string()
     .min(1, { message: 'Tasa obligatoria' })
     .refine((v) => /^\d+(\.\d+)?$/.test(v) && Number(v) > 0, { message: 'Debe ser un número > 0' }),
-  source: z.string().max(50).optional().or(z.literal('')),
   effectiveDate: z.string().min(1, { message: 'Fecha obligatoria' }),
+  notes: z.string().max(255).optional().or(z.literal('')),
 });
 
 type RateFormValues = z.infer<typeof RateSchema>;
@@ -45,15 +48,10 @@ type RateFormValues = z.infer<typeof RateSchema>;
 export function ExchangeRatesView() {
   const [limit] = useState(1000);
 
-  const {
-    data: rates = [],
-    isLoading,
-    isError,
-    error,
-    refetch,
-  } = useExchangeRatesQuery({ limit });
+  const { data: rates = [], isLoading, isError, error, refetch } = useExchangeRatesQuery({ limit });
   const { data: latest } = useLatestExchangeRateQuery();
-  const mutation = useCreateExchangeRateMutation();
+  const overrideMutation = useOverrideExchangeRateMutation();
+  const fetchBcvMutation = useFetchBcvRateMutation();
 
   const methods = useForm<RateFormValues>({
     resolver: zodResolver(RateSchema),
@@ -61,25 +59,28 @@ export function ExchangeRatesView() {
       currencyFrom: 'USD',
       currencyTo: 'VES',
       rate: '',
-      source: 'BCV',
       effectiveDate: todayIso(),
+      notes: '',
     },
   });
 
   const submit = methods.handleSubmit(async (values) => {
-    const payload: CreateExchangeRatePayload = {
+    const payload: OverrideRatePayload = {
       currencyFrom: values.currencyFrom,
       currencyTo: values.currencyTo,
       rate: Number(values.rate),
-      source: values.source || undefined,
       effectiveDate: values.effectiveDate,
+      notes: values.notes || undefined,
     };
     try {
-      await mutation.mutateAsync(payload);
-      toast.success(`Tasa ${values.currencyFrom}/${values.currencyTo} = ${values.rate} registrada`);
+      await overrideMutation.mutateAsync(payload);
+      toast.success(
+        `Tasa manual ${values.currencyFrom}/${values.currencyTo} = ${values.rate} registrada`
+      );
       methods.reset({
         ...values,
         rate: '',
+        notes: '',
         effectiveDate: todayIso(),
       });
     } catch (err) {
@@ -87,26 +88,64 @@ export function ExchangeRatesView() {
     }
   });
 
-  const latestCard = useMemo(() => {
+  const handleFetchBcv = async () => {
+    try {
+      const rate = await fetchBcvMutation.mutateAsync();
+      const value = typeof rate.rate === 'string' ? Number(rate.rate) : rate.rate;
+      toast.success(`Tasa BCV obtenida: ${value}`);
+    } catch (err) {
+      toast.error((err as Error).message ?? 'No se pudo obtener la tasa BCV');
+    }
+  };
+
+  const renderLatestCard = () => {
     if (!latest) return null;
     const rate = typeof latest.rate === 'string' ? Number(latest.rate) : latest.rate;
     return (
       <Card sx={{ p: 3, mb: 3 }}>
-        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-          Tasa más reciente
-        </Typography>
-        <Typography variant="h3" sx={{ mt: 0.5 }}>
-          {rate.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 4 })}{' '}
-          <Typography component="span" variant="subtitle1" sx={{ color: 'text.secondary' }}>
-            {latest.currencyFrom} → {latest.currencyTo}
-          </Typography>
-        </Typography>
-        <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-          {latest.source} · {latest.effectiveDate}
-        </Typography>
+        <Stack
+          direction={{ xs: 'column', md: 'row' }}
+          spacing={2}
+          alignItems={{ md: 'center' }}
+          justifyContent="space-between"
+        >
+          <Box>
+            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+              Tasa más reciente
+            </Typography>
+            <Typography variant="h3" sx={{ mt: 0.5 }}>
+              {rate.toLocaleString('es-VE', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 4,
+              })}{' '}
+              <Typography component="span" variant="subtitle1" sx={{ color: 'text.secondary' }}>
+                {latest.currencyFrom} → {latest.currencyTo}
+              </Typography>
+            </Typography>
+            <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 0.5 }}>
+              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                {latest.source} · {latest.effectiveDate}
+              </Typography>
+              {latest.isOverridden ? (
+                <Chip size="small" color="warning" label="Manual (override)" />
+              ) : (
+                <Chip size="small" color="success" variant="outlined" label="Automática" />
+              )}
+            </Stack>
+          </Box>
+          <Button
+            variant="outlined"
+            startIcon={<Iconify icon="solar:download-bold" />}
+            loading={fetchBcvMutation.isPending}
+            onClick={handleFetchBcv}
+            sx={{ minWidth: 200 }}
+          >
+            Actualizar desde BCV
+          </Button>
+        </Stack>
       </Card>
     );
-  }, [latest]);
+  };
 
   const columns = useMemo<GridColDef<ExchangeRate>[]>(
     () => [
@@ -145,7 +184,13 @@ export function ExchangeRatesView() {
         field: 'source',
         headerName: 'Fuente',
         flex: 1,
-        minWidth: 140,
+        minWidth: 160,
+        renderCell: ({ row }) => (
+          <Stack direction="row" spacing={1} alignItems="center">
+            <Typography variant="body2">{row.source}</Typography>
+            {row.isOverridden && <Chip size="small" color="warning" label="Override" />}
+          </Stack>
+        ),
       },
       {
         field: 'createdAt',
@@ -167,59 +212,65 @@ export function ExchangeRatesView() {
         crumbs={[{ label: 'Administración' }, { label: 'Tasas de cambio' }]}
       />
 
-      {latestCard}
+      {renderLatestCard()}
 
       <Card sx={{ p: 3, mb: 3 }}>
-        <Typography variant="subtitle2" sx={{ color: 'text.secondary', mb: 2 }}>
-          Registrar nueva tasa
+        <Typography variant="subtitle2" sx={{ color: 'text.secondary', mb: 0.5 }}>
+          Sobreescribir manualmente (override)
+        </Typography>
+        <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 2 }}>
+          Usar solo cuando BCV no publique la tasa del día o haya un evento cambiario
+          extraordinario. Quedará marcada como “Manual”.
         </Typography>
 
         <Form methods={methods} onSubmit={submit}>
-          <Stack
-            direction={{ xs: 'column', md: 'row' }}
-            spacing={2}
-            alignItems={{ md: 'flex-start' }}
-          >
-            <Field.Text
-              name="currencyFrom"
-              label="De"
-              sx={{ minWidth: 90 }}
-              slotProps={{ inputLabel: { shrink: true } }}
-            />
-            <Field.Text
-              name="currencyTo"
-              label="A"
-              sx={{ minWidth: 90 }}
-              slotProps={{ inputLabel: { shrink: true } }}
-            />
-            <Field.Text
-              name="rate"
-              label="Tasa"
-              placeholder="Ej. 36.50"
-              slotProps={{ inputLabel: { shrink: true } }}
-              sx={{ flex: 1, minWidth: 160 }}
-            />
-            <Field.Text
-              name="source"
-              label="Fuente"
-              slotProps={{ inputLabel: { shrink: true } }}
-              sx={{ minWidth: 140 }}
-            />
-            <Field.Text
-              name="effectiveDate"
-              label="Fecha efectiva"
-              type="date"
-              slotProps={{ inputLabel: { shrink: true } }}
-              sx={{ minWidth: 180 }}
-            />
-            <Button
-              type="submit"
-              variant="contained"
-              loading={mutation.isPending}
-              sx={{ minWidth: 140, height: 53 }}
-            >
-              Registrar
-            </Button>
+          <Stack spacing={2}>
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+              <Field.Text
+                name="currencyFrom"
+                label="De"
+                slotProps={{ inputLabel: { shrink: true } }}
+                sx={{ width: { xs: '100%', sm: 110 } }}
+              />
+              <Field.Text
+                name="currencyTo"
+                label="A"
+                slotProps={{ inputLabel: { shrink: true } }}
+                sx={{ width: { xs: '100%', sm: 110 } }}
+              />
+              <Field.Text
+                name="rate"
+                label="Tasa"
+                placeholder="Ej. 36.50"
+                slotProps={{ inputLabel: { shrink: true } }}
+                sx={{ flex: 1, minWidth: 180 }}
+              />
+              <Field.Text
+                name="effectiveDate"
+                label="Fecha efectiva"
+                type="date"
+                slotProps={{ inputLabel: { shrink: true } }}
+                sx={{ width: { xs: '100%', sm: 200 } }}
+              />
+            </Stack>
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="stretch">
+              <Field.Text
+                name="notes"
+                label="Notas"
+                placeholder="Motivo del override (opcional)"
+                slotProps={{ inputLabel: { shrink: true } }}
+                sx={{ flex: 1 }}
+              />
+              <Button
+                type="submit"
+                variant="contained"
+                color="warning"
+                loading={overrideMutation.isPending}
+                sx={{ minWidth: 160, height: 56 }}
+              >
+                Registrar
+              </Button>
+            </Stack>
           </Stack>
         </Form>
       </Card>

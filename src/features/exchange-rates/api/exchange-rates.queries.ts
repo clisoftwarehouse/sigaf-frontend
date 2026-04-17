@@ -1,10 +1,16 @@
-import type { ExchangeRateFilters, CreateExchangeRatePayload } from '../model/types';
+import type {
+  ExchangeRateFilters,
+  OverrideRatePayload,
+  CreateExchangeRatePayload,
+} from '../model/types';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import {
+  fetchBcvRate,
   createExchangeRate,
   fetchExchangeRates,
+  overrideExchangeRate,
   fetchLatestExchangeRate,
 } from './exchange-rates.api';
 
@@ -36,6 +42,22 @@ export function useCreateExchangeRateMutation() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (payload: CreateExchangeRatePayload) => createExchangeRate(payload),
+    onSuccess: () => qc.invalidateQueries({ queryKey: exchangeRateKeys.all }),
+  });
+}
+
+export function useFetchBcvRateMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => fetchBcvRate(),
+    onSuccess: () => qc.invalidateQueries({ queryKey: exchangeRateKeys.all }),
+  });
+}
+
+export function useOverrideExchangeRateMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: OverrideRatePayload) => overrideExchangeRate(payload),
     onSuccess: () => qc.invalidateQueries({ queryKey: exchangeRateKeys.all }),
   });
 }

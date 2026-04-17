@@ -6,7 +6,7 @@ import type {
 } from '../../model/types';
 
 import * as z from 'zod';
-import { useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm, useFieldArray } from 'react-hook-form';
 
@@ -14,6 +14,7 @@ import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
+import Tooltip from '@mui/material/Tooltip';
 import Divider from '@mui/material/Divider';
 import MenuItem from '@mui/material/MenuItem';
 import Typography from '@mui/material/Typography';
@@ -25,6 +26,9 @@ import { useBrandsQuery } from '@/features/brands/api/brands.queries';
 import { useCategoriesQuery } from '@/features/categories/api/categories.queries';
 import { useActiveIngredientsQuery } from '@/features/active-ingredients/api/active-ingredients.queries';
 
+import { QuickCreateBrandDialog } from './quick-create-brand-dialog';
+import { QuickCreateCategoryDialog } from './quick-create-category-dialog';
+import { QuickCreateIngredientDialog } from './quick-create-ingredient-dialog';
 import {
   TAX_TYPE_OPTIONS,
   BARCODE_TYPE_OPTIONS,
@@ -138,12 +142,15 @@ export function ProductForm({ current, submitting, onSubmit, onCancel }: Props) 
   const { data: ingredientsCatalog = [], isLoading: loadingIngredients } =
     useActiveIngredientsQuery();
 
+  const [quickOpen, setQuickOpen] = useState<'category' | 'brand' | 'ingredient' | null>(null);
+  const [pendingIngredientIdx, setPendingIngredientIdx] = useState<number | null>(null);
+
   const methods = useForm<ProductFormValues>({
     resolver: zodResolver(ProductSchema),
     defaultValues: toFormValues(current),
   });
 
-  const { control, handleSubmit, reset } = methods;
+  const { control, handleSubmit, reset, setValue } = methods;
   const barcodesArray = useFieldArray({ control, name: 'barcodes' });
   const ingredientsArray = useFieldArray({ control, name: 'activeIngredients' });
 
@@ -176,20 +183,22 @@ export function ProductForm({ current, submitting, onSubmit, onCancel }: Props) 
       reorderPoint: values.reorderPoint ? Number(values.reorderPoint) : undefined,
       leadTimeDays: values.leadTimeDays ? Number(values.leadTimeDays) : undefined,
       // Arrays are only submitted in create mode (update endpoint ignores them).
-      barcodes: !isEdit && values.barcodes.length > 0
-        ? values.barcodes.map((b) => ({
-            barcode: b.barcode.trim(),
-            barcodeType: b.barcodeType,
-            isPrimary: b.isPrimary,
-          }))
-        : undefined,
-      activeIngredients: !isEdit && values.activeIngredients.length > 0
-        ? values.activeIngredients.map((i) => ({
-            activeIngredientId: i.activeIngredientId,
-            concentration: i.concentration?.trim() || undefined,
-            isPrimary: i.isPrimary,
-          }))
-        : undefined,
+      barcodes:
+        !isEdit && values.barcodes.length > 0
+          ? values.barcodes.map((b) => ({
+              barcode: b.barcode.trim(),
+              barcodeType: b.barcodeType,
+              isPrimary: b.isPrimary,
+            }))
+          : undefined,
+      activeIngredients:
+        !isEdit && values.activeIngredients.length > 0
+          ? values.activeIngredients.map((i) => ({
+              activeIngredientId: i.activeIngredientId,
+              concentration: i.concentration?.trim() || undefined,
+              isPrimary: i.isPrimary,
+            }))
+          : undefined,
     });
   });
 
@@ -221,7 +230,13 @@ export function ProductForm({ current, submitting, onSubmit, onCancel }: Props) 
             <Field.Text
               name="internalCode"
               label="Código interno"
-              placeholder="Ej. SKU-001"
+              placeholder={isEdit ? '' : 'Se autogenera si lo dejas vacío'}
+              helperText={
+                isEdit
+                  ? 'Código asignado por el sistema (no editable).'
+                  : 'Opcional. Si lo dejas vacío se autogenera como PROD-000001, PROD-000002, …'
+              }
+              disabled={isEdit}
               slotProps={{ inputLabel: { shrink: true } }}
               sx={{ flex: 1 }}
             />
@@ -241,33 +256,49 @@ export function ProductForm({ current, submitting, onSubmit, onCancel }: Props) 
             Clasificación
           </Typography>
 
-          <Field.Select
-            name="categoryId"
-            label="Categoría"
-            disabled={loadingCategories}
-            slotProps={{ inputLabel: { shrink: true } }}
-          >
-            <MenuItem value="">— Selecciona una categoría —</MenuItem>
-            {categories.map((c) => (
-              <MenuItem key={c.id} value={c.id}>
-                {c.name}
-              </MenuItem>
-            ))}
-          </Field.Select>
+          <Stack direction="row" spacing={1} alignItems="flex-start">
+            <Field.Select
+              name="categoryId"
+              label="Categoría"
+              disabled={loadingCategories}
+              slotProps={{ inputLabel: { shrink: true } }}
+              sx={{ flex: 1 }}
+            >
+              <MenuItem value="">— Selecciona una categoría —</MenuItem>
+              {categories.map((c) => (
+                <MenuItem key={c.id} value={c.id}>
+                  {c.name}
+                </MenuItem>
+              ))}
+            </Field.Select>
+            <Tooltip title="Crear nueva categoría">
+              <IconButton color="primary" sx={{ mt: 0.5 }} onClick={() => setQuickOpen('category')}>
+                <Iconify icon="solar:add-circle-bold" />
+              </IconButton>
+            </Tooltip>
+          </Stack>
 
-          <Field.Select
-            name="brandId"
-            label="Marca (opcional)"
-            disabled={loadingBrands}
-            slotProps={{ inputLabel: { shrink: true } }}
-          >
-            <MenuItem value="">— Sin marca —</MenuItem>
-            {brands.map((b) => (
-              <MenuItem key={b.id} value={b.id}>
-                {b.name}
-              </MenuItem>
-            ))}
-          </Field.Select>
+          <Stack direction="row" spacing={1} alignItems="flex-start">
+            <Field.Select
+              name="brandId"
+              label="Marca (opcional)"
+              disabled={loadingBrands}
+              slotProps={{ inputLabel: { shrink: true } }}
+              sx={{ flex: 1 }}
+            >
+              <MenuItem value="">— Sin marca —</MenuItem>
+              {brands.map((b) => (
+                <MenuItem key={b.id} value={b.id}>
+                  {b.name}
+                </MenuItem>
+              ))}
+            </Field.Select>
+            <Tooltip title="Crear nueva marca">
+              <IconButton color="primary" sx={{ mt: 0.5 }} onClick={() => setQuickOpen('brand')}>
+                <Iconify icon="solar:add-circle-bold" />
+              </IconButton>
+            </Tooltip>
+          </Stack>
 
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
             <Field.Select
@@ -551,19 +582,34 @@ export function ProductForm({ current, submitting, onSubmit, onCancel }: Props) 
                   }}
                 >
                   <Stack spacing={2}>
-                    <Field.Select
-                      name={`activeIngredients.${idx}.activeIngredientId`}
-                      label="Principio activo"
-                      disabled={loadingIngredients}
-                      slotProps={{ inputLabel: { shrink: true } }}
-                    >
-                      <MenuItem value="">— Selecciona —</MenuItem>
-                      {ingredientsCatalog.map((ing) => (
-                        <MenuItem key={ing.id} value={ing.id}>
-                          {ing.name}
-                        </MenuItem>
-                      ))}
-                    </Field.Select>
+                    <Stack direction="row" spacing={1} alignItems="flex-start">
+                      <Field.Select
+                        name={`activeIngredients.${idx}.activeIngredientId`}
+                        label="Principio activo"
+                        disabled={loadingIngredients}
+                        slotProps={{ inputLabel: { shrink: true } }}
+                        sx={{ flex: 1 }}
+                      >
+                        <MenuItem value="">— Selecciona —</MenuItem>
+                        {ingredientsCatalog.map((ing) => (
+                          <MenuItem key={ing.id} value={ing.id}>
+                            {ing.name}
+                          </MenuItem>
+                        ))}
+                      </Field.Select>
+                      <Tooltip title="Crear nuevo principio activo">
+                        <IconButton
+                          color="primary"
+                          sx={{ mt: 0.5 }}
+                          onClick={() => {
+                            setPendingIngredientIdx(idx);
+                            setQuickOpen('ingredient');
+                          }}
+                        >
+                          <Iconify icon="solar:add-circle-bold" />
+                        </IconButton>
+                      </Tooltip>
+                    </Stack>
                     <Stack
                       direction="row"
                       spacing={2}
@@ -605,6 +651,42 @@ export function ProductForm({ current, submitting, onSubmit, onCancel }: Props) 
           </Box>
         </Stack>
       </Card>
+
+      <QuickCreateCategoryDialog
+        open={quickOpen === 'category'}
+        onClose={() => setQuickOpen(null)}
+        onCreated={(id) => {
+          setValue('categoryId', id, { shouldValidate: true, shouldDirty: true });
+          setQuickOpen(null);
+        }}
+      />
+
+      <QuickCreateBrandDialog
+        open={quickOpen === 'brand'}
+        onClose={() => setQuickOpen(null)}
+        onCreated={(id) => {
+          setValue('brandId', id, { shouldValidate: true, shouldDirty: true });
+          setQuickOpen(null);
+        }}
+      />
+
+      <QuickCreateIngredientDialog
+        open={quickOpen === 'ingredient'}
+        onClose={() => {
+          setQuickOpen(null);
+          setPendingIngredientIdx(null);
+        }}
+        onCreated={(id) => {
+          if (pendingIngredientIdx != null) {
+            setValue(`activeIngredients.${pendingIngredientIdx}.activeIngredientId`, id, {
+              shouldValidate: true,
+              shouldDirty: true,
+            });
+          }
+          setPendingIngredientIdx(null);
+          setQuickOpen(null);
+        }}
+      />
     </Form>
   );
 }

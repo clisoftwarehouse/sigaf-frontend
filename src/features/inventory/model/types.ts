@@ -62,6 +62,7 @@ export type QuarantineLotPayload = {
 export type LotFilters = {
   productId?: string;
   branchId?: string;
+  locationId?: string;
   status?: LotStatus;
   expirySignal?: ExpirySignal;
   page?: number;
@@ -74,8 +75,14 @@ export type StockSummary = {
   productId: string;
   branchId: string;
   totalQuantity: number;
+  quantityReserved?: number;
+  quantitySold?: number;
+  quantityDamaged?: number;
   lotCount: number;
   nearestExpiration: string | null;
+  lastCountDate?: string | null;
+  lastCountQuantity?: number | null;
+  lastMovementDate?: string | null;
 };
 
 export type StockFilters = {

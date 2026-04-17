@@ -74,8 +74,7 @@ export const endpoints = {
     byId: (id: string) => `/v1/products/${id}`,
     search: '/v1/products/search',
     barcodes: (id: string) => `/v1/products/${id}/barcodes`,
-    barcodeById: (id: string, barcodeId: string) =>
-      `/v1/products/${id}/barcodes/${barcodeId}`,
+    barcodeById: (id: string, barcodeId: string) => `/v1/products/${id}/barcodes/${barcodeId}`,
     ingredients: (id: string) => `/v1/products/${id}/ingredients`,
     ingredientById: (id: string, ingredientId: string) =>
       `/v1/products/${id}/ingredients/${ingredientId}`,
@@ -107,7 +106,13 @@ export const endpoints = {
   },
   brands: resource('/v1/brands'),
   categories: resource('/v1/categories'),
-  activeIngredients: resource('/v1/active-ingredients'),
+  activeIngredients: {
+    root: '/v1/active-ingredients',
+    byId: (id: string) => `/v1/active-ingredients/${id}`,
+    vademecumLookup: '/v1/active-ingredients/vademecum-lookup',
+    vademecumDetails: '/v1/active-ingredients/vademecum-details',
+    vademecumImport: '/v1/active-ingredients/vademecum-import',
+  },
   suppliers: resource('/v1/suppliers'),
   branches: resource('/v1/branches'),
   terminals: resource('/v1/terminals'),
@@ -119,5 +124,26 @@ export const endpoints = {
   exchangeRates: {
     root: '/v1/exchange-rates',
     latest: '/v1/exchange-rates/latest',
+    fetchBcv: '/v1/exchange-rates/fetch-bcv',
+    override: '/v1/exchange-rates/override',
+  },
+  imports: {
+    run: (type: string) => `/v1/imports/${type}`,
+    template: (type: string) => `/v1/imports/templates/${type}`,
+  },
+  prices: {
+    root: '/v1/prices',
+    byId: (id: string) => `/v1/prices/${id}`,
+    expire: (id: string) => `/v1/prices/${id}/expire`,
+    current: '/v1/prices/current',
+  },
+  promotions: {
+    root: '/v1/promotions',
+    byId: (id: string) => `/v1/promotions/${id}`,
+    activate: (id: string) => `/v1/promotions/${id}/activate`,
+    deactivate: (id: string) => `/v1/promotions/${id}/deactivate`,
+    scopes: (id: string) => `/v1/promotions/${id}/scopes`,
+    scopeById: (id: string, scopeId: string) => `/v1/promotions/${id}/scopes/${scopeId}`,
+    applicable: '/v1/promotions/applicable',
   },
 } as const;

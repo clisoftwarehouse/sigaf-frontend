@@ -20,6 +20,7 @@ function buildLotParams(filters: LotFilters): Record<string, string> {
   const params: Record<string, string> = {};
   if (filters.productId) params.productId = filters.productId;
   if (filters.branchId) params.branchId = filters.branchId;
+  if (filters.locationId) params.locationId = filters.locationId;
   if (filters.status) params.status = filters.status;
   if (filters.expirySignal) params.expirySignal = filters.expirySignal;
   params.page = String(filters.page ?? 1);

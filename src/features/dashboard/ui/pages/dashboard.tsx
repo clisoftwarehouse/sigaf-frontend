@@ -303,7 +303,7 @@ export default function Page() {
               value={lotsData?.total ?? 0}
               icon="solar:calendar-date-bold"
               color="info"
-              href={paths.dashboard.inventory.lots.root}
+              href={paths.dashboard.inventory.stock}
               loading={loadingLots}
             />
           </Grid>
@@ -341,7 +341,7 @@ export default function Page() {
               hint="Requieren baja por vencimiento"
               icon="solar:danger-triangle-bold"
               color="error"
-              href={paths.dashboard.inventory.lots.root}
+              href={paths.dashboard.inventory.stock}
               loading={loadingExpired}
             />
           </Grid>
@@ -352,7 +352,7 @@ export default function Page() {
               hint="Priorizar venta vía FEFO"
               icon="solar:clock-circle-bold"
               color="warning"
-              href={paths.dashboard.inventory.lots.root}
+              href={paths.dashboard.inventory.stock}
               loading={loadingRed}
             />
           </Grid>

@@ -7,7 +7,6 @@ import { AdminGuard } from '@/features/auth/ui/guard';
 // ----------------------------------------------------------------------
 
 const StockPage = lazy(() => import('./ui/pages/stock-page'));
-const LotsListPage = lazy(() => import('./ui/pages/lots-list-page'));
 const LotCreatePage = lazy(() => import('./ui/pages/lot-create-page'));
 const LotEditPage = lazy(() => import('./ui/pages/lot-edit-page'));
 const ProductDetailPage = lazy(() => import('./ui/pages/product-detail-page'));
@@ -19,7 +18,8 @@ const CyclicSchedulesPage = lazy(() => import('./ui/pages/cyclic-schedules-page'
 
 export const inventoryRoutes: RouteObject[] = [
   { path: 'stock', element: <StockPage /> },
-  { path: 'lots', element: <LotsListPage /> },
+  // /inventory/lots listing eliminated per QA recommendation: unified into /inventory/stock with drill-down.
+  // /inventory/lots/new and /lots/:id/edit kept as internal flows invoked from entries/receipts.
   { path: 'lots/new', element: <LotCreatePage /> },
   { path: 'lots/:id/edit', element: <LotEditPage /> },
   { path: 'products/:id', element: <ProductDetailPage /> },

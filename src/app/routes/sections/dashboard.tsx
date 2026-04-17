@@ -9,7 +9,9 @@ import { AuthGuard } from '@/features/auth/ui/guard';
 import { auditRoutes } from '@/features/audit/routes';
 import { usersRoutes } from '@/features/users/routes';
 import { rolesRoutes } from '@/features/roles/routes';
+import { pricesRoutes } from '@/features/prices/routes';
 import { brandsRoutes } from '@/features/brands/routes';
+import { importsRoutes } from '@/features/imports/routes';
 import { DashboardLayout } from '@/app/layouts/dashboard';
 import { productsRoutes } from '@/features/products/routes';
 import { branchesRoutes } from '@/features/branches/routes';
@@ -20,6 +22,7 @@ import { locationsRoutes } from '@/features/locations/routes';
 import { purchasesRoutes } from '@/features/purchases/routes';
 import { configRoutes } from '@/features/config-global/routes';
 import { categoriesRoutes } from '@/features/categories/routes';
+import { promotionsRoutes } from '@/features/promotions/routes';
 import { LoadingScreen } from '@/app/components/loading-screen';
 import { permissionsRoutes } from '@/features/permissions/routes';
 import { consignmentsRoutes } from '@/features/consignments/routes';
@@ -67,6 +70,8 @@ export const dashboardRoutes: RouteObject[] = [
           ...categoriesRoutes,
           ...activeIngredientsRoutes,
           ...suppliersRoutes,
+          ...pricesRoutes,
+          ...promotionsRoutes,
         ],
       },
       {
@@ -118,6 +123,7 @@ export const dashboardRoutes: RouteObject[] = [
           ...configRoutes,
           ...exchangeRatesRoutes,
           ...auditRoutes,
+          ...importsRoutes,
         ],
       },
     ],

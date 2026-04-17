@@ -1,5 +1,7 @@
 import type {
   ActiveIngredient,
+  VademecumDetails,
+  VademecumCandidate,
   ActiveIngredientFilters,
   CreateActiveIngredientPayload,
   UpdateActiveIngredientPayload,
@@ -14,6 +16,7 @@ export async function fetchActiveIngredients(
 ): Promise<ActiveIngredient[]> {
   const params: Record<string, string> = {};
   if (filters.search) params.search = filters.search;
+  if (filters.atcCode) params.atcCode = filters.atcCode;
   const res = await axios.get<ActiveIngredient[]>(endpoints.activeIngredients.root, { params });
   return res.data;
 }
@@ -40,4 +43,26 @@ export async function updateActiveIngredient(
 
 export async function deleteActiveIngredient(id: string): Promise<void> {
   await axios.delete(endpoints.activeIngredients.byId(id));
+}
+
+export async function vademecumLookup(q: string, limit = 10): Promise<VademecumCandidate[]> {
+  const res = await axios.get<VademecumCandidate[]>(endpoints.activeIngredients.vademecumLookup, {
+    params: { q, limit },
+  });
+  return res.data;
+}
+
+export async function vademecumDetails(q: string, index = 0): Promise<VademecumDetails> {
+  const res = await axios.get<VademecumDetails>(endpoints.activeIngredients.vademecumDetails, {
+    params: { q, index },
+  });
+  return res.data;
+}
+
+export async function vademecumImport(q: string, index = 0): Promise<ActiveIngredient> {
+  const res = await axios.post<ActiveIngredient>(endpoints.activeIngredients.vademecumImport, {
+    q,
+    index,
+  });
+  return res.data;
 }

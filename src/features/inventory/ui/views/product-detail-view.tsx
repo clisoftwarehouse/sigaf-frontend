@@ -1,8 +1,8 @@
 import type { GridColDef } from '@mui/x-data-grid';
 import type { InventoryLot } from '../../model/types';
 
-import { useMemo } from 'react';
 import { useParams } from 'react-router';
+import { useMemo, useState } from 'react';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
@@ -10,8 +10,10 @@ import Chip from '@mui/material/Chip';
 import Stack from '@mui/material/Stack';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
+import Tooltip from '@mui/material/Tooltip';
 import Divider from '@mui/material/Divider';
 import Container from '@mui/material/Container';
+import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
 import CircularProgress from '@mui/material/CircularProgress';
 
@@ -26,6 +28,8 @@ import { useProductQuery } from '@/features/products/api/products.queries';
 import { useBranchOptions } from '@/features/branches/api/branches.options';
 import { useCategoriesQuery } from '@/features/categories/api/categories.queries';
 
+import { AdjustmentDialog } from '../components/adjustment-dialog';
+import { QuarantineDialog } from '../components/quarantine-dialog';
 import { ExpirySignalChip } from '../components/expiry-signal-chip';
 import { useFefoQuery, useStockQuery } from '../../api/inventory.queries';
 
@@ -43,6 +47,9 @@ export function InventoryProductDetailView() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
 
+  const [adjustmentLot, setAdjustmentLot] = useState<InventoryLot | null>(null);
+  const [quarantineLot, setQuarantineLot] = useState<InventoryLot | null>(null);
+
   const { data: product, isLoading: loadingProduct, isError, error } = useProductQuery(id);
   const { data: fefoLots = [], isLoading: loadingLots } = useFefoQuery(id || undefined, undefined);
   const { data: stockData } = useStockQuery({ productId: id || undefined });
@@ -56,12 +63,11 @@ export function InventoryProductDetailView() {
   );
 
   const categoryName = useMemo(
-    () => (product ? categories.find((c) => c.id === product.categoryId)?.name ?? '—' : '—'),
+    () => (product ? (categories.find((c) => c.id === product.categoryId)?.name ?? '—') : '—'),
     [categories, product]
   );
   const brandName = useMemo(
-    () =>
-      product?.brandId ? brands.find((b) => b.id === product.brandId)?.name ?? null : null,
+    () => (product?.brandId ? (brands.find((b) => b.id === product.brandId)?.name ?? null) : null),
     [brands, product]
   );
 
@@ -170,8 +176,46 @@ export function InventoryProductDetailView() {
           </Typography>
         ),
       },
+      {
+        field: 'actions',
+        type: 'actions',
+        headerName: 'Acciones',
+        width: 150,
+        align: 'right',
+        headerAlign: 'right',
+        renderCell: ({ row }) => (
+          <Stack direction="row">
+            <Tooltip title="Nuevo ajuste">
+              <IconButton onClick={() => setAdjustmentLot(row)}>
+                <Iconify icon="solar:eraser-bold" />
+              </IconButton>
+            </Tooltip>
+            <Tooltip
+              title={row.status === 'quarantine' ? 'Liberar de cuarentena' : 'Enviar a cuarentena'}
+            >
+              <IconButton
+                color={row.status === 'quarantine' ? 'primary' : 'warning'}
+                onClick={() => setQuarantineLot(row)}
+              >
+                <Iconify icon="solar:danger-triangle-bold" />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Ver movimientos (kardex)">
+              <IconButton
+                onClick={() =>
+                  router.push(
+                    `${paths.dashboard.inventory.kardex}?productId=${row.productId}&lotId=${row.id}`
+                  )
+                }
+              >
+                <Iconify icon="solar:clock-circle-bold" />
+              </IconButton>
+            </Tooltip>
+          </Stack>
+        ),
+      },
     ],
-    [branchNameById]
+    [branchNameById, router]
   );
 
   return (
@@ -305,8 +349,8 @@ export function InventoryProductDetailView() {
                 Orden FEFO — First Expire, First Out
               </Typography>
               <Typography variant="caption" sx={{ color: 'text.disabled' }}>
-                Lotes disponibles ordenados por fecha de vencimiento. Vende siempre el primero
-                para minimizar mermas.
+                Lotes disponibles ordenados por fecha de vencimiento. Vende siempre el primero para
+                minimizar mermas.
               </Typography>
             </Box>
 
@@ -322,6 +366,9 @@ export function InventoryProductDetailView() {
           </Card>
         </Stack>
       )}
+
+      <AdjustmentDialog lot={adjustmentLot} onClose={() => setAdjustmentLot(null)} />
+      <QuarantineDialog lot={quarantineLot} onClose={() => setQuarantineLot(null)} />
     </Container>
   );
 }

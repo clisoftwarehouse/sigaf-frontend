@@ -1,14 +1,14 @@
 import { CONFIG } from '@/app/global-config';
 
-import { LotsListView } from '../views/lots-list-view';
+import { PricesListView } from '../views/prices-list-view';
 
-const metadata = { title: `Lotes · ${CONFIG.appName}` };
+const metadata = { title: `Precios · ${CONFIG.appName}` };
 
 export default function Page() {
   return (
     <>
       <title>{metadata.title}</title>
-      <LotsListView />
+      <PricesListView />
     </>
   );
 }

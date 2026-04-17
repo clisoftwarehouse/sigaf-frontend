@@ -22,7 +22,7 @@ export function LotCreateView() {
     try {
       const created = await mutation.mutateAsync(payload);
       toast.success(`Lote "${created.lotNumber}" creado`);
-      router.push(paths.dashboard.inventory.lots.root);
+      router.push(paths.dashboard.inventory.stock);
     } catch (err) {
       toast.error((err as Error).message);
     }
@@ -40,7 +40,7 @@ export function LotCreateView() {
       <LotCreateForm
         submitting={mutation.isPending}
         onSubmit={handleSubmit}
-        onCancel={() => router.push(paths.dashboard.inventory.lots.root)}
+        onCancel={() => router.push(paths.dashboard.inventory.stock)}
       />
     </Container>
   );

@@ -31,7 +31,7 @@ export function LotEditView() {
     try {
       const updated = await mutation.mutateAsync({ id, payload });
       toast.success(`Lote "${updated.lotNumber}" actualizado`);
-      router.push(paths.dashboard.inventory.lots.root);
+      router.push(paths.dashboard.inventory.stock);
     } catch (err) {
       toast.error((err as Error).message);
     }
@@ -64,7 +64,7 @@ export function LotEditView() {
           current={lot}
           submitting={mutation.isPending}
           onSubmit={handleSubmit}
-          onCancel={() => router.push(paths.dashboard.inventory.lots.root)}
+          onCancel={() => router.push(paths.dashboard.inventory.stock)}
         />
       )}
     </Container>

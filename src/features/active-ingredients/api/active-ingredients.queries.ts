@@ -7,6 +7,9 @@ import type {
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import {
+  vademecumLookup,
+  vademecumImport,
+  vademecumDetails,
   fetchActiveIngredient,
   createActiveIngredient,
   deleteActiveIngredient,
@@ -64,6 +67,28 @@ export function useDeleteActiveIngredientMutation() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => deleteActiveIngredient(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: activeIngredientKeys.all });
+    },
+  });
+}
+
+export function useVademecumLookupMutation() {
+  return useMutation({
+    mutationFn: ({ q, limit }: { q: string; limit?: number }) => vademecumLookup(q, limit),
+  });
+}
+
+export function useVademecumDetailsMutation() {
+  return useMutation({
+    mutationFn: ({ q, index }: { q: string; index?: number }) => vademecumDetails(q, index),
+  });
+}
+
+export function useVademecumImportMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ q, index }: { q: string; index?: number }) => vademecumImport(q, index),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: activeIngredientKeys.all });
     },

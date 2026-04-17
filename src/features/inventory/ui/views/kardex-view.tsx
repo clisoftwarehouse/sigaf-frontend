@@ -1,6 +1,7 @@
 import type { GridColDef } from '@mui/x-data-grid';
 
 import { useMemo } from 'react';
+import { useSearchParams } from 'react-router';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
@@ -32,7 +33,15 @@ type KardexRow = {
 };
 
 export function KardexView() {
+  const [searchParams] = useSearchParams();
+  const productIdFilter = searchParams.get('productId') ?? undefined;
+  const lotIdFilter = searchParams.get('lotId') ?? undefined;
+  const branchIdFilter = searchParams.get('branchId') ?? undefined;
+
   const { data, isLoading, isError, error, refetch } = useKardexQuery({
+    productId: productIdFilter,
+    lotId: lotIdFilter,
+    branchId: branchIdFilter,
     page: 1,
     limit: 1000,
   });
@@ -146,7 +155,11 @@ export function KardexView() {
     <Container maxWidth="xl">
       <PageHeader
         title="Kardex"
-        subtitle="Histórico inmutable de todos los movimientos de inventario."
+        subtitle={
+          lotIdFilter
+            ? 'Movimientos filtrados por el lote seleccionado.'
+            : 'Histórico inmutable de todos los movimientos de inventario.'
+        }
         crumbs={[{ label: 'Inventario' }, { label: 'Kardex' }]}
       />
 

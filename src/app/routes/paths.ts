@@ -36,6 +36,8 @@ export const paths = {
       categories: crud(`${catalog}/categories`),
       activeIngredients: crud(`${catalog}/active-ingredients`),
       suppliers: crud(`${catalog}/suppliers`),
+      prices: `${catalog}/prices`,
+      promotions: `${catalog}/promotions`,
     },
     inventory: {
       root: inventory,
@@ -75,6 +77,7 @@ export const paths = {
       config: `${admin}/config`,
       exchangeRates: `${admin}/exchange-rates`,
       auditLog: `${admin}/audit-log`,
+      imports: `${admin}/imports`,
     },
   },
 };
