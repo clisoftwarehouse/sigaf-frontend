@@ -147,7 +147,7 @@ export function ReturnCreateView() {
                 name="reason"
                 label="Motivo"
                 slotProps={{ inputLabel: { shrink: true } }}
-                sx={{ minWidth: 220 }}
+                sx={{ width: { xs: '100%', md: 220 }, flexShrink: 0 }}
               >
                 {CONSIGNMENT_RETURN_REASONS.map((o) => (
                   <MenuItem key={o.value} value={o.value}>

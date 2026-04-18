@@ -32,7 +32,23 @@ const DataTable = forwardRef<HTMLDivElement, DataGridProps>((props, ref) => {
     quickFilterValues: [''],
   });
 
-  const mergedProps = merge({}, props, {
+  const defaults: Partial<DataGridProps> = {
+    getRowHeight: () => 'auto',
+    getEstimatedRowHeight: () => 60,
+    sx: {
+      '& .MuiDataGrid-cell': {
+        py: 1,
+        alignItems: 'center',
+        whiteSpace: 'normal',
+        lineHeight: 1.4,
+      },
+      '& .MuiDataGrid-cell--textRight': {
+        justifyContent: 'flex-end',
+      },
+    },
+  };
+
+  const mergedProps = merge({}, defaults, props, {
     filterModel,
     onFilterModelChange: setFilterModel,
     slots: {

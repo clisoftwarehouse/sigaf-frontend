@@ -16,6 +16,7 @@ export function RHFTextField({
   helperText,
   slotProps,
   type = 'text',
+  sx,
   ...other
 }: RHFTextFieldProps) {
   const { control } = useFormContext();
@@ -59,6 +60,7 @@ export function RHFTextField({
               autoComplete: 'new-password', // Disable autocomplete and autofill
             },
           }}
+          sx={[{ minWidth: 0 }, ...(Array.isArray(sx) ? sx : sx ? [sx] : [])]}
           {...other}
         />
       )}

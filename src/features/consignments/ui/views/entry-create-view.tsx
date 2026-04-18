@@ -172,7 +172,7 @@ export function EntryCreateView() {
                 label="Comisión (%)"
                 placeholder="Ej. 15"
                 slotProps={{ inputLabel: { shrink: true } }}
-                sx={{ minWidth: 140 }}
+                sx={{ width: { xs: '100%', md: 140 }, flexShrink: 0 }}
               />
             </Stack>
 
@@ -240,7 +240,7 @@ export function EntryCreateView() {
                           label="Vencimiento"
                           type="date"
                           slotProps={{ inputLabel: { shrink: true } }}
-                          sx={{ minWidth: 180 }}
+                          sx={{ width: { xs: '100%', sm: 180 }, flexShrink: 0 }}
                         />
                       </Stack>
                       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>

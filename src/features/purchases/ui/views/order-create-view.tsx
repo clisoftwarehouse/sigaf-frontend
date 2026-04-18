@@ -158,7 +158,7 @@ export function OrderCreateView() {
                 name="orderType"
                 label="Tipo de orden"
                 slotProps={{ inputLabel: { shrink: true } }}
-                sx={{ minWidth: 200 }}
+                sx={{ width: { xs: '100%', md: 200 }, flexShrink: 0 }}
               >
                 {ORDER_TYPE_OPTIONS.map((o) => (
                   <MenuItem key={o.value} value={o.value}>
@@ -171,7 +171,7 @@ export function OrderCreateView() {
                 label="Fecha esperada"
                 type="date"
                 slotProps={{ inputLabel: { shrink: true } }}
-                sx={{ minWidth: 180 }}
+                sx={{ width: { xs: '100%', md: 180 }, flexShrink: 0 }}
               />
               <Field.Text
                 name="notes"

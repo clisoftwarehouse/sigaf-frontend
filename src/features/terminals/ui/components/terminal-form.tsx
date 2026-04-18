@@ -125,7 +125,7 @@ export function TerminalForm({ current, submitting, onSubmit, onCancel }: Props)
               label="Código"
               placeholder="Ej. POS-01"
               slotProps={{ inputLabel: { shrink: true } }}
-              sx={{ minWidth: 160 }}
+              sx={{ width: { xs: '100%', sm: 160 }, flexShrink: 0 }}
             />
             <Field.Text
               name="name"

@@ -179,7 +179,7 @@ export function ReceiptCreateView() {
                 name="receiptType"
                 label="Tipo"
                 slotProps={{ inputLabel: { shrink: true } }}
-                sx={{ minWidth: 180 }}
+                sx={{ width: { xs: '100%', md: 180 }, flexShrink: 0 }}
               >
                 {RECEIPT_TYPE_OPTIONS.map((o) => (
                   <MenuItem key={o.value} value={o.value}>
@@ -267,7 +267,7 @@ export function ReceiptCreateView() {
                           label="Vencimiento"
                           type="date"
                           slotProps={{ inputLabel: { shrink: true } }}
-                          sx={{ minWidth: 180 }}
+                          sx={{ width: { xs: '100%', sm: 180 }, flexShrink: 0 }}
                         />
                       </Stack>
                       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>

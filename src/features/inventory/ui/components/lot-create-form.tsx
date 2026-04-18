@@ -159,14 +159,14 @@ export function LotCreateForm({ submitting, onSubmit, onCancel }: Props) {
               label="Vencimiento"
               type="date"
               slotProps={{ inputLabel: { shrink: true } }}
-              sx={{ minWidth: 180 }}
+              sx={{ width: { xs: '100%', sm: 180 }, flexShrink: 0 }}
             />
             <Field.Text
               name="manufactureDate"
               label="Fabricación (opcional)"
               type="date"
               slotProps={{ inputLabel: { shrink: true } }}
-              sx={{ minWidth: 180 }}
+              sx={{ width: { xs: '100%', sm: 180 }, flexShrink: 0 }}
             />
           </Stack>
 
@@ -175,7 +175,7 @@ export function LotCreateForm({ submitting, onSubmit, onCancel }: Props) {
               name="acquisitionType"
               label="Tipo de adquisición"
               slotProps={{ inputLabel: { shrink: true } }}
-              sx={{ minWidth: 200 }}
+              sx={{ width: { xs: '100%', sm: 200 }, flexShrink: 0 }}
             >
               {ACQUISITION_OPTIONS.map((o) => (
                 <MenuItem key={o.value} value={o.value}>

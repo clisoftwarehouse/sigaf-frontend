@@ -35,6 +35,7 @@ export function RHFAutocomplete({
   slotProps,
   helperText,
   placeholder,
+  sx,
   ...other
 }: RHFAutocompleteProps) {
   const { control, setValue } = useFormContext();
@@ -76,6 +77,7 @@ export function RHFAutocomplete({
               ...otherSlotProps?.chip,
             },
           }}
+          sx={[{ minWidth: 0 }, ...(Array.isArray(sx) ? sx : sx ? [sx] : [])]}
           {...other}
         />
       )}

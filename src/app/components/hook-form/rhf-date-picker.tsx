@@ -57,6 +57,14 @@ export function RHFDatePicker({ name, slotProps, ...other }: PickerProps<DatePic
               ...slotProps?.textField,
               error: !!error,
               helperText: error?.message ?? slotProps?.textField?.helperText,
+              sx: [
+                { minWidth: 0 },
+                ...(Array.isArray(slotProps?.textField?.sx)
+                  ? slotProps.textField.sx
+                  : slotProps?.textField?.sx
+                  ? [slotProps.textField.sx]
+                  : []),
+              ],
             },
           }}
           {...other}
@@ -94,6 +102,14 @@ export function RHFTimePicker({ name, slotProps, ...other }: PickerProps<TimePic
               ...slotProps?.textField,
               error: !!error,
               helperText: error?.message ?? slotProps?.textField?.helperText,
+              sx: [
+                { minWidth: 0 },
+                ...(Array.isArray(slotProps?.textField?.sx)
+                  ? slotProps.textField.sx
+                  : slotProps?.textField?.sx
+                  ? [slotProps.textField.sx]
+                  : []),
+              ],
             },
           }}
           {...other}
@@ -131,6 +147,14 @@ export function RHFDateTimePicker({ name, slotProps, ...other }: PickerProps<Dat
               ...slotProps?.textField,
               error: !!error,
               helperText: error?.message ?? slotProps?.textField?.helperText,
+              sx: [
+                { minWidth: 0 },
+                ...(Array.isArray(slotProps?.textField?.sx)
+                  ? slotProps.textField.sx
+                  : slotProps?.textField?.sx
+                  ? [slotProps.textField.sx]
+                  : []),
+              ],
             },
           }}
           {...other}

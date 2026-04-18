@@ -88,7 +88,7 @@ export function BranchForm({ current, submitting, onSubmit, onCancel }: Props) {
               name="rif"
               label="RIF"
               slotProps={{ inputLabel: { shrink: true } }}
-              sx={{ minWidth: 200 }}
+              sx={{ width: { xs: '100%', sm: 200 }, flexShrink: 0 }}
             />
           </Stack>
 

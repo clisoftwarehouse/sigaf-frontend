@@ -32,6 +32,7 @@ export function RHFSelect({
   children,
   helperText,
   slotProps = {},
+  sx,
   ...other
 }: RHFSelectProps) {
   const { control } = useFormContext();
@@ -65,6 +66,7 @@ export function RHFSelect({
           error={!!error}
           helperText={error?.message ?? helperText}
           slotProps={merge(baseSlotProps, slotProps)}
+          sx={[{ minWidth: 0 }, ...(Array.isArray(sx) ? sx : sx ? [sx] : [])]}
           {...other}
         >
           {children}
