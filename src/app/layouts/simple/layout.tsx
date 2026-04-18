@@ -4,13 +4,11 @@ import type { MainSectionProps, HeaderSectionProps, LayoutSectionProps } from '.
 
 import { merge } from 'es-toolkit';
 
-import Box from '@mui/material/Box';
 import Alert from '@mui/material/Alert';
 
 import { Logo } from '@/app/components/logo';
 
 import { SimpleCompactContent } from './content';
-import { SettingsButton } from '../components/settings-button';
 import { MainSection, LayoutSection, HeaderSection } from '../core';
 
 // ----------------------------------------------------------------------
@@ -43,12 +41,6 @@ export function SimpleLayout({
         </Alert>
       ),
       leftArea: <Logo />,
-      rightArea: (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, sm: 1.5 } }}>
-          {/** @slot Settings button */}
-          <SettingsButton />
-        </Box>
-      ),
     };
 
     return (

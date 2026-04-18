@@ -11,7 +11,7 @@ import { ProgressBar } from '@/app/components/progress-bar';
 import { AuthProvider } from '@/features/auth/ui/context/jwt';
 import { themeConfig, ThemeProvider } from '@/app/ui-kit/theme';
 import { MotionLazy } from '@/app/components/animate/motion-lazy';
-import { SettingsDrawer, defaultSettings, SettingsProvider } from '@/app/components/settings';
+import { defaultSettings, SettingsProvider } from '@/app/components/settings';
 
 // ----------------------------------------------------------------------
 
@@ -32,7 +32,6 @@ export default function App({ children }: AppProps) {
           >
             <MotionLazy>
               <ProgressBar />
-              <SettingsDrawer defaultSettings={defaultSettings} />
               <Toaster
                 position="top-right"
                 richColors

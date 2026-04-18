@@ -10,12 +10,12 @@ export const SETTINGS_STORAGE_KEY: string = 'app-settings';
 export const defaultSettings: SettingsState = {
   mode: themeConfig.defaultMode,
   direction: themeConfig.direction,
-  contrast: 'default',
+  contrast: 'high',
   navLayout: 'vertical',
-  primaryColor: 'default',
-  navColor: 'integrate',
+  primaryColor: 'preset5',
+  navColor: 'apparent',
   compactLayout: true,
   fontSize: 16,
-  fontFamily: themeConfig.fontFamily.primary,
+  fontFamily: 'Inter Variable',
   version: CONFIG.appVersion,
 };

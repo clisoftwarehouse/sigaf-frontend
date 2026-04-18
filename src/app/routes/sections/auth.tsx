@@ -20,7 +20,9 @@ const authJwt = {
         <GuestGuard>
           <AuthSplitLayout
             slotProps={{
-              section: { title: 'Bienvenido a SIGAF' },
+              section: {
+                title: 'Bienvenido a Grupo Universal 25',
+              },
             }}
           >
             <SignInPage />

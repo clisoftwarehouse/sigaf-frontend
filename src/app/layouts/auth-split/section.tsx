@@ -33,7 +33,7 @@ export function AuthSplitSection({
   layoutQuery = 'md',
   title = 'Manage the job',
   imgUrl = `${CONFIG.assetsDir}/assets/illustrations/illustration-dashboard.webp`,
-  subtitle = 'More effectively with optimized workflows.',
+  subtitle = 'Plataforma integral de gestión farmacéutica.',
   ...other
 }: AuthSplitSectionProps) {
   return (

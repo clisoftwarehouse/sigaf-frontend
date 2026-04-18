@@ -21,7 +21,6 @@ import { NavHorizontal } from './nav-horizontal';
 import { _account } from '../nav-config-account';
 import { MenuButton } from '../components/menu-button';
 import { AccountDrawer } from '../components/account-drawer';
-import { SettingsButton } from '../components/settings-button';
 import { navData as dashboardNavData } from '../nav-config-dashboard';
 import { dashboardLayoutVars, dashboardNavColorVars } from './css-vars';
 import { MainSection, layoutClasses, HeaderSection, LayoutSection } from '../core';
@@ -130,9 +129,6 @@ export function DashboardLayout({
       ),
       rightArea: (
         <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0, sm: 0.75 } }}>
-          {/** @slot Settings button */}
-          <SettingsButton />
-
           {/** @slot Account drawer */}
           <AccountDrawer data={_account} />
         </Box>
