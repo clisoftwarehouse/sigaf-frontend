@@ -5,13 +5,13 @@ import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 
-import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
 import MenuItem from '@mui/material/MenuItem';
 import Typography from '@mui/material/Typography';
 
+import { FormFooter } from '@/shared/ui/form-footer';
 import { Form, Field } from '@/app/components/hook-form';
 import { useLocationsQuery } from '@/features/locations/api/locations.queries';
 
@@ -44,6 +44,7 @@ export function LotEditForm({ current, submitting, onSubmit, onCancel }: Props) 
   const { data: locations = [] } = useLocationsQuery({ branchId: current.branchId });
 
   const methods = useForm<LotUpdateFormValues>({
+    mode: 'onBlur',
     resolver: zodResolver(LotUpdateSchema),
     defaultValues: {
       salePrice: String(current.salePrice ?? ''),
@@ -108,18 +109,19 @@ export function LotEditForm({ current, submitting, onSubmit, onCancel }: Props) 
             ))}
           </Field.Select>
 
-          <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1.5 }}>
-            {onCancel && (
-              <Button color="inherit" variant="outlined" onClick={onCancel}>
-                Cancelar
-              </Button>
-            )}
-            <Button type="submit" variant="contained" loading={submitting}>
-              Guardar cambios
-            </Button>
-          </Box>
         </Stack>
       </Card>
+
+      <FormFooter>
+        {onCancel && (
+          <Button color="inherit" variant="outlined" onClick={onCancel}>
+            Cancelar
+          </Button>
+        )}
+        <Button type="submit" variant="contained" loading={submitting}>
+          Guardar cambios
+        </Button>
+      </FormFooter>
     </Form>
   );
 }

@@ -5,23 +5,33 @@ import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 
-import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
 import Divider from '@mui/material/Divider';
 import Typography from '@mui/material/Typography';
 
+import { FormFooter } from '@/shared/ui/form-footer';
 import { Form, Field } from '@/app/components/hook-form';
 
 // ----------------------------------------------------------------------
 
+const RIF_REGEX = /^[VEJGP]-\d{7,9}-\d$/;
+const PHONE_REGEX = /^\+58[24]\d{9}$/;
+
 export const SupplierSchema = z.object({
-  rif: z.string().min(1, { message: 'RIF obligatorio' }).max(20),
+  rif: z
+    .string()
+    .min(1, { message: 'RIF obligatorio' })
+    .regex(RIF_REGEX, { message: 'Formato esperado: J-12345678-9 (V/E/J/G/P)' }),
   businessName: z.string().min(1, { message: 'Razón social obligatoria' }).max(200),
   tradeName: z.string().max(200).optional().or(z.literal('')),
   contactName: z.string().max(150).optional().or(z.literal('')),
-  phone: z.string().max(20).optional().or(z.literal('')),
+  phone: z
+    .string()
+    .optional()
+    .or(z.literal(''))
+    .refine((v) => !v || PHONE_REGEX.test(v), { message: 'Teléfono venezolano inválido' }),
   email: z
     .string()
     .max(150)
@@ -71,6 +81,7 @@ function toFormValues(s?: Supplier): SupplierFormValues {
 
 export function SupplierForm({ current, submitting, onSubmit, onCancel }: Props) {
   const methods = useForm<SupplierFormValues>({
+    mode: 'onBlur',
     resolver: zodResolver(SupplierSchema),
     defaultValues: toFormValues(current),
   });
@@ -106,21 +117,14 @@ export function SupplierForm({ current, submitting, onSubmit, onCancel }: Props)
             Información fiscal
           </Typography>
 
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-            <Field.Text
-              name="rif"
-              label="RIF"
-              placeholder="Ej. J-12345678-0"
-              slotProps={{ inputLabel: { shrink: true } }}
-            />
-            <Field.Text
-              name="businessName"
-              label="Razón social"
-              placeholder="Ej. Distribuidora Farmacéutica ABC"
-              slotProps={{ inputLabel: { shrink: true } }}
-              sx={{ flex: 1 }}
-            />
-          </Stack>
+          <Field.Identification name="rif" kind="rif" label="RIF" />
+
+          <Field.Text
+            name="businessName"
+            label="Razón social"
+            placeholder="Ej. Distribuidora Farmacéutica ABC"
+            slotProps={{ inputLabel: { shrink: true } }}
+          />
 
           <Field.Text
             name="tradeName"
@@ -141,11 +145,7 @@ export function SupplierForm({ current, submitting, onSubmit, onCancel }: Props)
           />
 
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-            <Field.Text
-              name="phone"
-              label="Teléfono (opcional)"
-              slotProps={{ inputLabel: { shrink: true } }}
-            />
+            <Field.Phone name="phone" label="Teléfono (opcional)" sx={{ flex: 1 }} />
             <Field.Text
               name="email"
               label="Email (opcional)"
@@ -191,18 +191,19 @@ export function SupplierForm({ current, submitting, onSubmit, onCancel }: Props)
             />
           </Stack>
 
-          <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1.5, pt: 1 }}>
-            {onCancel && (
-              <Button color="inherit" variant="outlined" onClick={onCancel}>
-                Cancelar
-              </Button>
-            )}
-            <Button type="submit" variant="contained" loading={submitting}>
-              {current ? 'Guardar cambios' : 'Crear proveedor'}
-            </Button>
-          </Box>
         </Stack>
       </Card>
+
+      <FormFooter>
+        {onCancel && (
+          <Button color="inherit" variant="outlined" onClick={onCancel}>
+            Cancelar
+          </Button>
+        )}
+        <Button type="submit" variant="contained" loading={submitting}>
+          {current ? 'Guardar cambios' : 'Crear proveedor'}
+        </Button>
+      </FormFooter>
     </Form>
   );
 }

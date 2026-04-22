@@ -32,3 +32,8 @@ export async function updateBrand(id: string, payload: UpdateBrandPayload): Prom
 export async function deleteBrand(id: string): Promise<void> {
   await axios.delete(endpoints.brands.byId(id));
 }
+
+export async function restoreBrand(id: string): Promise<Brand> {
+  const res = await axios.patch<Brand>(`${endpoints.brands.byId(id)}/restore`);
+  return res.data;
+}

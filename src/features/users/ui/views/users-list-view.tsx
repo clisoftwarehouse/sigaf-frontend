@@ -7,12 +7,15 @@ import { useMemo, useState } from 'react';
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Chip from '@mui/material/Chip';
+import Stack from '@mui/material/Stack';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
 import Tooltip from '@mui/material/Tooltip';
 import Container from '@mui/material/Container';
 import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
+import ToggleButton from '@mui/material/ToggleButton';
+import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 
 import { paths } from '@/app/routes/paths';
 import { useRouter } from '@/app/routes/hooks';
@@ -22,31 +25,49 @@ import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
 import { useRoleOptions } from '@/features/roles/api/roles.options';
 import { DataTable, createFkFilterOperators } from '@/app/components/data-table';
 
-import { useUsersQuery, useDeleteUserMutation } from '../../api/users.queries';
+import {
+  useUsersQuery,
+  useDeleteUserMutation,
+  useRestoreUserMutation,
+} from '../../api/users.queries';
 
 // ----------------------------------------------------------------------
 
+type ActiveFilter = 'active' | 'inactive';
+
 export function UsersListView() {
   const router = useRouter();
-  const [toDelete, setToDelete] = useState<{ id: string; name: string } | null>(null);
+  const [filter, setFilter] = useState<ActiveFilter>('active');
+  const [toDeactivate, setToDeactivate] = useState<{ id: string; name: string } | null>(null);
+  const [toRestore, setToRestore] = useState<{ id: string; name: string } | null>(null);
 
-  const {
-    data,
-    isLoading,
-    isError,
-    error,
-    refetch,
-  } = useUsersQuery({ page: 1, limit: 1000 });
-  const deleteMutation = useDeleteUserMutation();
+  const { data, isLoading, isError, error, refetch } = useUsersQuery({
+    page: 1,
+    limit: 1000,
+    filters: { isActive: filter === 'active' },
+  });
+  const deactivateMutation = useDeleteUserMutation();
+  const restoreMutation = useRestoreUserMutation();
 
   const users = data?.data ?? [];
 
-  const confirmDelete = async () => {
-    if (!toDelete) return;
+  const confirmDeactivate = async () => {
+    if (!toDeactivate) return;
     try {
-      await deleteMutation.mutateAsync(toDelete.id);
-      toast.success(`Usuario "${toDelete.name}" eliminado`);
-      setToDelete(null);
+      await deactivateMutation.mutateAsync(toDeactivate.id);
+      toast.success(`Usuario "${toDeactivate.name}" inactivado`);
+      setToDeactivate(null);
+    } catch (err) {
+      toast.error((err as Error).message);
+    }
+  };
+
+  const confirmRestore = async () => {
+    if (!toRestore) return;
+    try {
+      await restoreMutation.mutateAsync(toRestore.id);
+      toast.success(`Usuario "${toRestore.name}" reactivado`);
+      setToRestore(null);
     } catch (err) {
       toast.error((err as Error).message);
     }
@@ -111,7 +132,7 @@ export function UsersListView() {
       },
       {
         field: 'isActive',
-        headerName: 'Activo',
+        headerName: 'Estado',
         type: 'boolean',
         flex: 1,
         minWidth: 110,
@@ -141,26 +162,36 @@ export function UsersListView() {
         field: 'actions',
         type: 'actions',
         headerName: 'Acciones',
-        width: 110,
+        width: 130,
         align: 'right',
         headerAlign: 'right',
-        renderCell: ({ row }) => (
-          <>
-            <Tooltip title="Editar">
-              <IconButton onClick={() => router.push(paths.dashboard.admin.users.edit(row.id))}>
-                <Iconify icon="solar:pen-bold" />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Eliminar">
+        renderCell: ({ row }) =>
+          row.isActive ? (
+            <>
+              <Tooltip title="Editar">
+                <IconButton onClick={() => router.push(paths.dashboard.admin.users.edit(row.id))}>
+                  <Iconify icon="solar:pen-bold" />
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="Inactivar">
+                <IconButton
+                  color="warning"
+                  onClick={() => setToDeactivate({ id: row.id, name: row.username })}
+                >
+                  <Iconify icon="solar:forbidden-circle-bold" />
+                </IconButton>
+              </Tooltip>
+            </>
+          ) : (
+            <Tooltip title="Reactivar">
               <IconButton
-                color="error"
-                onClick={() => setToDelete({ id: row.id, name: row.username })}
+                color="success"
+                onClick={() => setToRestore({ id: row.id, name: row.username })}
               >
-                <Iconify icon="solar:trash-bin-trash-bold" />
+                <Iconify icon="solar:restart-bold" />
               </IconButton>
             </Tooltip>
-          </>
-        ),
+          ),
       },
     ],
     [router, roleFilterOperators]
@@ -184,6 +215,23 @@ export function UsersListView() {
       />
 
       <Card>
+        <Stack
+          direction="row"
+          alignItems="center"
+          justifyContent="space-between"
+          sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}
+        >
+          <ToggleButtonGroup
+            value={filter}
+            exclusive
+            size="small"
+            onChange={(_, value: ActiveFilter | null) => value && setFilter(value)}
+          >
+            <ToggleButton value="active">Activos</ToggleButton>
+            <ToggleButton value="inactive">Inactivos</ToggleButton>
+          </ToggleButtonGroup>
+        </Stack>
+
         {isError && (
           <Box sx={{ p: 2 }}>
             <Alert
@@ -208,7 +256,12 @@ export function UsersListView() {
             autoHeight
             initialState={{
               columns: {
-                columnVisibilityModel: { cedula: false, lastLoginAt: false, phone: false },
+                columnVisibilityModel: {
+                  cedula: false,
+                  lastLoginAt: false,
+                  phone: false,
+                  isActive: false,
+                },
               },
             }}
           />
@@ -216,20 +269,36 @@ export function UsersListView() {
       </Card>
 
       <ConfirmDialog
-        open={!!toDelete}
-        title="Eliminar usuario"
+        open={!!toDeactivate}
+        title="Inactivar usuario"
         description={
-          toDelete ? (
+          toDeactivate ? (
             <>
-              ¿Seguro que deseas eliminar al usuario <strong>{toDelete.name}</strong>? Esta acción
-              es reversible solo desde el backend.
+              ¿Inactivar al usuario <strong>{toDeactivate.name}</strong>? No podrá iniciar sesión
+              hasta ser reactivado desde la pestaña &quot;Inactivos&quot;.
             </>
           ) : null
         }
-        confirmLabel="Eliminar"
-        loading={deleteMutation.isPending}
-        onConfirm={confirmDelete}
-        onClose={() => setToDelete(null)}
+        confirmLabel="Inactivar"
+        loading={deactivateMutation.isPending}
+        onConfirm={confirmDeactivate}
+        onClose={() => setToDeactivate(null)}
+      />
+
+      <ConfirmDialog
+        open={!!toRestore}
+        title="Reactivar usuario"
+        description={
+          toRestore ? (
+            <>
+              ¿Reactivar al usuario <strong>{toRestore.name}</strong>?
+            </>
+          ) : null
+        }
+        confirmLabel="Reactivar"
+        loading={restoreMutation.isPending}
+        onConfirm={confirmRestore}
+        onClose={() => setToRestore(null)}
       />
     </Container>
   );

@@ -5,7 +5,6 @@ import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 
-import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
@@ -13,6 +12,7 @@ import Divider from '@mui/material/Divider';
 import MenuItem from '@mui/material/MenuItem';
 import Typography from '@mui/material/Typography';
 
+import { FormFooter } from '@/shared/ui/form-footer';
 import { Form, Field } from '@/app/components/hook-form';
 import { useRolesQuery } from '@/features/roles/api/roles.queries';
 
@@ -25,6 +25,21 @@ const optionalEmail = z
   .or(z.literal(''))
   .refine((v) => !v || /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v), { message: 'Email inválido' });
 
+const CEDULA_REGEX = /^[VE]-\d{6,9}$/;
+const PHONE_REGEX = /^\+58[24]\d{9}$/;
+
+const optionalCedula = z
+  .string()
+  .optional()
+  .or(z.literal(''))
+  .refine((v) => !v || CEDULA_REGEX.test(v), { message: 'Cédula inválida' });
+
+const optionalPhone = z
+  .string()
+  .optional()
+  .or(z.literal(''))
+  .refine((v) => !v || PHONE_REGEX.test(v), { message: 'Teléfono venezolano inválido' });
+
 export const CreateUserSchema = z.object({
   username: z.string().min(1, { message: 'Nombre de usuario obligatorio' }),
   password: z
@@ -32,9 +47,9 @@ export const CreateUserSchema = z.object({
     .min(1, { message: 'Contraseña obligatoria' })
     .min(6, { message: 'Mínimo 6 caracteres' }),
   fullName: z.string().min(1, { message: 'Nombre completo obligatorio' }),
-  cedula: z.string().optional().or(z.literal('')),
+  cedula: optionalCedula,
   email: optionalEmail,
-  phone: z.string().max(20).optional().or(z.literal('')),
+  phone: optionalPhone,
   roleId: z.string().optional().or(z.literal('')),
 });
 
@@ -45,9 +60,9 @@ export const UpdateUserSchema = z.object({
     .or(z.literal(''))
     .refine((v) => !v || v.length >= 6, { message: 'Mínimo 6 caracteres' }),
   fullName: z.string().min(1, { message: 'Nombre completo obligatorio' }),
-  cedula: z.string().optional().or(z.literal('')),
+  cedula: optionalCedula,
   email: optionalEmail,
-  phone: z.string().max(20).optional().or(z.literal('')),
+  phone: optionalPhone,
   roleId: z.string().optional().or(z.literal('')),
   isActive: z.boolean(),
 });
@@ -93,6 +108,7 @@ function CreateUserForm({
   loadingRoles,
 }: CreateProps & { roles: RoleOption[]; loadingRoles: boolean }) {
   const methods = useForm<CreateUserFormValues>({
+    mode: 'onBlur',
     resolver: zodResolver(CreateUserSchema),
     defaultValues: {
       username: '',
@@ -155,27 +171,17 @@ function CreateUserForm({
             slotProps={{ inputLabel: { shrink: true } }}
           />
 
+          <Field.Identification name="cedula" kind="cedula" label="Cédula (opcional)" />
+
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+            <Field.Phone name="phone" label="Teléfono (opcional)" sx={{ flex: 1 }} />
             <Field.Text
-              name="cedula"
-              label="Cédula (opcional)"
-              placeholder="Ej. V-12345678"
-              slotProps={{ inputLabel: { shrink: true } }}
-              sx={{ flex: 1 }}
-            />
-            <Field.Text
-              name="phone"
-              label="Teléfono (opcional)"
+              name="email"
+              label="Email (opcional)"
               slotProps={{ inputLabel: { shrink: true } }}
               sx={{ flex: 1 }}
             />
           </Stack>
-
-          <Field.Text
-            name="email"
-            label="Email (opcional)"
-            slotProps={{ inputLabel: { shrink: true } }}
-          />
 
           <Field.Select
             name="roleId"
@@ -191,18 +197,19 @@ function CreateUserForm({
             ))}
           </Field.Select>
 
-          <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1.5 }}>
-            {onCancel && (
-              <Button color="inherit" variant="outlined" onClick={onCancel}>
-                Cancelar
-              </Button>
-            )}
-            <Button type="submit" variant="contained" loading={submitting}>
-              Crear usuario
-            </Button>
-          </Box>
         </Stack>
       </Card>
+
+      <FormFooter>
+        {onCancel && (
+          <Button color="inherit" variant="outlined" onClick={onCancel}>
+            Cancelar
+          </Button>
+        )}
+        <Button type="submit" variant="contained" loading={submitting}>
+          Crear usuario
+        </Button>
+      </FormFooter>
     </Form>
   );
 }
@@ -218,6 +225,7 @@ function EditUserForm({
   loadingRoles,
 }: EditProps & { roles: RoleOption[]; loadingRoles: boolean }) {
   const methods = useForm<UpdateUserFormValues>({
+    mode: 'onBlur',
     resolver: zodResolver(UpdateUserSchema),
     defaultValues: {
       password: '',
@@ -281,26 +289,17 @@ function EditUserForm({
             slotProps={{ inputLabel: { shrink: true } }}
           />
 
+          <Field.Identification name="cedula" kind="cedula" label="Cédula (opcional)" />
+
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+            <Field.Phone name="phone" label="Teléfono (opcional)" sx={{ flex: 1 }} />
             <Field.Text
-              name="cedula"
-              label="Cédula (opcional)"
-              slotProps={{ inputLabel: { shrink: true } }}
-              sx={{ flex: 1 }}
-            />
-            <Field.Text
-              name="phone"
-              label="Teléfono (opcional)"
+              name="email"
+              label="Email (opcional)"
               slotProps={{ inputLabel: { shrink: true } }}
               sx={{ flex: 1 }}
             />
           </Stack>
-
-          <Field.Text
-            name="email"
-            label="Email (opcional)"
-            slotProps={{ inputLabel: { shrink: true } }}
-          />
 
           <Field.Select
             name="roleId"
@@ -336,18 +335,19 @@ function EditUserForm({
             helperText="Las cuentas inactivas no pueden iniciar sesión."
           />
 
-          <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1.5 }}>
-            {onCancel && (
-              <Button color="inherit" variant="outlined" onClick={onCancel}>
-                Cancelar
-              </Button>
-            )}
-            <Button type="submit" variant="contained" loading={submitting}>
-              Guardar cambios
-            </Button>
-          </Box>
         </Stack>
       </Card>
+
+      <FormFooter>
+        {onCancel && (
+          <Button color="inherit" variant="outlined" onClick={onCancel}>
+            Cancelar
+          </Button>
+        )}
+        <Button type="submit" variant="contained" loading={submitting}>
+          Guardar cambios
+        </Button>
+      </FormFooter>
     </Form>
   );
 }

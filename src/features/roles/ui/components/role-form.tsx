@@ -14,6 +14,7 @@ import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import Autocomplete from '@mui/material/Autocomplete';
 
+import { FormFooter } from '@/shared/ui/form-footer';
 import { Form, Field } from '@/app/components/hook-form';
 import { usePermissionsQuery } from '@/features/permissions/api/permissions.queries';
 
@@ -41,6 +42,7 @@ export function RoleForm({ current, submitting, onSubmit, onCancel }: Props) {
   const { data: permissions = [] } = usePermissionsQuery();
 
   const methods = useForm<RoleFormValues>({
+    mode: 'onBlur',
     resolver: zodResolver(RoleSchema),
     defaultValues: {
       name: current?.name ?? '',
@@ -162,18 +164,18 @@ export function RoleForm({ current, submitting, onSubmit, onCancel }: Props) {
             }}
           />
         </Card>
-
-        <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1.5 }}>
-          {onCancel && (
-            <Button color="inherit" variant="outlined" onClick={onCancel}>
-              Cancelar
-            </Button>
-          )}
-          <Button type="submit" variant="contained" loading={submitting}>
-            {current ? 'Guardar cambios' : 'Crear rol'}
-          </Button>
-        </Box>
       </Stack>
+
+      <FormFooter>
+        {onCancel && (
+          <Button color="inherit" variant="outlined" onClick={onCancel}>
+            Cancelar
+          </Button>
+        )}
+        <Button type="submit" variant="contained" loading={submitting}>
+          {current ? 'Guardar cambios' : 'Crear rol'}
+        </Button>
+      </FormFooter>
     </Form>
   );
 }

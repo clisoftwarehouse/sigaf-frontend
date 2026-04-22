@@ -38,6 +38,7 @@ export type UpdateUserPayload = {
 
 export type UserFilters = {
   roleId?: string;
+  isActive?: boolean;
 };
 
 export type InfinityPaginationResponse<T> = {

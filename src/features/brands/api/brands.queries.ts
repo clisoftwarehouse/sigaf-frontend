@@ -7,6 +7,7 @@ import {
   createBrand,
   deleteBrand,
   fetchBrands,
+  restoreBrand,
   updateBrand,
 } from './brands.api';
 
@@ -59,6 +60,16 @@ export function useDeleteBrandMutation() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => deleteBrand(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: brandKeys.all });
+    },
+  });
+}
+
+export function useRestoreBrandMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => restoreBrand(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: brandKeys.all });
     },

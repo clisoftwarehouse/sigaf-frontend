@@ -28,15 +28,25 @@ type Props = {
 
 type NewIngredientState = {
   activeIngredientId: string;
-  concentration: string;
+  concentrationValue: string;
+  concentrationUnit: string;
   isPrimary: boolean;
 };
 
+const CONCENTRATION_UNITS = ['mg', 'g', 'mcg', 'kg', 'mL', 'L', 'UI', '%', 'mEq'] as const;
+
 const INITIAL_NEW: NewIngredientState = {
   activeIngredientId: '',
-  concentration: '',
+  concentrationValue: '',
+  concentrationUnit: 'mg',
   isPrimary: false,
 };
+
+function composeConcentration(value: string, unit: string): string | undefined {
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
+  return `${trimmed.replace(',', '.')} ${unit}`;
+}
 
 export function IngredientsManager({ product }: Props) {
   const qc = useQueryClient();
@@ -52,7 +62,7 @@ export function IngredientsManager({ product }: Props) {
     mutationFn: () =>
       addProductIngredient(product.id, {
         activeIngredientId: adding.activeIngredientId,
-        concentration: adding.concentration.trim() || undefined,
+        concentration: composeConcentration(adding.concentrationValue, adding.concentrationUnit),
         isPrimary: adding.isPrimary,
       }),
     onSuccess: () => {
@@ -165,12 +175,35 @@ export function IngredientsManager({ product }: Props) {
           <TextField
             size="small"
             label="Concentración"
-            placeholder="Ej. 500mg"
-            value={adding.concentration}
-            onChange={(e) => setAdding((s) => ({ ...s, concentration: e.target.value }))}
-            slotProps={{ inputLabel: { shrink: true } }}
+            placeholder="500"
+            value={adding.concentrationValue}
+            onChange={(e) =>
+              setAdding((s) => ({
+                ...s,
+                concentrationValue: e.target.value.replace(/[^0-9.,]/g, ''),
+              }))
+            }
+            slotProps={{
+              inputLabel: { shrink: true },
+              htmlInput: { inputMode: 'decimal', pattern: '[0-9]*[.,]?[0-9]*' },
+            }}
             sx={{ flex: 1 }}
           />
+          <TextField
+            size="small"
+            select
+            label="Unidad"
+            value={adding.concentrationUnit}
+            onChange={(e) => setAdding((s) => ({ ...s, concentrationUnit: e.target.value }))}
+            slotProps={{ inputLabel: { shrink: true } }}
+            sx={{ minWidth: 90 }}
+          >
+            {CONCENTRATION_UNITS.map((u) => (
+              <MenuItem key={u} value={u}>
+                {u}
+              </MenuItem>
+            ))}
+          </TextField>
           <Button
             variant="outlined"
             size="small"
@@ -189,6 +222,11 @@ export function IngredientsManager({ product }: Props) {
             Agregar
           </Button>
         </Stack>
+        {adding.isPrimary && ingredients.some((i) => i.isPrimary) && (
+          <Typography variant="caption" sx={{ color: 'warning.main', mt: 1, display: 'block' }}>
+            Al guardar, el principio activo actualmente principal dejará de serlo automáticamente.
+          </Typography>
+        )}
       </Box>
     </Card>
   );

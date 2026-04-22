@@ -287,9 +287,11 @@ export function SupplierContactsTab({ supplierId }: Props) {
             />
             <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
               <TextField
-                label="Teléfono"
+                label="Teléfono fijo"
                 value={draft.phone ?? ''}
                 onChange={(e) => setDraft({ ...draft, phone: e.target.value })}
+                placeholder="0212-555-1234"
+                helperText="Formato venezolano. Ej: 02125551234"
                 fullWidth
                 slotProps={{ inputLabel: { shrink: true } }}
               />
@@ -297,6 +299,8 @@ export function SupplierContactsTab({ supplierId }: Props) {
                 label="Móvil"
                 value={draft.mobile ?? ''}
                 onChange={(e) => setDraft({ ...draft, mobile: e.target.value })}
+                placeholder="0414-123-4567"
+                helperText="Móvil 412/414/416/424/426. Ej: 04141234567"
                 fullWidth
                 slotProps={{ inputLabel: { shrink: true } }}
               />

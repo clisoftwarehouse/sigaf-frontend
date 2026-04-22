@@ -3,7 +3,7 @@ import type { CreateUserPayload, UpdateUserPayload } from '../model/types';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
-import { fetchUser, createUser, deleteUser, fetchUsers, updateUser } from './users.api';
+import { fetchUser, createUser, deleteUser, fetchUsers, updateUser, restoreUser } from './users.api';
 
 // ----------------------------------------------------------------------
 
@@ -52,6 +52,14 @@ export function useDeleteUserMutation() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => deleteUser(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: userKeys.all }),
+  });
+}
+
+export function useRestoreUserMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => restoreUser(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: userKeys.all }),
   });
 }

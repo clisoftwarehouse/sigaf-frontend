@@ -4,7 +4,6 @@ import * as z from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 
-import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
@@ -12,6 +11,7 @@ import Divider from '@mui/material/Divider';
 import MenuItem from '@mui/material/MenuItem';
 import Typography from '@mui/material/Typography';
 
+import { FormFooter } from '@/shared/ui/form-footer';
 import { Form, Field } from '@/app/components/hook-form';
 import { useBranchesQuery } from '@/features/branches/api/branches.queries';
 import { useProductsQuery } from '@/features/products/api/products.queries';
@@ -57,6 +57,7 @@ export function LotCreateForm({ submitting, onSubmit, onCancel }: Props) {
   const { data: suppliers = [] } = useSuppliersQuery({ isActive: true });
 
   const methods = useForm<LotCreateFormValues>({
+    mode: 'onBlur',
     resolver: zodResolver(LotCreateSchema),
     defaultValues: {
       productId: '',
@@ -228,18 +229,19 @@ export function LotCreateForm({ submitting, onSubmit, onCancel }: Props) {
             />
           </Stack>
 
-          <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1.5, pt: 1 }}>
-            {onCancel && (
-              <Button color="inherit" variant="outlined" onClick={onCancel}>
-                Cancelar
-              </Button>
-            )}
-            <Button type="submit" variant="contained" loading={submitting}>
-              Crear lote
-            </Button>
-          </Box>
         </Stack>
       </Card>
+
+      <FormFooter>
+        {onCancel && (
+          <Button color="inherit" variant="outlined" onClick={onCancel}>
+            Cancelar
+          </Button>
+        )}
+        <Button type="submit" variant="contained" loading={submitting}>
+          Crear lote
+        </Button>
+      </FormFooter>
     </Form>
   );
 }

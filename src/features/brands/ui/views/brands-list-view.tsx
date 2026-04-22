@@ -8,11 +8,14 @@ import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Chip from '@mui/material/Chip';
 import Alert from '@mui/material/Alert';
+import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
 import Tooltip from '@mui/material/Tooltip';
 import Container from '@mui/material/Container';
 import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
+import ToggleButton from '@mui/material/ToggleButton';
+import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 
 import { paths } from '@/app/routes/paths';
 import { useRouter } from '@/app/routes/hooks';
@@ -21,23 +24,45 @@ import { PageHeader } from '@/shared/ui/page-header';
 import { DataTable } from '@/app/components/data-table';
 import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
 
-import { useBrandsQuery, useDeleteBrandMutation } from '../../api/brands.queries';
+import {
+  useBrandsQuery,
+  useDeleteBrandMutation,
+  useRestoreBrandMutation,
+} from '../../api/brands.queries';
 
 // ----------------------------------------------------------------------
 
+type ActiveFilter = 'active' | 'inactive';
+
 export function BrandsListView() {
   const router = useRouter();
-  const [toDelete, setToDelete] = useState<{ id: string; name: string } | null>(null);
+  const [filter, setFilter] = useState<ActiveFilter>('active');
+  const [toDeactivate, setToDeactivate] = useState<{ id: string; name: string } | null>(null);
+  const [toRestore, setToRestore] = useState<{ id: string; name: string } | null>(null);
 
-  const { data: brands = [], isLoading, isError, error, refetch } = useBrandsQuery();
-  const deleteMutation = useDeleteBrandMutation();
+  const { data: brands = [], isLoading, isError, error, refetch } = useBrandsQuery({
+    isActive: filter === 'active',
+  });
+  const deactivateMutation = useDeleteBrandMutation();
+  const restoreMutation = useRestoreBrandMutation();
 
-  const confirmDelete = async () => {
-    if (!toDelete) return;
+  const confirmDeactivate = async () => {
+    if (!toDeactivate) return;
     try {
-      await deleteMutation.mutateAsync(toDelete.id);
-      toast.success(`Marca "${toDelete.name}" eliminada`);
-      setToDelete(null);
+      await deactivateMutation.mutateAsync(toDeactivate.id);
+      toast.success(`Marca "${toDeactivate.name}" inactivada`);
+      setToDeactivate(null);
+    } catch (err) {
+      toast.error((err as Error).message);
+    }
+  };
+
+  const confirmRestore = async () => {
+    if (!toRestore) return;
+    try {
+      await restoreMutation.mutateAsync(toRestore.id);
+      toast.success(`Marca "${toRestore.name}" reactivada`);
+      setToRestore(null);
     } catch (err) {
       toast.error((err as Error).message);
     }
@@ -66,13 +91,6 @@ export function BrandsListView() {
           ),
       },
       {
-        field: 'isActive',
-        headerName: 'Activo',
-        type: 'boolean',
-        flex: 1,
-        minWidth: 110,
-      },
-      {
         field: 'createdAt',
         headerName: 'Creada',
         type: 'dateTime',
@@ -84,23 +102,36 @@ export function BrandsListView() {
         field: 'actions',
         type: 'actions',
         headerName: 'Acciones',
-        width: 110,
+        width: 130,
         align: 'right',
         headerAlign: 'right',
-        renderCell: ({ row }) => (
-          <>
-            <Tooltip title="Editar">
-              <IconButton onClick={() => router.push(paths.dashboard.catalog.brands.edit(row.id))}>
-                <Iconify icon="solar:pen-bold" />
+        renderCell: ({ row }) =>
+          row.isActive ? (
+            <>
+              <Tooltip title="Editar">
+                <IconButton onClick={() => router.push(paths.dashboard.catalog.brands.edit(row.id))}>
+                  <Iconify icon="solar:pen-bold" />
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="Inactivar">
+                <IconButton
+                  color="warning"
+                  onClick={() => setToDeactivate({ id: row.id, name: row.name })}
+                >
+                  <Iconify icon="solar:forbidden-circle-bold" />
+                </IconButton>
+              </Tooltip>
+            </>
+          ) : (
+            <Tooltip title="Reactivar">
+              <IconButton
+                color="success"
+                onClick={() => setToRestore({ id: row.id, name: row.name })}
+              >
+                <Iconify icon="solar:restart-bold" />
               </IconButton>
             </Tooltip>
-            <Tooltip title="Eliminar">
-              <IconButton color="error" onClick={() => setToDelete({ id: row.id, name: row.name })}>
-                <Iconify icon="solar:trash-bin-trash-bold" />
-              </IconButton>
-            </Tooltip>
-          </>
-        ),
+          ),
       },
     ],
     [router]
@@ -124,6 +155,23 @@ export function BrandsListView() {
       />
 
       <Card>
+        <Stack
+          direction="row"
+          alignItems="center"
+          justifyContent="space-between"
+          sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}
+        >
+          <ToggleButtonGroup
+            value={filter}
+            exclusive
+            size="small"
+            onChange={(_, value: ActiveFilter | null) => value && setFilter(value)}
+          >
+            <ToggleButton value="active">Activas</ToggleButton>
+            <ToggleButton value="inactive">Inactivas</ToggleButton>
+          </ToggleButtonGroup>
+        </Stack>
+
         {isError && (
           <Box sx={{ p: 2 }}>
             <Alert
@@ -146,39 +194,41 @@ export function BrandsListView() {
             loading={isLoading}
             disableRowSelectionOnClick
             autoHeight
-            initialState={{
-              columns: {
-                columnVisibilityModel: {
-                  createdAt: false,
-                  isActive: false,
-                },
-              },
-              filter: {
-                filterModel: {
-                  items: [{ field: 'isActive', operator: 'is', value: 'true' }],
-                  quickFilterValues: [''],
-                },
-              },
-            }}
           />
         </Box>
       </Card>
 
       <ConfirmDialog
-        open={!!toDelete}
-        title="Eliminar marca"
+        open={!!toDeactivate}
+        title="Inactivar marca"
         description={
-          toDelete ? (
+          toDeactivate ? (
             <>
-              ¿Seguro que deseas eliminar la marca <strong>{toDelete.name}</strong>? Esta acción no
-              se puede deshacer.
+              ¿Seguro que deseas inactivar la marca <strong>{toDeactivate.name}</strong>? Podrás
+              reactivarla luego desde la pestaña &quot;Inactivas&quot;.
             </>
           ) : null
         }
-        confirmLabel="Eliminar"
-        loading={deleteMutation.isPending}
-        onConfirm={confirmDelete}
-        onClose={() => setToDelete(null)}
+        confirmLabel="Inactivar"
+        loading={deactivateMutation.isPending}
+        onConfirm={confirmDeactivate}
+        onClose={() => setToDeactivate(null)}
+      />
+
+      <ConfirmDialog
+        open={!!toRestore}
+        title="Reactivar marca"
+        description={
+          toRestore ? (
+            <>
+              ¿Reactivar la marca <strong>{toRestore.name}</strong>?
+            </>
+          ) : null
+        }
+        confirmLabel="Reactivar"
+        loading={restoreMutation.isPending}
+        onConfirm={confirmRestore}
+        onClose={() => setToRestore(null)}
       />
     </Container>
   );

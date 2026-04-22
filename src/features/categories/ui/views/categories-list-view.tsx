@@ -7,11 +7,14 @@ import { useMemo, useState } from 'react';
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Alert from '@mui/material/Alert';
+import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
 import Tooltip from '@mui/material/Tooltip';
 import Container from '@mui/material/Container';
 import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
+import ToggleButton from '@mui/material/ToggleButton';
+import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 
 import { paths } from '@/app/routes/paths';
 import { useRouter } from '@/app/routes/hooks';
@@ -21,15 +24,26 @@ import { DataTable } from '@/app/components/data-table';
 import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
 
 import { CategoryTreeDialog } from '../components/category-tree-dialog';
-import { useCategoriesQuery, useDeleteCategoryMutation } from '../../api/categories.queries';
+import {
+  useCategoriesQuery,
+  useDeleteCategoryMutation,
+  useRestoreCategoryMutation,
+} from '../../api/categories.queries';
 
 // ----------------------------------------------------------------------
 
+type ActiveFilter = 'active' | 'inactive';
+
 export function CategoriesListView() {
   const router = useRouter();
-  const { flat, data, tree, isLoading, isError, error, refetch } = useCategoriesQuery();
-  const deleteMutation = useDeleteCategoryMutation();
-  const [toDelete, setToDelete] = useState<{ id: string; name: string } | null>(null);
+  const [filter, setFilter] = useState<ActiveFilter>('active');
+  const { flat, data, tree, isLoading, isError, error, refetch } = useCategoriesQuery({
+    isActive: filter === 'active',
+  });
+  const deactivateMutation = useDeleteCategoryMutation();
+  const restoreMutation = useRestoreCategoryMutation();
+  const [toDeactivate, setToDeactivate] = useState<{ id: string; name: string } | null>(null);
+  const [toRestore, setToRestore] = useState<{ id: string; name: string } | null>(null);
   const [treeFocusId, setTreeFocusId] = useState<string | null>(null);
 
   const parentNameById = useMemo(() => {
@@ -38,12 +52,23 @@ export function CategoriesListView() {
     return map;
   }, [data]);
 
-  const confirmDelete = async () => {
-    if (!toDelete) return;
+  const confirmDeactivate = async () => {
+    if (!toDeactivate) return;
     try {
-      await deleteMutation.mutateAsync(toDelete.id);
-      toast.success(`Categoría "${toDelete.name}" eliminada`);
-      setToDelete(null);
+      await deactivateMutation.mutateAsync(toDeactivate.id);
+      toast.success(`Categoría "${toDeactivate.name}" inactivada`);
+      setToDeactivate(null);
+    } catch (err) {
+      toast.error((err as Error).message);
+    }
+  };
+
+  const confirmRestore = async () => {
+    if (!toRestore) return;
+    try {
+      await restoreMutation.mutateAsync(toRestore.id);
+      toast.success(`Categoría "${toRestore.name}" reactivada`);
+      setToRestore(null);
     } catch (err) {
       toast.error((err as Error).message);
     }
@@ -100,38 +125,41 @@ export function CategoriesListView() {
         minWidth: 140,
       },
       {
-        field: 'isActive',
-        headerName: 'Activo',
-        type: 'boolean',
-        flex: 1,
-        minWidth: 110,
-      },
-      {
         field: 'actions',
         type: 'actions',
         headerName: 'Acciones',
-        width: 110,
+        width: 130,
         align: 'right',
         headerAlign: 'right',
-        renderCell: ({ row }) => (
-          <>
-            <Tooltip title="Editar">
+        renderCell: ({ row }) =>
+          row.isActive ? (
+            <>
+              <Tooltip title="Editar">
+                <IconButton
+                  onClick={() => router.push(paths.dashboard.catalog.categories.edit(row.id))}
+                >
+                  <Iconify icon="solar:pen-bold" />
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="Inactivar">
+                <IconButton
+                  color="warning"
+                  onClick={() => setToDeactivate({ id: row.id, name: row.name })}
+                >
+                  <Iconify icon="solar:forbidden-circle-bold" />
+                </IconButton>
+              </Tooltip>
+            </>
+          ) : (
+            <Tooltip title="Reactivar">
               <IconButton
-                onClick={() => router.push(paths.dashboard.catalog.categories.edit(row.id))}
+                color="success"
+                onClick={() => setToRestore({ id: row.id, name: row.name })}
               >
-                <Iconify icon="solar:pen-bold" />
+                <Iconify icon="solar:restart-bold" />
               </IconButton>
             </Tooltip>
-            <Tooltip title="Eliminar">
-              <IconButton
-                color="error"
-                onClick={() => setToDelete({ id: row.id, name: row.name })}
-              >
-                <Iconify icon="solar:trash-bin-trash-bold" />
-              </IconButton>
-            </Tooltip>
-          </>
-        ),
+          ),
       },
     ],
     [router, parentNameById]
@@ -155,6 +183,23 @@ export function CategoriesListView() {
       />
 
       <Card>
+        <Stack
+          direction="row"
+          alignItems="center"
+          justifyContent="space-between"
+          sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}
+        >
+          <ToggleButtonGroup
+            value={filter}
+            exclusive
+            size="small"
+            onChange={(_, value: ActiveFilter | null) => value && setFilter(value)}
+          >
+            <ToggleButton value="active">Activas</ToggleButton>
+            <ToggleButton value="inactive">Inactivas</ToggleButton>
+          </ToggleButtonGroup>
+        </Stack>
+
         {isError && (
           <Box sx={{ p: 2 }}>
             <Alert
@@ -189,20 +234,36 @@ export function CategoriesListView() {
       />
 
       <ConfirmDialog
-        open={!!toDelete}
-        title="Eliminar categoría"
+        open={!!toDeactivate}
+        title="Inactivar categoría"
         description={
-          toDelete ? (
+          toDeactivate ? (
             <>
-              ¿Seguro que deseas eliminar la categoría <strong>{toDelete.name}</strong>? Si tiene
-              subcategorías o productos, la operación puede fallar.
+              ¿Inactivar la categoría <strong>{toDeactivate.name}</strong>? Si tiene
+              subcategorías o productos activos, la operación será rechazada.
             </>
           ) : null
         }
-        confirmLabel="Eliminar"
-        loading={deleteMutation.isPending}
-        onConfirm={confirmDelete}
-        onClose={() => setToDelete(null)}
+        confirmLabel="Inactivar"
+        loading={deactivateMutation.isPending}
+        onConfirm={confirmDeactivate}
+        onClose={() => setToDeactivate(null)}
+      />
+
+      <ConfirmDialog
+        open={!!toRestore}
+        title="Reactivar categoría"
+        description={
+          toRestore ? (
+            <>
+              ¿Reactivar la categoría <strong>{toRestore.name}</strong>?
+            </>
+          ) : null
+        }
+        confirmLabel="Reactivar"
+        loading={restoreMutation.isPending}
+        onConfirm={confirmRestore}
+        onClose={() => setToRestore(null)}
       />
     </Container>
   );

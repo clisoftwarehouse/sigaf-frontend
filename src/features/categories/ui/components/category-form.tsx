@@ -5,12 +5,12 @@ import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 
-import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
 import MenuItem from '@mui/material/MenuItem';
 
+import { FormFooter } from '@/shared/ui/form-footer';
 import { Form, Field } from '@/app/components/hook-form';
 
 // ----------------------------------------------------------------------
@@ -34,6 +34,7 @@ type Props = {
 
 export function CategoryForm({ current, parents, submitting, onSubmit, onCancel }: Props) {
   const methods = useForm<CategoryFormValues>({
+    mode: 'onBlur',
     resolver: zodResolver(CategorySchema),
     defaultValues: {
       name: current?.name ?? '',
@@ -96,19 +97,19 @@ export function CategoryForm({ current, parents, submitting, onSubmit, onCancel 
           </Field.Select>
 
           <Field.Switch name="isPharmaceutical" label="Es categoría farmacéutica" />
-
-          <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1.5 }}>
-            {onCancel && (
-              <Button color="inherit" variant="outlined" onClick={onCancel}>
-                Cancelar
-              </Button>
-            )}
-            <Button type="submit" variant="contained" loading={submitting}>
-              {current ? 'Guardar cambios' : 'Crear categoría'}
-            </Button>
-          </Box>
         </Stack>
       </Card>
+
+      <FormFooter>
+        {onCancel && (
+          <Button color="inherit" variant="outlined" onClick={onCancel}>
+            Cancelar
+          </Button>
+        )}
+        <Button type="submit" variant="contained" loading={submitting}>
+          {current ? 'Guardar cambios' : 'Crear categoría'}
+        </Button>
+      </FormFooter>
     </Form>
   );
 }

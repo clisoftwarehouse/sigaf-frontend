@@ -16,8 +16,10 @@ export type CategoryListResponse = Category[] | CategoryTreeRaw[];
 
 type CategoryTreeRaw = Category & { children?: CategoryTreeRaw[] };
 
-export async function fetchCategories(): Promise<CategoryListResponse> {
-  const res = await axios.get<CategoryListResponse>(endpoints.categories.root);
+export async function fetchCategories(filter?: { isActive?: boolean }): Promise<CategoryListResponse> {
+  const params: Record<string, string> = {};
+  if (filter?.isActive !== undefined) params.isActive = String(filter.isActive);
+  const res = await axios.get<CategoryListResponse>(endpoints.categories.root, { params });
   return res.data;
 }
 
@@ -41,4 +43,9 @@ export async function updateCategory(
 
 export async function deleteCategory(id: string): Promise<void> {
   await axios.delete(endpoints.categories.byId(id));
+}
+
+export async function restoreCategory(id: string): Promise<Category> {
+  const res = await axios.patch<Category>(`${endpoints.categories.byId(id)}/restore`);
+  return res.data;
 }

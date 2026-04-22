@@ -5,11 +5,11 @@ import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 
-import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
 
+import { FormFooter } from '@/shared/ui/form-footer';
 import { Form, Field } from '@/app/components/hook-form';
 
 // ----------------------------------------------------------------------
@@ -32,6 +32,7 @@ type Props = {
 
 export function ActiveIngredientForm({ current, submitting, onSubmit, onCancel }: Props) {
   const methods = useForm<ActiveIngredientFormValues>({
+    mode: 'onBlur',
     resolver: zodResolver(ActiveIngredientSchema),
     defaultValues: {
       name: current?.name ?? '',
@@ -98,19 +99,19 @@ export function ActiveIngredientForm({ current, submitting, onSubmit, onCancel }
             placeholder="Ej. Antihipertensivos"
             slotProps={{ inputLabel: { shrink: true } }}
           />
-
-          <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1.5 }}>
-            {onCancel && (
-              <Button color="inherit" variant="outlined" onClick={onCancel}>
-                Cancelar
-              </Button>
-            )}
-            <Button type="submit" variant="contained" loading={submitting}>
-              {current ? 'Guardar cambios' : 'Crear principio activo'}
-            </Button>
-          </Box>
         </Stack>
       </Card>
+
+      <FormFooter>
+        {onCancel && (
+          <Button color="inherit" variant="outlined" onClick={onCancel}>
+            Cancelar
+          </Button>
+        )}
+        <Button type="submit" variant="contained" loading={submitting}>
+          {current ? 'Guardar cambios' : 'Crear principio activo'}
+        </Button>
+      </FormFooter>
     </Form>
   );
 }

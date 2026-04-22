@@ -5,12 +5,12 @@ import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 
-import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
 import MenuItem from '@mui/material/MenuItem';
 
+import { FormFooter } from '@/shared/ui/form-footer';
 import { Form, Field } from '@/app/components/hook-form';
 import { useBranchesQuery } from '@/features/branches/api/branches.queries';
 
@@ -55,6 +55,7 @@ export function LocationForm({ current, submitting, onSubmit, onCancel }: Props)
   const { data: branches = [], isLoading: loadingBranches } = useBranchesQuery();
 
   const methods = useForm<LocationFormValues>({
+    mode: 'onBlur',
     resolver: zodResolver(LocationSchema),
     defaultValues: toFormValues(current),
   });
@@ -135,19 +136,19 @@ export function LocationForm({ current, submitting, onSubmit, onCancel }: Props)
             label="Zona de cuarentena"
             helperText="Las ubicaciones en cuarentena no pueden usarse para venta."
           />
-
-          <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1.5 }}>
-            {onCancel && (
-              <Button color="inherit" variant="outlined" onClick={onCancel}>
-                Cancelar
-              </Button>
-            )}
-            <Button type="submit" variant="contained" loading={submitting}>
-              {current ? 'Guardar cambios' : 'Crear ubicación'}
-            </Button>
-          </Box>
         </Stack>
       </Card>
+
+      <FormFooter>
+        {onCancel && (
+          <Button color="inherit" variant="outlined" onClick={onCancel}>
+            Cancelar
+          </Button>
+        )}
+        <Button type="submit" variant="contained" loading={submitting}>
+          {current ? 'Guardar cambios' : 'Crear ubicación'}
+        </Button>
+      </FormFooter>
     </Form>
   );
 }

@@ -5,20 +5,30 @@ import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 
-import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
 
+import { FormFooter } from '@/shared/ui/form-footer';
 import { Form, Field } from '@/app/components/hook-form';
 
 // ----------------------------------------------------------------------
 
+const RIF_REGEX = /^[VEJGP]-\d{7,9}-\d$/;
+const PHONE_REGEX = /^\+58[24]\d{9}$/;
+
 export const BranchSchema = z.object({
   name: z.string().min(1, { message: 'Nombre obligatorio' }).max(100),
-  rif: z.string().min(1, { message: 'RIF obligatorio' }).max(20),
+  rif: z
+    .string()
+    .min(1, { message: 'RIF obligatorio' })
+    .regex(RIF_REGEX, { message: 'Formato esperado: J-12345678-9 (V/E/J/G/P)' }),
   address: z.string().min(1, { message: 'Dirección obligatoria' }),
-  phone: z.string().max(20).optional().or(z.literal('')),
+  phone: z
+    .string()
+    .optional()
+    .or(z.literal(''))
+    .refine((v) => !v || PHONE_REGEX.test(v), { message: 'Teléfono venezolano inválido' }),
   email: z
     .string()
     .max(150)
@@ -38,6 +48,7 @@ type Props = {
 
 export function BranchForm({ current, submitting, onSubmit, onCancel }: Props) {
   const methods = useForm<BranchFormValues>({
+    mode: 'onBlur',
     resolver: zodResolver(BranchSchema),
     defaultValues: {
       name: current?.name ?? '',
@@ -76,21 +87,14 @@ export function BranchForm({ current, submitting, onSubmit, onCancel }: Props) {
     <Form methods={methods} onSubmit={submit}>
       <Card sx={{ p: 3 }}>
         <Stack spacing={3}>
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-            <Field.Text
-              name="name"
-              label="Nombre"
-              placeholder="Ej. Farmacia Principal"
-              slotProps={{ inputLabel: { shrink: true } }}
-              sx={{ flex: 1 }}
-            />
-            <Field.Text
-              name="rif"
-              label="RIF"
-              slotProps={{ inputLabel: { shrink: true } }}
-              sx={{ width: { xs: '100%', sm: 200 }, flexShrink: 0 }}
-            />
-          </Stack>
+          <Field.Text
+            name="name"
+            label="Nombre"
+            placeholder="Ej. Farmacia Principal"
+            slotProps={{ inputLabel: { shrink: true } }}
+          />
+
+          <Field.Identification name="rif" kind="rif" label="RIF" />
 
           <Field.Text
             name="address"
@@ -101,12 +105,7 @@ export function BranchForm({ current, submitting, onSubmit, onCancel }: Props) {
           />
 
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-            <Field.Text
-              name="phone"
-              label="Teléfono (opcional)"
-              slotProps={{ inputLabel: { shrink: true } }}
-              sx={{ flex: 1 }}
-            />
+            <Field.Phone name="phone" label="Teléfono (opcional)" sx={{ flex: 1 }} />
             <Field.Text
               name="email"
               label="Email (opcional)"
@@ -115,18 +114,19 @@ export function BranchForm({ current, submitting, onSubmit, onCancel }: Props) {
             />
           </Stack>
 
-          <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1.5 }}>
-            {onCancel && (
-              <Button color="inherit" variant="outlined" onClick={onCancel}>
-                Cancelar
-              </Button>
-            )}
-            <Button type="submit" variant="contained" loading={submitting}>
-              {current ? 'Guardar cambios' : 'Crear sucursal'}
-            </Button>
-          </Box>
         </Stack>
       </Card>
+
+      <FormFooter>
+        {onCancel && (
+          <Button color="inherit" variant="outlined" onClick={onCancel}>
+            Cancelar
+          </Button>
+        )}
+        <Button type="submit" variant="contained" loading={submitting}>
+          {current ? 'Guardar cambios' : 'Crear sucursal'}
+        </Button>
+      </FormFooter>
     </Form>
   );
 }

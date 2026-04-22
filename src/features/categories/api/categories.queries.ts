@@ -10,20 +10,21 @@ import {
   deleteCategory,
   updateCategory,
   fetchCategories,
+  restoreCategory,
 } from './categories.api';
 
 // ----------------------------------------------------------------------
 
 export const categoryKeys = {
   all: ['categories'] as const,
-  list: () => [...categoryKeys.all, 'list'] as const,
+  list: (filter?: { isActive?: boolean }) => [...categoryKeys.all, 'list', filter] as const,
   detail: (id: string) => [...categoryKeys.all, 'detail', id] as const,
 };
 
-export function useCategoriesQuery() {
+export function useCategoriesQuery(filter?: { isActive?: boolean }) {
   const query = useQuery({
-    queryKey: categoryKeys.list(),
-    queryFn: fetchCategories,
+    queryKey: categoryKeys.list(filter),
+    queryFn: () => fetchCategories(filter),
   });
 
   const tree = useMemo(() => (query.data ? buildCategoryTree(query.data) : []), [query.data]);
@@ -66,6 +67,16 @@ export function useDeleteCategoryMutation() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => deleteCategory(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: categoryKeys.all });
+    },
+  });
+}
+
+export function useRestoreCategoryMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => restoreCategory(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: categoryKeys.all });
     },

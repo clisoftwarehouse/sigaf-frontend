@@ -6,9 +6,9 @@ import type {
 } from '../../model/types';
 
 import * as z from 'zod';
-import { useState, useEffect } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm, useFieldArray } from 'react-hook-form';
+import { useForm, useWatch, Controller, useFieldArray } from 'react-hook-form';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
@@ -19,8 +19,11 @@ import Divider from '@mui/material/Divider';
 import MenuItem from '@mui/material/MenuItem';
 import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
+import ToggleButton from '@mui/material/ToggleButton';
+import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 
 import { Iconify } from '@/app/components/iconify';
+import { FormFooter } from '@/shared/ui/form-footer';
 import { Form, Field } from '@/app/components/hook-form';
 import { useBrandsQuery } from '@/features/brands/api/brands.queries';
 import { useCategoriesQuery } from '@/features/categories/api/categories.queries';
@@ -51,9 +54,16 @@ const BarcodeItemSchema = z.object({
   isPrimary: z.boolean(),
 });
 
+const CONCENTRATION_UNITS = ['mg', 'g', 'mcg', 'kg', 'mL', 'L', 'UI', '%', 'mEq'] as const;
+
 const IngredientItemSchema = z.object({
   activeIngredientId: z.string().uuid({ message: 'Selecciona un principio activo' }),
-  concentration: z.string().max(50).optional().or(z.literal('')),
+  concentrationValue: z
+    .string()
+    .optional()
+    .or(z.literal(''))
+    .refine((v) => !v || /^\d+([.,]\d+)?$/.test(v), { message: 'Solo números' }),
+  concentrationUnit: z.enum(CONCENTRATION_UNITS),
   isPrimary: z.boolean(),
 });
 
@@ -124,7 +134,7 @@ function toFormValues(p?: Product): ProductFormValues {
     leadTimeDays: p?.leadTimeDays != null ? String(p.leadTimeDays) : '',
     barcodes: [],
     activeIngredients: [],
-  };
+  } as ProductFormValues;
 }
 
 type Props = {
@@ -133,6 +143,25 @@ type Props = {
   onSubmit: (values: CreateProductPayload) => Promise<void> | void;
   onCancel?: () => void;
 };
+
+function composeProductName(input: {
+  ingredientName?: string;
+  concentrationValue?: string;
+  concentrationUnit?: string;
+  brandName?: string;
+  presentation?: string;
+}): string {
+  const parts: string[] = [];
+  if (input.ingredientName) parts.push(input.ingredientName.toUpperCase());
+  if (input.concentrationValue) {
+    const num = input.concentrationValue.trim().replace(',', '.');
+    const unit = (input.concentrationUnit || '').toUpperCase();
+    parts.push(`${num}${unit}`);
+  }
+  if (input.brandName) parts.push(input.brandName.toUpperCase());
+  if (input.presentation) parts.push(input.presentation.toUpperCase());
+  return parts.join(' ').trim();
+}
 
 export function ProductForm({ current, submitting, onSubmit, onCancel }: Props) {
   const isEdit = Boolean(current);
@@ -144,8 +173,11 @@ export function ProductForm({ current, submitting, onSubmit, onCancel }: Props) 
 
   const [quickOpen, setQuickOpen] = useState<'category' | 'brand' | 'ingredient' | null>(null);
   const [pendingIngredientIdx, setPendingIngredientIdx] = useState<number | null>(null);
+  // En create: por defecto auto-generar la descripción. En edit: respetar lo guardado.
+  const [autoName, setAutoName] = useState(!isEdit);
 
   const methods = useForm<ProductFormValues>({
+    mode: 'onBlur',
     resolver: zodResolver(ProductSchema),
     defaultValues: toFormValues(current),
   });
@@ -153,6 +185,36 @@ export function ProductForm({ current, submitting, onSubmit, onCancel }: Props) 
   const { control, handleSubmit, reset, setValue } = methods;
   const barcodesArray = useFieldArray({ control, name: 'barcodes' });
   const ingredientsArray = useFieldArray({ control, name: 'activeIngredients' });
+
+  // Watch los campos que componen la descripción para regenerarla en vivo.
+  const watchedIngredients = useWatch({ control, name: 'activeIngredients' });
+  const watchedBrandId = useWatch({ control, name: 'brandId' });
+  const watchedPresentation = useWatch({ control, name: 'presentation' });
+
+  const generatedName = useMemo(() => {
+    const list = watchedIngredients ?? [];
+    const primary = list.find((i) => i?.isPrimary) ?? list[0];
+    const ingredientName =
+      primary?.activeIngredientId
+        ? ingredientsCatalog.find((c) => c.id === primary.activeIngredientId)?.name
+        : undefined;
+    const brandName = watchedBrandId
+      ? brands.find((b) => b.id === watchedBrandId)?.name
+      : undefined;
+    return composeProductName({
+      ingredientName,
+      concentrationValue: primary?.concentrationValue,
+      concentrationUnit: primary?.concentrationUnit,
+      brandName,
+      presentation: watchedPresentation,
+    });
+  }, [watchedIngredients, watchedBrandId, watchedPresentation, ingredientsCatalog, brands]);
+
+  useEffect(() => {
+    if (autoName && generatedName) {
+      setValue('description', generatedName, { shouldValidate: true, shouldDirty: true });
+    }
+  }, [autoName, generatedName, setValue]);
 
   useEffect(() => {
     if (current) reset(toFormValues(current));
@@ -195,7 +257,9 @@ export function ProductForm({ current, submitting, onSubmit, onCancel }: Props) 
         !isEdit && values.activeIngredients.length > 0
           ? values.activeIngredients.map((i) => ({
               activeIngredientId: i.activeIngredientId,
-              concentration: i.concentration?.trim() || undefined,
+              concentration: i.concentrationValue?.trim()
+                ? `${i.concentrationValue.trim().replace(',', '.')} ${i.concentrationUnit || 'mg'}`
+                : undefined,
               isPrimary: i.isPrimary,
             }))
           : undefined,
@@ -211,12 +275,31 @@ export function ProductForm({ current, submitting, onSubmit, onCancel }: Props) 
             Identificación
           </Typography>
 
-          <Field.Text
-            name="description"
-            label="Descripción"
-            placeholder="Ej. Acetaminofén 500mg x 20 tabletas"
-            slotProps={{ inputLabel: { shrink: true } }}
-          />
+          <Stack direction="row" spacing={1} alignItems="flex-start">
+            <Box sx={{ flex: 1 }}>
+              <Field.Text
+                name="description"
+                label="Descripción"
+                placeholder="Ej. ACETAMINOFEN 500MG ADVIL CAJA X 20 TAB"
+                helperText={
+                  autoName
+                    ? 'Auto-generada desde principio activo, concentración, marca y presentación. Click en el candado para editar manualmente.'
+                    : 'Edición manual activa. Click en el candado para volver a auto-generar.'
+                }
+                disabled={autoName}
+                slotProps={{ inputLabel: { shrink: true } }}
+              />
+            </Box>
+            <Tooltip title={autoName ? 'Editar manualmente' : 'Volver a auto-generar'}>
+              <IconButton
+                color={autoName ? 'primary' : 'inherit'}
+                sx={{ mt: 0.5 }}
+                onClick={() => setAutoName((v) => !v)}
+              >
+                <Iconify icon={autoName ? 'solar:lock-password-outline' : 'solar:pen-bold'} />
+              </IconButton>
+            </Tooltip>
+          </Stack>
 
           <Field.Text
             name="shortName"
@@ -257,20 +340,14 @@ export function ProductForm({ current, submitting, onSubmit, onCancel }: Props) 
           </Typography>
 
           <Stack direction="row" spacing={1} alignItems="flex-start">
-            <Field.Select
+            <Field.IdAutocomplete
               name="categoryId"
               label="Categoría"
+              placeholder="Buscar categoría…"
               disabled={loadingCategories}
-              slotProps={{ inputLabel: { shrink: true } }}
-              sx={{ flex: 1 }}
-            >
-              <MenuItem value="">— Selecciona una categoría —</MenuItem>
-              {categories.map((c) => (
-                <MenuItem key={c.id} value={c.id}>
-                  {c.name}
-                </MenuItem>
-              ))}
-            </Field.Select>
+              loading={loadingCategories}
+              options={categories.map((c) => ({ id: c.id, label: c.name }))}
+            />
             <Tooltip title="Crear nueva categoría">
               <IconButton color="primary" sx={{ mt: 0.5 }} onClick={() => setQuickOpen('category')}>
                 <Iconify icon="solar:add-circle-bold" />
@@ -279,20 +356,14 @@ export function ProductForm({ current, submitting, onSubmit, onCancel }: Props) 
           </Stack>
 
           <Stack direction="row" spacing={1} alignItems="flex-start">
-            <Field.Select
+            <Field.IdAutocomplete
               name="brandId"
-              label="Marca (opcional)"
+              label="Marca / Laboratorio (opcional)"
+              placeholder="Buscar marca…"
               disabled={loadingBrands}
-              slotProps={{ inputLabel: { shrink: true } }}
-              sx={{ flex: 1 }}
-            >
-              <MenuItem value="">— Sin marca —</MenuItem>
-              {brands.map((b) => (
-                <MenuItem key={b.id} value={b.id}>
-                  {b.name}
-                </MenuItem>
-              ))}
-            </Field.Select>
+              loading={loadingBrands}
+              options={brands.map((b) => ({ id: b.id, label: b.name }))}
+            />
             <Tooltip title="Crear nueva marca">
               <IconButton color="primary" sx={{ mt: 0.5 }} onClick={() => setQuickOpen('brand')}>
                 <Iconify icon="solar:add-circle-bold" />
@@ -300,33 +371,42 @@ export function ProductForm({ current, submitting, onSubmit, onCancel }: Props) 
             </Tooltip>
           </Stack>
 
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-            <Field.Select
+          <Box>
+            <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 1 }}>
+              Tipo de producto
+            </Typography>
+            <Controller
               name="productType"
-              label="Tipo de producto"
-              slotProps={{ inputLabel: { shrink: true } }}
-              sx={{ flex: 1 }}
-            >
-              {PRODUCT_TYPE_OPTIONS.map((o) => (
-                <MenuItem key={o.value} value={o.value}>
-                  {o.label}
-                </MenuItem>
-              ))}
-            </Field.Select>
+              control={control}
+              render={({ field }) => (
+                <ToggleButtonGroup
+                  exclusive
+                  value={field.value}
+                  onChange={(_, value) => value && field.onChange(value)}
+                  size="small"
+                  sx={{ flexWrap: 'wrap', gap: 1 }}
+                >
+                  {PRODUCT_TYPE_OPTIONS.map((o) => (
+                    <ToggleButton key={o.value} value={o.value} sx={{ borderRadius: 1, px: 2 }}>
+                      {o.label}
+                    </ToggleButton>
+                  ))}
+                </ToggleButtonGroup>
+              )}
+            />
+          </Box>
 
-            <Field.Select
-              name="taxType"
-              label="Tipo de IVA"
-              slotProps={{ inputLabel: { shrink: true } }}
-              sx={{ flex: 1 }}
-            >
-              {TAX_TYPE_OPTIONS.map((o) => (
-                <MenuItem key={o.value} value={o.value}>
-                  {o.label}
-                </MenuItem>
-              ))}
-            </Field.Select>
-          </Stack>
+          <Field.Select
+            name="taxType"
+            label="Tipo de IVA"
+            slotProps={{ inputLabel: { shrink: true } }}
+          >
+            {TAX_TYPE_OPTIONS.map((o) => (
+              <MenuItem key={o.value} value={o.value}>
+                {o.label}
+              </MenuItem>
+            ))}
+          </Field.Select>
 
           <Field.Text
             name="pmvp"
@@ -563,7 +643,8 @@ export function ProductForm({ current, submitting, onSubmit, onCancel }: Props) 
                   onClick={() =>
                     ingredientsArray.append({
                       activeIngredientId: '',
-                      concentration: '',
+                      concentrationValue: '',
+                      concentrationUnit: 'mg',
                       isPrimary: ingredientsArray.fields.length === 0,
                     })
                   }
@@ -583,20 +664,18 @@ export function ProductForm({ current, submitting, onSubmit, onCancel }: Props) 
                 >
                   <Stack spacing={2}>
                     <Stack direction="row" spacing={1} alignItems="flex-start">
-                      <Field.Select
+                      <Field.IdAutocomplete
                         name={`activeIngredients.${idx}.activeIngredientId`}
-                        label="Principio activo"
+                        label="Principio activo (Vademecum)"
+                        placeholder="Buscar principio activo…"
                         disabled={loadingIngredients}
-                        slotProps={{ inputLabel: { shrink: true } }}
-                        sx={{ flex: 1 }}
-                      >
-                        <MenuItem value="">— Selecciona —</MenuItem>
-                        {ingredientsCatalog.map((ing) => (
-                          <MenuItem key={ing.id} value={ing.id}>
-                            {ing.name}
-                          </MenuItem>
-                        ))}
-                      </Field.Select>
+                        loading={loadingIngredients}
+                        options={ingredientsCatalog.map((ing) => ({
+                          id: ing.id,
+                          label: ing.name,
+                          secondaryLabel: ing.therapeuticGroup ?? null,
+                        }))}
+                      />
                       <Tooltip title="Crear nuevo principio activo">
                         <IconButton
                           color="primary"
@@ -617,12 +696,27 @@ export function ProductForm({ current, submitting, onSubmit, onCancel }: Props) 
                       justifyContent="space-between"
                     >
                       <Field.Text
-                        name={`activeIngredients.${idx}.concentration`}
+                        name={`activeIngredients.${idx}.concentrationValue`}
                         label="Concentración"
-                        placeholder="Ej. 500mg"
-                        slotProps={{ inputLabel: { shrink: true } }}
-                        sx={{ flex: 1, maxWidth: 260 }}
+                        placeholder="500"
+                        slotProps={{
+                          inputLabel: { shrink: true },
+                          htmlInput: { inputMode: 'decimal', pattern: '[0-9]*[.,]?[0-9]*' },
+                        }}
+                        sx={{ width: 130 }}
                       />
+                      <Field.Select
+                        name={`activeIngredients.${idx}.concentrationUnit`}
+                        label="Unidad"
+                        slotProps={{ inputLabel: { shrink: true } }}
+                        sx={{ width: 110 }}
+                      >
+                        {CONCENTRATION_UNITS.map((u) => (
+                          <MenuItem key={u} value={u}>
+                            {u}
+                          </MenuItem>
+                        ))}
+                      </Field.Select>
                       <Field.Switch
                         name={`activeIngredients.${idx}.isPrimary`}
                         label="Principal"
@@ -639,18 +733,36 @@ export function ProductForm({ current, submitting, onSubmit, onCancel }: Props) 
             </>
           )}
 
-          <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1.5, pt: 1 }}>
-            {onCancel && (
-              <Button color="inherit" variant="outlined" onClick={onCancel}>
-                Cancelar
-              </Button>
-            )}
-            <Button type="submit" variant="contained" loading={submitting}>
-              {current ? 'Guardar cambios' : 'Crear producto'}
-            </Button>
-          </Box>
         </Stack>
       </Card>
+
+      <FormFooter
+        preview={
+          autoName ? (
+            <Box sx={{ px: 3, py: 1.5, bgcolor: 'common.black', color: 'common.white' }}>
+              <Typography variant="caption" sx={{ color: 'grey.400', display: 'block', mb: 0.5 }}>
+                Vista previa del nombre oficial
+              </Typography>
+              <Typography
+                variant="subtitle1"
+                sx={{ fontFamily: 'monospace', letterSpacing: 0.5, fontWeight: 700 }}
+              >
+                {generatedName ||
+                  '— Selecciona principio activo, concentración, marca y/o presentación —'}
+              </Typography>
+            </Box>
+          ) : null
+        }
+      >
+        {onCancel && (
+          <Button color="inherit" variant="outlined" onClick={onCancel}>
+            Cancelar
+          </Button>
+        )}
+        <Button type="submit" variant="contained" loading={submitting}>
+          {current ? 'Guardar cambios' : 'Crear producto'}
+        </Button>
+      </FormFooter>
 
       <QuickCreateCategoryDialog
         open={quickOpen === 'category'}

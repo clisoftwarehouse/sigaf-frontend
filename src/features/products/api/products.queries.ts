@@ -8,6 +8,7 @@ import {
   deleteProduct,
   fetchProducts,
   updateProduct,
+  restoreProduct,
   searchProducts,
 } from './products.api';
 
@@ -67,6 +68,14 @@ export function useDeleteProductMutation() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => deleteProduct(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: productKeys.all }),
+  });
+}
+
+export function useRestoreProductMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => restoreProduct(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: productKeys.all }),
   });
 }

@@ -5,13 +5,12 @@ import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 
-import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
-import Divider from '@mui/material/Divider';
 import Typography from '@mui/material/Typography';
 
+import { FormFooter } from '@/shared/ui/form-footer';
 import { Form, Field } from '@/app/components/hook-form';
 
 // ----------------------------------------------------------------------
@@ -42,6 +41,7 @@ const defaults = (current?: Brand): BrandFormValues => ({
 
 export function BrandForm({ current, submitting, onSubmit, onCancel }: Props) {
   const methods = useForm<BrandFormValues>({
+    mode: 'onBlur',
     resolver: zodResolver(BrandSchema),
     defaultValues: defaults(current),
   });
@@ -81,20 +81,18 @@ export function BrandForm({ current, submitting, onSubmit, onCancel }: Props) {
             <Field.Switch name="isActive" label="Activa" />
           </Stack>
         </Stack>
-
-        <Divider sx={{ my: 3, borderStyle: 'dashed' }} />
-
-        <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1.5 }}>
-          {onCancel && (
-            <Button color="inherit" variant="outlined" onClick={onCancel}>
-              Cancelar
-            </Button>
-          )}
-          <Button type="submit" variant="contained" loading={submitting}>
-            {current ? 'Guardar cambios' : 'Crear marca'}
-          </Button>
-        </Box>
       </Card>
+
+      <FormFooter>
+        {onCancel && (
+          <Button color="inherit" variant="outlined" onClick={onCancel}>
+            Cancelar
+          </Button>
+        )}
+        <Button type="submit" variant="contained" loading={submitting}>
+          {current ? 'Guardar cambios' : 'Crear marca'}
+        </Button>
+      </FormFooter>
     </Form>
   );
 }

@@ -57,6 +57,11 @@ export async function deleteProduct(id: string): Promise<void> {
   await axios.delete(endpoints.products.byId(id));
 }
 
+export async function restoreProduct(id: string): Promise<Product> {
+  const res = await axios.patch<Product>(`${endpoints.products.byId(id)}/restore`);
+  return res.data;
+}
+
 // ─── Barcodes ────────────────────────────────────────────────────────────
 
 export async function fetchProductBarcodes(id: string): Promise<ProductBarcode[]> {
@@ -74,6 +79,21 @@ export async function addProductBarcode(
 
 export async function removeProductBarcode(id: string, barcodeId: string): Promise<void> {
   await axios.delete(endpoints.products.barcodeById(id, barcodeId));
+}
+
+export type UpdateBarcodePayload = {
+  barcode?: string;
+  barcodeType?: string;
+  isPrimary?: boolean;
+};
+
+export async function updateProductBarcode(
+  id: string,
+  barcodeId: string,
+  payload: UpdateBarcodePayload
+): Promise<ProductBarcode> {
+  const res = await axios.put<ProductBarcode>(endpoints.products.barcodeById(id, barcodeId), payload);
+  return res.data;
 }
 
 // ─── Ingredients ─────────────────────────────────────────────────────────

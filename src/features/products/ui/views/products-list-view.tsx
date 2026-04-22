@@ -14,6 +14,8 @@ import Tooltip from '@mui/material/Tooltip';
 import Container from '@mui/material/Container';
 import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
+import ToggleButton from '@mui/material/ToggleButton';
+import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 
 import { paths } from '@/app/routes/paths';
 import { useRouter } from '@/app/routes/hooks';
@@ -24,24 +26,34 @@ import { useBrandOptions } from '@/features/brands/api/brands.options';
 import { DataTable, createFkFilterOperators } from '@/app/components/data-table';
 import { useCategoryOptions } from '@/features/categories/api/categories.options';
 
-import { useProductsQuery, useDeleteProductMutation } from '../../api/products.queries';
 import {
   TAX_TYPE_OPTIONS,
   PRODUCT_TYPE_LABEL,
   PRODUCT_TYPE_OPTIONS,
 } from '../../model/constants';
+import {
+  useProductsQuery,
+  useDeleteProductMutation,
+  useRestoreProductMutation,
+} from '../../api/products.queries';
 
 // ----------------------------------------------------------------------
 
+type ActiveFilter = 'active' | 'inactive';
+
 export function ProductsListView() {
   const router = useRouter();
-  const [toDelete, setToDelete] = useState<{ id: string; name: string } | null>(null);
+  const [filter, setFilter] = useState<ActiveFilter>('active');
+  const [toDeactivate, setToDeactivate] = useState<{ id: string; name: string } | null>(null);
+  const [toRestore, setToRestore] = useState<{ id: string; name: string } | null>(null);
 
   const { data, isLoading, isError, error, refetch } = useProductsQuery({
     page: 1,
     limit: 1000,
+    isActive: filter === 'active',
   });
-  const deleteMutation = useDeleteProductMutation();
+  const deactivateMutation = useDeleteProductMutation();
+  const restoreMutation = useRestoreProductMutation();
 
   const { data: categoryOpts = [] } = useCategoryOptions();
   const { data: brandOpts = [] } = useBrandOptions();
@@ -57,12 +69,23 @@ export function ProductsListView() {
 
   const products = data?.data ?? [];
 
-  const confirmDelete = async () => {
-    if (!toDelete) return;
+  const confirmDeactivate = async () => {
+    if (!toDeactivate) return;
     try {
-      await deleteMutation.mutateAsync(toDelete.id);
-      toast.success(`Producto "${toDelete.name}" desactivado`);
-      setToDelete(null);
+      await deactivateMutation.mutateAsync(toDeactivate.id);
+      toast.success(`Producto "${toDeactivate.name}" inactivado`);
+      setToDeactivate(null);
+    } catch (err) {
+      toast.error((err as Error).message);
+    }
+  };
+
+  const confirmRestore = async () => {
+    if (!toRestore) return;
+    try {
+      await restoreMutation.mutateAsync(toRestore.id);
+      toast.success(`Producto "${toRestore.name}" reactivado`);
+      setToRestore(null);
     } catch (err) {
       toast.error((err as Error).message);
     }
@@ -136,6 +159,48 @@ export function ProductsListView() {
         valueFormatter: (value: string | null) => (value ? brandNameById.get(value) ?? '—' : '—'),
         sortComparator: (a, b) =>
           (brandNameById.get(a ?? '') ?? '').localeCompare(brandNameById.get(b ?? '') ?? ''),
+      },
+      {
+        field: 'activeIngredients',
+        headerName: 'Principio activo',
+        flex: 1.8,
+        minWidth: 200,
+        sortable: false,
+        filterable: false,
+        renderCell: ({ row }) => {
+          const list = row.activeIngredients ?? [];
+          if (list.length === 0)
+            return (
+              <Typography variant="body2" sx={{ color: 'text.disabled' }}>
+                —
+              </Typography>
+            );
+          const primary = list.find((i) => i.isPrimary) ?? list[0];
+          const others = list.filter((i) => i !== primary);
+          const name = primary.activeIngredient?.name ?? '—';
+          return (
+            <Stack direction="row" spacing={0.75} alignItems="center" sx={{ flexWrap: 'wrap' }}>
+              <Typography variant="body2">{name}</Typography>
+              {primary.concentration && (
+                <Chip size="small" variant="outlined" label={primary.concentration} />
+              )}
+              {others.length > 0 && (
+                <Tooltip
+                  title={others
+                    .map(
+                      (i) =>
+                        `${i.activeIngredient?.name ?? '—'}${
+                          i.concentration ? ` (${i.concentration})` : ''
+                        }`
+                    )
+                    .join(', ')}
+                >
+                  <Chip size="small" color="info" variant="outlined" label={`+${others.length}`} />
+                </Tooltip>
+              )}
+            </Stack>
+          );
+        },
       },
       {
         field: 'productType',
@@ -244,30 +309,42 @@ export function ProductsListView() {
         field: 'actions',
         type: 'actions',
         headerName: 'Acciones',
-        width: 110,
+        width: 130,
         align: 'right',
         headerAlign: 'right',
-        renderCell: ({ row }) => (
-          <>
-            <Tooltip title="Editar">
+        renderCell: ({ row }) =>
+          row.isActive ? (
+            <>
+              <Tooltip title="Editar">
+                <IconButton
+                  onClick={() => router.push(paths.dashboard.catalog.products.edit(row.id))}
+                >
+                  <Iconify icon="solar:pen-bold" />
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="Inactivar">
+                <IconButton
+                  color="warning"
+                  onClick={() =>
+                    setToDeactivate({ id: row.id, name: row.shortName ?? row.description })
+                  }
+                >
+                  <Iconify icon="solar:forbidden-circle-bold" />
+                </IconButton>
+              </Tooltip>
+            </>
+          ) : (
+            <Tooltip title="Reactivar">
               <IconButton
-                onClick={() => router.push(paths.dashboard.catalog.products.edit(row.id))}
-              >
-                <Iconify icon="solar:pen-bold" />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Desactivar">
-              <IconButton
-                color="error"
+                color="success"
                 onClick={() =>
-                  setToDelete({ id: row.id, name: row.shortName ?? row.description })
+                  setToRestore({ id: row.id, name: row.shortName ?? row.description })
                 }
               >
-                <Iconify icon="solar:trash-bin-trash-bold" />
+                <Iconify icon="solar:restart-bold" />
               </IconButton>
             </Tooltip>
-          </>
-        ),
+          ),
       },
     ],
     [router, categoryFilterOperators, brandFilterOperators, categoryNameById, brandNameById]
@@ -291,6 +368,23 @@ export function ProductsListView() {
       />
 
       <Card>
+        <Stack
+          direction="row"
+          alignItems="center"
+          justifyContent="space-between"
+          sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}
+        >
+          <ToggleButtonGroup
+            value={filter}
+            exclusive
+            size="small"
+            onChange={(_, value: ActiveFilter | null) => value && setFilter(value)}
+          >
+            <ToggleButton value="active">Activos</ToggleButton>
+            <ToggleButton value="inactive">Inactivos</ToggleButton>
+          </ToggleButtonGroup>
+        </Stack>
+
         {isError && (
           <Box sx={{ p: 2 }}>
             <Alert
@@ -322,12 +416,7 @@ export function ProductsListView() {
                   isAntibiotic: false,
                   isWeighable: false,
                   stockMin: false,
-                },
-              },
-              filter: {
-                filterModel: {
-                  items: [{ field: 'isActive', operator: 'is', value: 'true' }],
-                  quickFilterValues: [''],
+                  isActive: false,
                 },
               },
             }}
@@ -336,21 +425,38 @@ export function ProductsListView() {
       </Card>
 
       <ConfirmDialog
-        open={!!toDelete}
-        title="Desactivar producto"
+        open={!!toDeactivate}
+        title="Inactivar producto"
         description={
-          toDelete ? (
+          toDeactivate ? (
             <>
-              El producto <strong>{toDelete.name}</strong> se marcará como inactivo. Podrás
-              reactivarlo editándolo y cambiando el filtro de estado.
+              ¿Inactivar el producto <strong>{toDeactivate.name}</strong>? Si tiene stock
+              disponible la operación será rechazada. Podrás reactivarlo desde la pestaña
+              &quot;Inactivos&quot;.
             </>
           ) : null
         }
-        confirmLabel="Desactivar"
+        confirmLabel="Inactivar"
         confirmColor="warning"
-        loading={deleteMutation.isPending}
-        onConfirm={confirmDelete}
-        onClose={() => setToDelete(null)}
+        loading={deactivateMutation.isPending}
+        onConfirm={confirmDeactivate}
+        onClose={() => setToDeactivate(null)}
+      />
+
+      <ConfirmDialog
+        open={!!toRestore}
+        title="Reactivar producto"
+        description={
+          toRestore ? (
+            <>
+              ¿Reactivar el producto <strong>{toRestore.name}</strong>?
+            </>
+          ) : null
+        }
+        confirmLabel="Reactivar"
+        loading={restoreMutation.isPending}
+        onConfirm={confirmRestore}
+        onClose={() => setToRestore(null)}
       />
     </Container>
   );
