@@ -31,7 +31,17 @@ export const ORDER_TYPE_OPTIONS: { value: OrderType; label: string }[] = [
   { value: 'consignment', label: 'Consignación' },
 ];
 
+export const ORDER_TYPE_LABEL: Record<OrderType, string> = ORDER_TYPE_OPTIONS.reduce(
+  (acc, o) => ({ ...acc, [o.value]: o.label }),
+  {} as Record<OrderType, string>
+);
+
 export const RECEIPT_TYPE_OPTIONS: { value: ReceiptType; label: string }[] = [
   { value: 'purchase', label: 'Compra' },
   { value: 'consignment', label: 'Consignación' },
 ];
+
+export const RECEIPT_TYPE_LABEL: Record<ReceiptType, string> = RECEIPT_TYPE_OPTIONS.reduce(
+  (acc, o) => ({ ...acc, [o.value]: o.label }),
+  {} as Record<ReceiptType, string>
+);

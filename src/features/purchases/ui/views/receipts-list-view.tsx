@@ -1,5 +1,5 @@
 import type { GridColDef } from '@mui/x-data-grid';
-import type { GoodsReceipt } from '../../model/types';
+import type { ReceiptType, GoodsReceipt } from '../../model/types';
 
 import { useMemo } from 'react';
 
@@ -20,8 +20,8 @@ import { useBranchOptions } from '@/features/branches/api/branches.options';
 import { useSupplierOptions } from '@/features/suppliers/api/suppliers.options';
 import { DataTable, createFkFilterOperators } from '@/app/components/data-table';
 
-import { RECEIPT_TYPE_OPTIONS } from '../../model/constants';
-import { useReceiptsQuery } from '../../api/purchases.queries';
+import { useOrdersQuery, useReceiptsQuery } from '../../api/purchases.queries';
+import { RECEIPT_TYPE_LABEL, RECEIPT_TYPE_OPTIONS } from '../../model/constants';
 
 // ----------------------------------------------------------------------
 
@@ -29,6 +29,11 @@ export function ReceiptsListView() {
   const router = useRouter();
 
   const { data: receipts, isLoading, isError, error, refetch } = useReceiptsQuery();
+  const { data: ordersData } = useOrdersQuery({ page: 1, limit: 1000 });
+  const orderNumberById = useMemo(
+    () => new Map((ordersData?.data ?? []).map((o) => [o.id, o.orderNumber] as const)),
+    [ordersData]
+  );
 
   const { data: branchOpts = [] } = useBranchOptions();
   const { data: supplierOpts = [] } = useSupplierOptions();
@@ -53,6 +58,17 @@ export function ReceiptsListView() {
   const columns = useMemo<GridColDef<GoodsReceipt>[]>(
     () => [
       {
+        field: 'receiptNumber',
+        headerName: 'Nº recepción',
+        flex: 1,
+        minWidth: 140,
+        renderCell: ({ row }) => (
+          <Typography variant="subtitle2" sx={{ fontFamily: 'monospace' }}>
+            {row.receiptNumber}
+          </Typography>
+        ),
+      },
+      {
         field: 'createdAt',
         headerName: 'Fecha',
         type: 'dateTime',
@@ -68,7 +84,7 @@ export function ReceiptsListView() {
         filterOperators: supplierFilterOperators,
         valueFormatter: (value: string) => supplierNameById.get(value) ?? value,
         renderCell: ({ row }) => (
-          <Typography variant="subtitle2">
+          <Typography variant="body2">
             {supplierNameById.get(row.supplierId) ?? row.supplierId}
           </Typography>
         ),
@@ -98,12 +114,54 @@ export function ReceiptsListView() {
         ),
       },
       {
+        field: 'purchaseOrderId',
+        headerName: 'Nº OC',
+        flex: 1,
+        minWidth: 140,
+        valueGetter: (value: string | null) =>
+          value ? (orderNumberById.get(value) ?? value.slice(0, 8)) : '—',
+        renderCell: ({ row }) =>
+          row.purchaseOrderId ? (
+            <Typography
+              variant="body2"
+              sx={{
+                fontFamily: 'monospace',
+                color: 'primary.main',
+                cursor: 'pointer',
+                '&:hover': { textDecoration: 'underline' },
+              }}
+              onClick={(e) => {
+                e.stopPropagation();
+                router.push(paths.dashboard.purchases.orders.detail(row.purchaseOrderId!));
+              }}
+            >
+              {orderNumberById.get(row.purchaseOrderId) ?? row.purchaseOrderId.slice(0, 8)}
+            </Typography>
+          ) : (
+            <Typography variant="body2" sx={{ color: 'text.disabled' }}>
+              —
+            </Typography>
+          ),
+      },
+      {
         field: 'receiptType',
         headerName: 'Tipo',
         type: 'singleSelect',
         flex: 1,
         minWidth: 140,
         valueOptions: RECEIPT_TYPE_OPTIONS,
+        valueFormatter: (value: ReceiptType) => RECEIPT_TYPE_LABEL[value] ?? value,
+      },
+      {
+        field: 'totalUsd',
+        headerName: 'Total',
+        type: 'number',
+        flex: 1,
+        minWidth: 130,
+        align: 'right',
+        headerAlign: 'right',
+        valueGetter: (value: number | string) => Number(value) || 0,
+        valueFormatter: (value: number) => `$${value.toFixed(2)}`,
       },
       {
         field: 'actions',
@@ -123,7 +181,14 @@ export function ReceiptsListView() {
         ),
       },
     ],
-    [router, branchFilterOperators, supplierFilterOperators, branchNameById, supplierNameById]
+    [
+      router,
+      branchFilterOperators,
+      supplierFilterOperators,
+      branchNameById,
+      supplierNameById,
+      orderNumberById,
+    ]
   );
 
   return (

@@ -1,5 +1,5 @@
 import type { GridColDef } from '@mui/x-data-grid';
-import type { PurchaseOrder } from '../../model/types';
+import type { OrderType, PurchaseOrder } from '../../model/types';
 
 import { useMemo } from 'react';
 
@@ -23,6 +23,7 @@ import { DataTable, createFkFilterOperators } from '@/app/components/data-table'
 
 import { useOrdersQuery } from '../../api/purchases.queries';
 import {
+  ORDER_TYPE_LABEL,
   ORDER_TYPE_OPTIONS,
   ORDER_STATUS_LABEL,
   ORDER_STATUS_COLOR,
@@ -63,6 +64,17 @@ export function OrdersListView() {
   const columns = useMemo<GridColDef<PurchaseOrder>[]>(
     () => [
       {
+        field: 'orderNumber',
+        headerName: 'Nº orden',
+        flex: 1,
+        minWidth: 140,
+        renderCell: ({ row }) => (
+          <Typography variant="subtitle2" sx={{ fontFamily: 'monospace' }}>
+            {row.orderNumber}
+          </Typography>
+        ),
+      },
+      {
         field: 'createdAt',
         headerName: 'Fecha',
         type: 'dateTime',
@@ -78,7 +90,7 @@ export function OrdersListView() {
         filterOperators: supplierFilterOperators,
         valueFormatter: (value: string) => supplierNameById.get(value) ?? value,
         renderCell: ({ row }) => (
-          <Typography variant="subtitle2">
+          <Typography variant="body2">
             {supplierNameById.get(row.supplierId) ?? row.supplierId}
           </Typography>
         ),
@@ -102,6 +114,7 @@ export function OrdersListView() {
         flex: 1,
         minWidth: 140,
         valueOptions: ORDER_TYPE_OPTIONS,
+        valueFormatter: (value: OrderType) => ORDER_TYPE_LABEL[value] ?? value,
       },
       {
         field: 'expectedDate',
@@ -112,7 +125,7 @@ export function OrdersListView() {
         valueGetter: (value: string | null) => (value ? new Date(value) : null),
       },
       {
-        field: 'total',
+        field: 'totalUsd',
         headerName: 'Total',
         type: 'number',
         flex: 1,

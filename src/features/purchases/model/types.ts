@@ -6,11 +6,12 @@ export type ReceiptType = 'purchase' | 'consignment';
 
 export type PurchaseOrderItem = {
   id: string;
-  purchaseOrderId: string;
+  orderId: string;
   productId: string;
   quantity: number | string;
   unitCostUsd: number | string;
   discountPct: number | string | null;
+  subtotalUsd: number | string;
   quantityReceived: number | string;
 };
 
@@ -18,11 +19,15 @@ export type PurchaseOrder = {
   id: string;
   branchId: string;
   supplierId: string;
+  orderNumber: string;
+  orderDate: string;
   orderType: OrderType;
   status: OrderStatus;
   expectedDate: string | null;
   notes: string | null;
-  total: number | string;
+  subtotalUsd: number | string;
+  taxUsd: number | string;
+  totalUsd: number | string;
   createdAt: string;
   updatedAt: string;
   items?: PurchaseOrderItem[];
@@ -77,9 +82,12 @@ export type GoodsReceipt = {
   branchId: string;
   supplierId: string;
   purchaseOrderId: string | null;
+  receiptNumber: string;
+  receiptDate: string;
   receiptType: ReceiptType;
   supplierInvoiceNumber: string | null;
   notes: string | null;
+  totalUsd: number | string;
   createdAt: string;
   items?: GoodsReceiptItem[];
 };

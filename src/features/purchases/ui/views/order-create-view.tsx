@@ -4,7 +4,7 @@ import * as z from 'zod';
 import { toast } from 'sonner';
 import { useMemo } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm, useFieldArray } from 'react-hook-form';
+import { useForm, useWatch, Controller, useFieldArray } from 'react-hook-form';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
@@ -12,9 +12,11 @@ import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
 import Divider from '@mui/material/Divider';
 import MenuItem from '@mui/material/MenuItem';
+import TextField from '@mui/material/TextField';
 import Container from '@mui/material/Container';
 import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
+import Autocomplete from '@mui/material/Autocomplete';
 
 import { paths } from '@/app/routes/paths';
 import { useRouter } from '@/app/routes/hooks';
@@ -59,6 +61,18 @@ const OrderSchema = z.object({
 });
 
 type FormValues = z.infer<typeof OrderSchema>;
+type ItemValues = FormValues['items'][number];
+
+// ----------------------------------------------------------------------
+
+const calcItemSubtotal = (item: ItemValues): number => {
+  const qty = Number(item.quantity) || 0;
+  const cost = Number(item.unitCostUsd) || 0;
+  const disc = Number(item.discountPct) || 0;
+  return qty * cost * (1 - disc / 100);
+};
+
+const fmt = (n: number) => `$${n.toFixed(2)}`;
 
 // ----------------------------------------------------------------------
 
@@ -68,8 +82,9 @@ export function OrderCreateView() {
 
   const { data: branches = [] } = useBranchesQuery();
   const { data: suppliers = [] } = useSuppliersQuery({ isActive: true });
-  const { data: productsData } = useProductsQuery({ limit: 200 });
+  const { data: productsData } = useProductsQuery({ limit: 1000, isActive: true });
   const products = useMemo(() => productsData?.data ?? [], [productsData]);
+  const productById = useMemo(() => new Map(products.map((p) => [p.id, p] as const)), [products]);
 
   const methods = useForm<FormValues>({
     resolver: zodResolver(OrderSchema),
@@ -86,6 +101,9 @@ export function OrderCreateView() {
   const { control } = methods;
   const { fields, append, remove } = useFieldArray({ control, name: 'items' });
 
+  const watchedItems = useWatch({ control, name: 'items' }) ?? [];
+  const documentTotal = watchedItems.reduce((sum, it) => sum + calcItemSubtotal(it), 0);
+
   const submit = methods.handleSubmit(async (values) => {
     const payload: CreatePurchaseOrderPayload = {
       branchId: values.branchId,
@@ -101,9 +119,9 @@ export function OrderCreateView() {
       })),
     };
     try {
-      await mutation.mutateAsync(payload);
-      toast.success('Orden de compra creada');
-      router.push(paths.dashboard.purchases.orders.root);
+      const created = await mutation.mutateAsync(payload);
+      toast.success(`Orden ${created.orderNumber} creada`);
+      router.push(paths.dashboard.purchases.orders.detail(created.id));
     } catch (err) {
       toast.error((err as Error).message);
     }
@@ -187,7 +205,7 @@ export function OrderCreateView() {
           <Stack spacing={2}>
             <Stack direction="row" alignItems="center" justifyContent="space-between">
               <Typography variant="subtitle2" sx={{ color: 'text.secondary' }}>
-                Ítems
+                Ítems ({fields.length})
               </Typography>
               <Button
                 size="small"
@@ -201,56 +219,172 @@ export function OrderCreateView() {
               </Button>
             </Stack>
 
-            {fields.map((field, idx) => (
-              <Box key={field.id}>
-                <Stack direction="row" alignItems="flex-start" spacing={1}>
-                  <Box sx={{ flex: 1 }}>
-                    <Stack spacing={2}>
-                      <Field.Select
-                        name={`items.${idx}.productId`}
-                        label="Producto"
-                        slotProps={{ inputLabel: { shrink: true } }}
-                      >
-                        <MenuItem value="">— Selecciona —</MenuItem>
-                        {products.map((p) => (
-                          <MenuItem key={p.id} value={p.id}>
-                            {p.shortName ?? p.description}
-                          </MenuItem>
-                        ))}
-                      </Field.Select>
-                      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-                        <Field.Text
-                          name={`items.${idx}.quantity`}
-                          label="Cantidad"
-                          slotProps={{ inputLabel: { shrink: true } }}
-                          sx={{ flex: 1 }}
+            {fields.map((field, idx) => {
+              const current = watchedItems[idx];
+              const product = current?.productId ? productById.get(current.productId) : undefined;
+              const stock = product?.totalStock != null ? Number(product.totalStock) : null;
+              const unit = product?.unitOfMeasure ?? '';
+              const subtotal = current ? calcItemSubtotal(current) : 0;
+              return (
+                <Box key={field.id}>
+                  <Stack direction="row" alignItems="flex-start" spacing={1}>
+                    <Box sx={{ flex: 1 }}>
+                      <Stack spacing={2}>
+                        <Controller
+                          control={control}
+                          name={`items.${idx}.productId`}
+                          render={({ field: f, fieldState }) => {
+                            const value = products.find((p) => p.id === f.value) ?? null;
+                            return (
+                              <Autocomplete
+                                options={products}
+                                value={value}
+                                onChange={(_e, next) => f.onChange(next?.id ?? '')}
+                                getOptionLabel={(option) => option.shortName ?? option.description}
+                                isOptionEqualToValue={(a, b) => a.id === b.id}
+                                filterOptions={(opts, state) => {
+                                  const q = state.inputValue.toLowerCase().trim();
+                                  if (!q) return opts;
+                                  return opts.filter((p) => {
+                                    const bag = [
+                                      p.shortName ?? '',
+                                      p.description ?? '',
+                                      p.internalCode ?? '',
+                                      ...(p.barcodes?.map((b) => b.barcode) ?? []),
+                                    ]
+                                      .join(' ')
+                                      .toLowerCase();
+                                    return bag.includes(q);
+                                  });
+                                }}
+                                renderOption={(props, option) => (
+                                  <li {...props} key={option.id}>
+                                    <Box>
+                                      <Typography variant="body2">
+                                        {option.shortName ?? option.description}
+                                      </Typography>
+                                      <Typography
+                                        variant="caption"
+                                        sx={{ color: 'text.secondary' }}
+                                      >
+                                        {option.internalCode ?? '—'}
+                                        {option.totalStock != null &&
+                                          ` · stock: ${Number(option.totalStock)} ${option.unitOfMeasure ?? ''}`}
+                                      </Typography>
+                                    </Box>
+                                  </li>
+                                )}
+                                renderInput={(params) => (
+                                  <TextField
+                                    {...params}
+                                    label="Producto"
+                                    placeholder="Buscar por nombre, código interno o EAN…"
+                                    error={Boolean(fieldState.error)}
+                                    helperText={fieldState.error?.message}
+                                    slotProps={{ inputLabel: { shrink: true } }}
+                                  />
+                                )}
+                              />
+                            );
+                          }}
                         />
-                        <Field.Text
-                          name={`items.${idx}.unitCostUsd`}
-                          label="Costo USD"
-                          slotProps={{ inputLabel: { shrink: true } }}
-                          sx={{ flex: 1 }}
-                        />
-                        <Field.Text
-                          name={`items.${idx}.discountPct`}
-                          label="Descuento %"
-                          slotProps={{ inputLabel: { shrink: true } }}
-                          sx={{ flex: 1 }}
-                        />
+
+                        {product && (
+                          <Stack direction="row" spacing={2} alignItems="center" sx={{ pl: 0.5 }}>
+                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                              Existencia actual:{' '}
+                              <Box
+                                component="span"
+                                sx={{
+                                  fontWeight: 600,
+                                  color:
+                                    stock == null
+                                      ? 'text.disabled'
+                                      : stock === 0
+                                        ? 'error.main'
+                                        : stock <= 10
+                                          ? 'warning.main'
+                                          : 'success.main',
+                                }}
+                              >
+                                {stock == null ? '—' : `${stock} ${unit}`}
+                              </Box>
+                            </Typography>
+                            {product.internalCode && (
+                              <Typography
+                                variant="caption"
+                                sx={{ color: 'text.disabled', fontFamily: 'monospace' }}
+                              >
+                                {product.internalCode}
+                              </Typography>
+                            )}
+                          </Stack>
+                        )}
+
+                        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                          <Field.Text
+                            name={`items.${idx}.quantity`}
+                            label="Cantidad"
+                            slotProps={{ inputLabel: { shrink: true } }}
+                            sx={{ flex: 1 }}
+                          />
+                          <Field.Text
+                            name={`items.${idx}.unitCostUsd`}
+                            label="Costo USD"
+                            slotProps={{ inputLabel: { shrink: true } }}
+                            sx={{ flex: 1 }}
+                          />
+                          <Field.Text
+                            name={`items.${idx}.discountPct`}
+                            label="Descuento %"
+                            slotProps={{ inputLabel: { shrink: true } }}
+                            sx={{ flex: 1 }}
+                          />
+                          <Box
+                            sx={{
+                              flex: 1,
+                              display: 'flex',
+                              flexDirection: 'column',
+                              justifyContent: 'center',
+                              alignItems: 'flex-end',
+                              pr: 0.5,
+                            }}
+                          >
+                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                              Subtotal
+                            </Typography>
+                            <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                              {fmt(subtotal)}
+                            </Typography>
+                          </Box>
+                        </Stack>
                       </Stack>
-                    </Stack>
-                  </Box>
-                  <IconButton
-                    color="error"
-                    disabled={fields.length === 1}
-                    onClick={() => remove(idx)}
-                  >
-                    <Iconify icon="solar:trash-bin-trash-bold" />
-                  </IconButton>
-                </Stack>
-                {idx < fields.length - 1 && <Divider sx={{ borderStyle: 'dashed', my: 2 }} />}
+                    </Box>
+                    <IconButton
+                      color="error"
+                      disabled={fields.length === 1}
+                      onClick={() => remove(idx)}
+                    >
+                      <Iconify icon="solar:trash-bin-trash-bold" />
+                    </IconButton>
+                  </Stack>
+                  {idx < fields.length - 1 && <Divider sx={{ borderStyle: 'dashed', my: 2 }} />}
+                </Box>
+              );
+            })}
+
+            <Divider />
+
+            <Stack direction="row" justifyContent="flex-end" spacing={4} sx={{ pr: 6 }}>
+              <Box sx={{ textAlign: 'right' }}>
+                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                  Total del documento
+                </Typography>
+                <Typography variant="h5" sx={{ fontWeight: 700 }}>
+                  {fmt(documentTotal)}
+                </Typography>
               </Box>
-            ))}
+            </Stack>
           </Stack>
         </Card>
 

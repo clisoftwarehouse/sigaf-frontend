@@ -34,6 +34,10 @@ axiosInstance.interceptors.request.use((config) => {
 const BACKEND_ERROR_CODES: Record<string, string> = {
   invalidCredentials: 'Credenciales inválidas',
   userInactive: 'Usuario inactivo. Contacta al administrador.',
+  userNotFound: 'Usuario no encontrado',
+  notFound: 'No encontrado',
+  incorrectOldPassword: 'La contraseña actual es incorrecta',
+  missingOldPassword: 'Debes ingresar tu contraseña actual para cambiarla',
 };
 
 // Mensajes default de NestJS que no son útiles al usuario.
@@ -46,6 +50,8 @@ const NESTJS_DEFAULT_MESSAGES = new Set([
   'Unprocessable Entity',
   'Internal Server Error',
   'Internal server error',
+  'Not Found',
+  'notFound',
 ]);
 
 const STATUS_FALLBACK: Record<number, string> = {
@@ -67,7 +73,16 @@ function extractFriendlyMessage(data: unknown, status?: number): string {
     const values = Object.values(errorsField as Record<string, unknown>).filter(
       (v): v is string => typeof v === 'string'
     );
-    const translated = values.map((v) => BACKEND_ERROR_CODES[v] ?? v);
+    const translated = values.map((v) => {
+      const mapped = BACKEND_ERROR_CODES[v];
+      if (mapped) return mapped;
+      // Si es un código en camelCase sin mapeo explícito, cae al fallback del status
+      // en vez de mostrar el literal al usuario.
+      if (/^[a-z][a-zA-Z]+$/.test(v) && v.length < 40) {
+        return (status && STATUS_FALLBACK[status]) || 'Algo salió mal';
+      }
+      return v;
+    });
     if (translated.length === 1) return translated[0];
     if (translated.length > 1) return translated.join(' • ');
   }

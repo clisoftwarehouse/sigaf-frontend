@@ -11,23 +11,46 @@ import Chip from '@mui/material/Chip';
 import Stack from '@mui/material/Stack';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
+import Divider from '@mui/material/Divider';
 import Container from '@mui/material/Container';
 import Typography from '@mui/material/Typography';
 import CircularProgress from '@mui/material/CircularProgress';
 
+import { paths } from '@/app/routes/paths';
+import { useRouter } from '@/app/routes/hooks';
 import { Iconify } from '@/app/components/iconify';
 import { PageHeader } from '@/shared/ui/page-header';
 import { DataTable } from '@/app/components/data-table';
+import { useBranchOptions } from '@/features/branches/api/branches.options';
+import { useProductOptions } from '@/features/products/api/products.options';
+import { useSupplierOptions } from '@/features/suppliers/api/suppliers.options';
 
-import { ORDER_STATUS_LABEL, ORDER_STATUS_COLOR } from '../../model/constants';
 import { useOrderQuery, useApproveOrderMutation } from '../../api/purchases.queries';
+import { ORDER_TYPE_LABEL, ORDER_STATUS_LABEL, ORDER_STATUS_COLOR } from '../../model/constants';
 
 // ----------------------------------------------------------------------
 
 export function OrderDetailView() {
+  const router = useRouter();
   const { id } = useParams<{ id: string }>();
   const { data: order, isLoading, isError, error } = useOrderQuery(id);
   const approveMutation = useApproveOrderMutation();
+
+  const { data: productOpts = [] } = useProductOptions();
+  const productNameById = useMemo(
+    () => new Map(productOpts.map((o) => [o.id, o.label] as const)),
+    [productOpts]
+  );
+  const { data: branchOpts = [] } = useBranchOptions();
+  const branchName = useMemo(
+    () => branchOpts.find((b) => b.id === order?.branchId)?.label ?? order?.branchId ?? '—',
+    [branchOpts, order]
+  );
+  const { data: supplierOpts = [] } = useSupplierOptions();
+  const supplierName = useMemo(
+    () => supplierOpts.find((s) => s.id === order?.supplierId)?.label ?? order?.supplierId ?? '—',
+    [supplierOpts, order]
+  );
 
   const handleApprove = async () => {
     if (!id) return;
@@ -46,20 +69,23 @@ export function OrderDetailView() {
       {
         field: 'productId',
         headerName: 'Producto',
-        flex: 2,
-        minWidth: 220,
+        flex: 2.5,
+        minWidth: 240,
+        valueFormatter: (value: string) => productNameById.get(value) ?? value,
         renderCell: ({ row }) => (
-          <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
-            {row.productId.slice(0, 8)}
+          <Typography variant="body2">
+            {productNameById.get(row.productId) ?? row.productId}
           </Typography>
         ),
+        sortComparator: (a, b) =>
+          (productNameById.get(a) ?? '').localeCompare(productNameById.get(b) ?? ''),
       },
       {
         field: 'quantity',
         headerName: 'Cantidad',
         type: 'number',
         flex: 1,
-        minWidth: 120,
+        minWidth: 110,
         valueGetter: (value: number | string) => Number(value) || 0,
       },
       {
@@ -67,7 +93,7 @@ export function OrderDetailView() {
         headerName: 'Recibido',
         type: 'number',
         flex: 1,
-        minWidth: 120,
+        minWidth: 110,
         valueGetter: (value: number | string) => Number(value) || 0,
       },
       {
@@ -75,7 +101,7 @@ export function OrderDetailView() {
         headerName: 'Costo',
         type: 'number',
         flex: 1,
-        minWidth: 120,
+        minWidth: 110,
         valueGetter: (value: number | string) => Number(value) || 0,
         valueFormatter: (value: number) => `$${value.toFixed(2)}`,
       },
@@ -85,32 +111,62 @@ export function OrderDetailView() {
         type: 'number',
         flex: 1,
         minWidth: 120,
-        valueGetter: (value: number | string | null) =>
-          value == null ? null : Number(value),
+        valueGetter: (value: number | string | null) => (value == null ? null : Number(value)),
         valueFormatter: (value: number | null) => (value == null ? '—' : `${value.toFixed(2)}%`),
       },
+      {
+        field: 'subtotalUsd',
+        headerName: 'Subtotal',
+        type: 'number',
+        flex: 1,
+        minWidth: 130,
+        valueGetter: (_v, row) => {
+          if (row.subtotalUsd != null) return Number(row.subtotalUsd) || 0;
+          const qty = Number(row.quantity) || 0;
+          const cost = Number(row.unitCostUsd) || 0;
+          const disc = row.discountPct != null ? Number(row.discountPct) : 0;
+          return qty * cost * (1 - disc / 100);
+        },
+        valueFormatter: (value: number) => `$${value.toFixed(2)}`,
+        cellClassName: 'subtotal-cell',
+      },
     ],
-    []
+    [productNameById]
   );
 
   return (
     <Container maxWidth="lg">
       <PageHeader
-        title="Orden de compra"
+        title={order ? `Orden ${order.orderNumber}` : 'Orden de compra'}
         subtitle={order ? new Date(order.createdAt).toLocaleString('es-VE') : undefined}
         crumbs={[{ label: 'Compras' }, { label: 'Órdenes' }, { label: 'Detalle' }]}
         action={
-          canApprove && (
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
             <Button
-              variant="contained"
-              color="success"
-              startIcon={<Iconify icon="solar:check-circle-bold" />}
-              loading={approveMutation.isPending}
-              onClick={handleApprove}
+              variant="outlined"
+              color="inherit"
+              startIcon={
+                <Iconify
+                  icon="solar:double-alt-arrow-right-bold-duotone"
+                  sx={{ transform: 'scaleX(-1)' }}
+                />
+              }
+              onClick={() => router.push(paths.dashboard.purchases.orders.root)}
             >
-              Aprobar
+              Volver a órdenes
             </Button>
-          )
+            {canApprove && (
+              <Button
+                variant="contained"
+                color="success"
+                startIcon={<Iconify icon="solar:check-circle-bold" />}
+                loading={approveMutation.isPending}
+                onClick={handleApprove}
+              >
+                Aprobar
+              </Button>
+            )}
+          </Stack>
         }
       />
 
@@ -129,7 +185,17 @@ export function OrderDetailView() {
               direction={{ xs: 'column', sm: 'row' }}
               spacing={3}
               justifyContent="space-between"
+              flexWrap="wrap"
+              useFlexGap
             >
+              <Box>
+                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                  Nº de orden
+                </Typography>
+                <Typography variant="h6" sx={{ fontFamily: 'monospace' }}>
+                  {order.orderNumber}
+                </Typography>
+              </Box>
               <Box>
                 <Typography variant="caption" sx={{ color: 'text.secondary' }}>
                   Estado
@@ -146,23 +212,27 @@ export function OrderDetailView() {
                 <Typography variant="caption" sx={{ color: 'text.secondary' }}>
                   Tipo
                 </Typography>
-                <Typography variant="body1" sx={{ textTransform: 'capitalize' }}>
-                  {order.orderType}
+                <Typography variant="body1">
+                  {ORDER_TYPE_LABEL[order.orderType] ?? order.orderType}
                 </Typography>
+              </Box>
+              <Box>
+                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                  Proveedor
+                </Typography>
+                <Typography variant="body1">{supplierName}</Typography>
+              </Box>
+              <Box>
+                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                  Sucursal
+                </Typography>
+                <Typography variant="body1">{branchName}</Typography>
               </Box>
               <Box>
                 <Typography variant="caption" sx={{ color: 'text.secondary' }}>
                   Fecha esperada
                 </Typography>
                 <Typography variant="body1">{order.expectedDate ?? '—'}</Typography>
-              </Box>
-              <Box>
-                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                  Total
-                </Typography>
-                <Typography variant="h5">
-                  ${(Number(order.total) || 0).toFixed(2)}
-                </Typography>
               </Box>
             </Stack>
             {order.notes && (
@@ -172,11 +242,16 @@ export function OrderDetailView() {
             )}
           </Card>
 
-          <Card>
+          <Card sx={{ mb: 3 }}>
             <Typography variant="subtitle2" sx={{ p: 2.5, color: 'text.secondary' }}>
               Ítems ({order.items?.length ?? 0})
             </Typography>
-            <Box sx={{ width: '100%' }}>
+            <Box
+              sx={{
+                width: '100%',
+                '& .subtotal-cell': { fontWeight: 600 },
+              }}
+            >
               <DataTable
                 columns={itemColumns}
                 rows={order.items ?? []}
@@ -184,6 +259,39 @@ export function OrderDetailView() {
                 autoHeight
               />
             </Box>
+
+            <Divider />
+
+            <Stack direction="row" justifyContent="flex-end" spacing={6} sx={{ p: 3 }}>
+              <Stack spacing={0.5} sx={{ textAlign: 'right', minWidth: 220 }}>
+                <Stack direction="row" justifyContent="space-between">
+                  <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                    Subtotal
+                  </Typography>
+                  <Typography variant="body2">
+                    ${(Number(order.subtotalUsd) || 0).toFixed(2)}
+                  </Typography>
+                </Stack>
+                <Stack direction="row" justifyContent="space-between">
+                  <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                    Impuesto
+                  </Typography>
+                  <Typography variant="body2">${(Number(order.taxUsd) || 0).toFixed(2)}</Typography>
+                </Stack>
+                <Stack
+                  direction="row"
+                  justifyContent="space-between"
+                  sx={{ pt: 0.5, borderTop: 1, borderColor: 'divider' }}
+                >
+                  <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                    Total
+                  </Typography>
+                  <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                    ${(Number(order.totalUsd) || 0).toFixed(2)}
+                  </Typography>
+                </Stack>
+              </Stack>
+            </Stack>
           </Card>
         </>
       )}
