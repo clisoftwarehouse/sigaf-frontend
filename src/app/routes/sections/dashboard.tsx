@@ -11,6 +11,7 @@ import { usersRoutes } from '@/features/users/routes';
 import { rolesRoutes } from '@/features/roles/routes';
 import { pricesRoutes } from '@/features/prices/routes';
 import { brandsRoutes } from '@/features/brands/routes';
+import { claimsRoutes } from '@/features/claims/routes';
 import { importsRoutes } from '@/features/imports/routes';
 import { DashboardLayout } from '@/app/layouts/dashboard';
 import { productsRoutes } from '@/features/products/routes';
@@ -91,6 +92,7 @@ export const dashboardRoutes: RouteObject[] = [
           ...purchasesRoutes,
         ],
       },
+      ...claimsRoutes,
       {
         path: 'consignments',
         children: [

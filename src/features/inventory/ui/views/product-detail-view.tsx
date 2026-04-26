@@ -25,6 +25,7 @@ import { DataTable } from '@/app/components/data-table';
 import { useBrandsQuery } from '@/features/brands/api/brands.queries';
 import { PRODUCT_TYPE_LABEL } from '@/features/products/model/constants';
 import { useProductQuery } from '@/features/products/api/products.queries';
+import { useCurrentPriceQuery } from '@/features/prices/api/prices.queries';
 import { useBranchOptions } from '@/features/branches/api/branches.options';
 import { useCategoriesQuery } from '@/features/categories/api/categories.queries';
 
@@ -53,6 +54,7 @@ export function InventoryProductDetailView() {
   const { data: product, isLoading: loadingProduct, isError, error } = useProductQuery(id);
   const { data: fefoLots = [], isLoading: loadingLots } = useFefoQuery(id || undefined, undefined);
   const { data: stockData } = useStockQuery({ productId: id || undefined });
+  const { data: currentPrice, isError: priceError } = useCurrentPriceQuery({ productId: id });
 
   const { flat: categories } = useCategoriesQuery();
   const { data: brands = [] } = useBrandsQuery();
@@ -71,6 +73,7 @@ export function InventoryProductDetailView() {
     [brands, product]
   );
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const branchBreakdown = (stockData?.data ?? []) as StockRow[];
   const branchRows = useMemo(
     () => branchBreakdown.map((r) => ({ ...r, id: `${r.productId}-${r.branchId}` })),
@@ -300,6 +303,30 @@ export function InventoryProductDetailView() {
                 {product.reorderPoint != null && (
                   <Typography variant="caption" sx={{ color: 'text.disabled' }}>
                     Reorden: {Number(product.reorderPoint)}
+                  </Typography>
+                )}
+              </Box>
+              <Box>
+                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                  Precio actual
+                </Typography>
+                {currentPrice ? (
+                  <>
+                    <Typography variant="h5" sx={{ fontFamily: 'monospace' }}>
+                      ${Number(currentPrice.priceUsd).toFixed(2)}
+                    </Typography>
+                    <Typography variant="caption" sx={{ color: 'text.disabled' }}>
+                      {currentPrice.source === 'branch_override'
+                        ? 'Override de sucursal'
+                        : 'Precio global'}
+                    </Typography>
+                  </>
+                ) : (
+                  <Typography
+                    variant="body2"
+                    sx={{ color: priceError ? 'warning.main' : 'text.disabled' }}
+                  >
+                    {priceError ? 'Sin precio publicado' : '—'}
                   </Typography>
                 )}
               </Box>

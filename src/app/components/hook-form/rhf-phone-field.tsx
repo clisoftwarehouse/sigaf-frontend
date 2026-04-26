@@ -2,7 +2,6 @@ import type { TextFieldProps } from '@mui/material/TextField';
 
 import { Controller, useFormContext } from 'react-hook-form';
 
-import Box from '@mui/material/Box';
 import TextField from '@mui/material/TextField';
 import InputAdornment from '@mui/material/InputAdornment';
 

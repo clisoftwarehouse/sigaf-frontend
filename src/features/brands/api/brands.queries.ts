@@ -7,8 +7,8 @@ import {
   createBrand,
   deleteBrand,
   fetchBrands,
-  restoreBrand,
   updateBrand,
+  restoreBrand,
 } from './brands.api';
 
 // ----------------------------------------------------------------------

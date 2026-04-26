@@ -3,6 +3,7 @@ import type { CreateGoodsReceiptPayload } from '../../model/types';
 import * as z from 'zod';
 import { toast } from 'sonner';
 import { useRef, useMemo, useEffect } from 'react';
+import { useQueries } from '@tanstack/react-query';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm, useFieldArray } from 'react-hook-form';
 
@@ -28,16 +29,22 @@ import { useProductsQuery } from '@/features/products/api/products.queries';
 import { useSuppliersQuery } from '@/features/suppliers/api/suppliers.queries';
 import { useLocationsQuery } from '@/features/locations/api/locations.queries';
 
+import { fetchOrder } from '../../api/purchases.api';
 import { RECEIPT_TYPE_OPTIONS } from '../../model/constants';
-import {
-  useOrderQuery,
-  useOrdersQuery,
-  useCreateReceiptMutation,
-} from '../../api/purchases.queries';
+import { purchaseKeys, useOrdersQuery, useCreateReceiptMutation } from '../../api/purchases.queries';
 
 // ----------------------------------------------------------------------
 
+const pctString = z
+  .string()
+  .optional()
+  .or(z.literal(''))
+  .refine((v) => !v || (/^\d+(\.\d+)?$/.test(v) && Number(v) >= 0 && Number(v) <= 100), {
+    message: 'Entre 0 y 100',
+  });
+
 const ItemSchema = z.object({
+  purchaseOrderId: z.string().optional().or(z.literal('')),
   productId: z.string().uuid({ message: 'Selecciona un producto' }),
   lotNumber: z.string().min(1, { message: 'Obligatorio' }).max(50),
   expirationDate: z.string().min(1, { message: 'Obligatoria' }),
@@ -49,6 +56,7 @@ const ItemSchema = z.object({
     .string()
     .min(1, { message: 'Obligatorio' })
     .refine((v) => /^\d+(\.\d+)?$/.test(v) && Number(v) >= 0, { message: '≥ 0' }),
+  discountPct: pctString,
   salePrice: z
     .string()
     .min(1, { message: 'Obligatorio' })
@@ -59,9 +67,11 @@ const ItemSchema = z.object({
 const ReceiptSchema = z.object({
   branchId: z.string().uuid({ message: 'Selecciona una sucursal' }),
   supplierId: z.string().uuid({ message: 'Selecciona un proveedor' }),
-  purchaseOrderId: z.string().optional().or(z.literal('')),
+  purchaseOrderIds: z.array(z.string().uuid()),
   supplierInvoiceNumber: z.string().max(50).optional().or(z.literal('')),
   receiptType: z.enum(['purchase', 'consignment']),
+  taxPct: pctString,
+  igtfPct: pctString,
   notes: z.string().max(500).optional().or(z.literal('')),
   items: z.array(ItemSchema).min(1, { message: 'Agrega al menos un ítem' }),
 });
@@ -69,11 +79,13 @@ const ReceiptSchema = z.object({
 type FormValues = z.infer<typeof ReceiptSchema>;
 
 const emptyItem: FormValues['items'][number] = {
+  purchaseOrderId: '',
   productId: '',
   lotNumber: '',
   expirationDate: '',
   quantity: '',
   unitCostUsd: '',
+  discountPct: '',
   salePrice: '',
   locationId: '',
 };
@@ -102,9 +114,11 @@ export function ReceiptCreateView() {
     defaultValues: {
       branchId: '',
       supplierId: '',
-      purchaseOrderId: '',
+      purchaseOrderIds: [],
       supplierInvoiceNumber: '',
       receiptType: 'purchase',
+      taxPct: '',
+      igtfPct: '',
       notes: '',
       items: [emptyItem],
     },
@@ -114,73 +128,107 @@ export function ReceiptCreateView() {
   const { fields, append, remove, replace } = useFieldArray({ control, name: 'items' });
   const selectedBranchId = watch('branchId');
   const selectedSupplierId = watch('supplierId');
-  const selectedOrderId = watch('purchaseOrderId');
+  const selectedOrderIds = watch('purchaseOrderIds');
 
   const { data: locations = [] } = useLocationsQuery({
     branchId: selectedBranchId || undefined,
   });
 
   // Órdenes elegibles: del proveedor seleccionado (si hay) y en estado sent/partial.
-  // Si no hay proveedor, muestra todas las elegibles para permitir detectar el proveedor via OC.
   const eligibleOrders = useMemo(() => {
     const byStatus = allOrders.filter((o) => o.status === 'sent' || o.status === 'partial');
     if (!selectedSupplierId) return byStatus;
     return byStatus.filter((o) => o.supplierId === selectedSupplierId);
   }, [allOrders, selectedSupplierId]);
 
-  // Detalle completo de la OC seleccionada (con items)
-  const { data: selectedOrder } = useOrderQuery(selectedOrderId || undefined);
+  // Detalle completo de cada OC seleccionada (con items)
+  const orderDetailQueries = useQueries({
+    queries: (selectedOrderIds ?? []).map((id) => ({
+      queryKey: purchaseKeys.order(id),
+      queryFn: () => fetchOrder(id),
+      enabled: Boolean(id),
+    })),
+  });
+  const loadedOrders = useMemo(
+    () => orderDetailQueries.map((q) => q.data).filter((o): o is NonNullable<typeof o> => !!o),
+    [orderDetailQueries]
+  );
 
-  // Autofill al cambiar de OC seleccionada
-  const lastAppliedOrderRef = useRef<string | null>(null);
+  // Autofill al cambiar de OCs seleccionadas. Agregamos los ítems de todas las
+  // OCs cargadas, conservando el origen (purchaseOrderId por línea) para que
+  // el backend pueda actualizar el estado de cada orden afectada.
+  const lastAppliedKeyRef = useRef<string>('');
   useEffect(() => {
-    if (!selectedOrderId) {
-      lastAppliedOrderRef.current = null;
+    const ids = (selectedOrderIds ?? []).slice().sort().join(',');
+    if (!ids) {
+      if (lastAppliedKeyRef.current) {
+        lastAppliedKeyRef.current = '';
+      }
       return;
     }
-    if (lastAppliedOrderRef.current === selectedOrderId) return;
-    if (!selectedOrder || selectedOrder.id !== selectedOrderId) return;
-    if (!selectedOrder.items || selectedOrder.items.length === 0) return;
+    if (loadedOrders.length !== (selectedOrderIds ?? []).length) return;
+    const loadedKey = loadedOrders.map((o) => o.id).sort().join(',');
+    if (loadedKey !== ids) return;
+    if (lastAppliedKeyRef.current === ids) return;
 
-    setValue('branchId', selectedOrder.branchId, { shouldValidate: true });
-    setValue('supplierId', selectedOrder.supplierId, { shouldValidate: true });
+    const supplier = loadedOrders[0].supplierId;
+    const branch = loadedOrders[0].branchId;
+    const inconsistent = loadedOrders.some(
+      (o) => o.supplierId !== supplier || o.branchId !== branch
+    );
+    if (inconsistent) {
+      toast.error('Las OCs seleccionadas deben ser del mismo proveedor y sucursal.');
+      return;
+    }
 
-    replace(
-      selectedOrder.items.map((it) => {
+    setValue('branchId', branch, { shouldValidate: true });
+    setValue('supplierId', supplier, { shouldValidate: true });
+
+    const aggregated = loadedOrders.flatMap((order) =>
+      (order.items ?? []).map((it) => {
         const remaining = Math.max(
           0,
           Number(it.quantity) - Number(it.quantityReceived ?? 0)
         );
         return {
+          purchaseOrderId: order.id,
           productId: it.productId,
           lotNumber: '',
           expirationDate: '',
           quantity: remaining > 0 ? String(remaining) : String(Number(it.quantity)),
           unitCostUsd: String(Number(it.unitCostUsd)),
+          discountPct: it.discountPct ? String(Number(it.discountPct)) : '',
           salePrice: '',
           locationId: '',
         };
       })
     );
 
-    lastAppliedOrderRef.current = selectedOrderId;
-    toast.success(`Ítems cargados desde la orden ${selectedOrder.orderNumber}`);
-  }, [selectedOrderId, selectedOrder, replace, setValue]);
+    if (aggregated.length > 0) {
+      replace(aggregated);
+      lastAppliedKeyRef.current = ids;
+      const names = loadedOrders.map((o) => o.orderNumber).join(', ');
+      toast.success(`Ítems cargados desde: ${names}`);
+    }
+  }, [selectedOrderIds, loadedOrders, replace, setValue]);
 
   const submit = methods.handleSubmit(async (values) => {
     const payload: CreateGoodsReceiptPayload = {
       branchId: values.branchId,
       supplierId: values.supplierId,
-      purchaseOrderId: values.purchaseOrderId || undefined,
       supplierInvoiceNumber: values.supplierInvoiceNumber?.trim() || undefined,
       receiptType: values.receiptType,
+      taxPct: values.taxPct ? Number(values.taxPct) : undefined,
+      igtfPct: values.igtfPct ? Number(values.igtfPct) : undefined,
       notes: values.notes?.trim() || undefined,
       items: values.items.map((i) => ({
+        purchaseOrderId: i.purchaseOrderId || undefined,
         productId: i.productId,
         lotNumber: i.lotNumber.trim(),
         expirationDate: i.expirationDate,
         quantity: Number(i.quantity),
         unitCostUsd: Number(i.unitCostUsd),
+        discountPct: i.discountPct ? Number(i.discountPct) : undefined,
         salePrice: Number(i.salePrice),
         locationId: i.locationId || undefined,
       })),
@@ -194,7 +242,40 @@ export function ReceiptCreateView() {
     }
   });
 
-  const linkedOrder = selectedOrder;
+  const watchedItems = watch('items');
+  const watchedTaxPct = watch('taxPct');
+  const watchedIgtfPct = watch('igtfPct');
+  const totals = useMemo(() => {
+    let subtotal = 0;
+    let totalDiscount = 0;
+    for (const it of watchedItems ?? []) {
+      const q = Number(it.quantity) || 0;
+      const u = Number(it.unitCostUsd) || 0;
+      const d = Number(it.discountPct) || 0;
+      const gross = q * u;
+      const discountAmount = gross * (d / 100);
+      subtotal += gross - discountAmount;
+      totalDiscount += discountAmount;
+    }
+    const taxPctNum = Number(watchedTaxPct) || 0;
+    const igtfPctNum = Number(watchedIgtfPct) || 0;
+    const tax = subtotal * (taxPctNum / 100);
+    const igtf = (subtotal + tax) * (igtfPctNum / 100);
+    const total = subtotal + tax + igtf;
+    return { subtotal, totalDiscount, tax, igtf, total };
+  }, [watchedItems, watchedTaxPct, watchedIgtfPct]);
+
+  const orderById = useMemo(
+    () => new Map(eligibleOrders.map((o) => [o.id, o] as const)),
+    [eligibleOrders]
+  );
+  const selectedOrdersSummary = useMemo(
+    () =>
+      (selectedOrderIds ?? [])
+        .map((id) => orderById.get(id) ?? loadedOrders.find((o) => o.id === id))
+        .filter((o): o is NonNullable<typeof o> => !!o),
+    [selectedOrderIds, orderById, loadedOrders]
+  );
 
   return (
     <Container maxWidth="lg">
@@ -226,30 +307,41 @@ export function ReceiptCreateView() {
               Encabezado
             </Typography>
 
-            <Field.Select
-              name="purchaseOrderId"
-              label="Orden de compra (opcional)"
+            <Field.Autocomplete
+              name="purchaseOrderIds"
+              label="Órdenes de compra (opcional, multi)"
+              multiple
+              disableCloseOnSelect
+              options={eligibleOrders.map((o) => o.id)}
+              getOptionLabel={(id) => {
+                const o = orderById.get(id as string);
+                return o
+                  ? `${o.orderNumber} · ${new Date(o.createdAt).toLocaleDateString('es-VE')} · $${(Number(o.totalUsd) || 0).toFixed(2)}`
+                  : (id as string);
+              }}
+              isOptionEqualToValue={(option, value) => option === value}
               helperText={
                 eligibleOrders.length === 0
                   ? 'No hay órdenes elegibles. Selecciona el proveedor o crea una orden.'
-                  : 'Al seleccionar, se autocompleta proveedor, sucursal e ítems.'
+                  : 'Puedes seleccionar varias para consolidar productos en una sola factura.'
               }
-              slotProps={{ inputLabel: { shrink: true } }}
-            >
-              <MenuItem value="">— Sin orden asociada —</MenuItem>
-              {eligibleOrders.map((o) => (
-                <MenuItem key={o.id} value={o.id}>
-                  {o.orderNumber} · {new Date(o.createdAt).toLocaleDateString('es-VE')} · $
-                  {(Number(o.totalUsd) || 0).toFixed(2)}
-                </MenuItem>
-              ))}
-            </Field.Select>
+              slotProps={{ textField: { slotProps: { inputLabel: { shrink: true } } } }}
+            />
 
-            {linkedOrder && linkedOrder.id === selectedOrderId && (
+            {selectedOrdersSummary.length > 0 && (
               <Alert severity="info" icon={<Iconify icon="solar:bill-list-bold" />}>
-                Orden <strong>{linkedOrder.orderNumber}</strong> · {linkedOrder.items?.length ?? 0}{' '}
-                ítems · Total ${(Number(linkedOrder.totalUsd) || 0).toFixed(2)}.{' '}
-                <Chip size="small" variant="outlined" label={linkedOrder.status} />
+                {selectedOrdersSummary.length === 1 ? 'Orden' : `${selectedOrdersSummary.length} órdenes`}{' '}
+                consolidadas en esta factura:
+                <Stack direction="row" spacing={0.5} sx={{ flexWrap: 'wrap', mt: 0.5 }}>
+                  {selectedOrdersSummary.map((o) => (
+                    <Chip
+                      key={o.id}
+                      size="small"
+                      variant="outlined"
+                      label={`${o.orderNumber} · ${o.status}`}
+                    />
+                  ))}
+                </Stack>
               </Alert>
             )}
 
@@ -303,6 +395,23 @@ export function ReceiptCreateView() {
               />
             </Stack>
 
+            <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
+              <Field.Text
+                name="taxPct"
+                label="IVA %"
+                helperText="Aplicado sobre el subtotal."
+                slotProps={{ inputLabel: { shrink: true } }}
+                sx={{ flex: 1 }}
+              />
+              <Field.Text
+                name="igtfPct"
+                label="IGTF %"
+                helperText="Aplicado sobre (subtotal + IVA)."
+                slotProps={{ inputLabel: { shrink: true } }}
+                sx={{ flex: 1 }}
+              />
+            </Stack>
+
             <Field.Text
               name="notes"
               label="Notas"
@@ -332,8 +441,22 @@ export function ReceiptCreateView() {
             {fields.map((field, idx) => {
               const productId = watch(`items.${idx}.productId`);
               const product = productId ? productById.get(productId) : undefined;
+              const itemOrderId = watch(`items.${idx}.purchaseOrderId`);
+              const itemOrder = itemOrderId
+                ? (orderById.get(itemOrderId) ??
+                    loadedOrders.find((o) => o.id === itemOrderId))
+                : undefined;
               return (
                 <Box key={field.id}>
+                  {itemOrder && (
+                    <Chip
+                      size="small"
+                      variant="soft"
+                      color="info"
+                      label={`OC ${itemOrder.orderNumber}`}
+                      sx={{ mb: 1 }}
+                    />
+                  )}
                   <Stack direction="row" alignItems="flex-start" spacing={1}>
                     <Box sx={{ flex: 1 }}>
                       <Stack spacing={2}>
@@ -386,6 +509,12 @@ export function ReceiptCreateView() {
                             sx={{ flex: 1 }}
                           />
                           <Field.Text
+                            name={`items.${idx}.discountPct`}
+                            label="Desc. %"
+                            slotProps={{ inputLabel: { shrink: true } }}
+                            sx={{ width: { xs: '100%', sm: 120 }, flexShrink: 0 }}
+                          />
+                          <Field.Text
                             name={`items.${idx}.salePrice`}
                             label="Precio venta"
                             slotProps={{ inputLabel: { shrink: true } }}
@@ -418,6 +547,55 @@ export function ReceiptCreateView() {
                 </Box>
               );
             })}
+          </Stack>
+        </Card>
+
+        <Card sx={{ p: 3, mb: 3 }}>
+          <Stack spacing={1.5}>
+            <Typography variant="subtitle2" sx={{ color: 'text.secondary' }}>
+              Resumen
+            </Typography>
+            <Stack direction="row" justifyContent="space-between">
+              <Typography variant="body2" color="text.secondary">
+                Subtotal (después de descuentos)
+              </Typography>
+              <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
+                ${totals.subtotal.toFixed(2)}
+              </Typography>
+            </Stack>
+            {totals.totalDiscount > 0 && (
+              <Stack direction="row" justifyContent="space-between">
+                <Typography variant="body2" color="text.secondary">
+                  Descuentos aplicados
+                </Typography>
+                <Typography variant="body2" sx={{ fontFamily: 'monospace', color: 'error.main' }}>
+                  −${totals.totalDiscount.toFixed(2)}
+                </Typography>
+              </Stack>
+            )}
+            <Stack direction="row" justifyContent="space-between">
+              <Typography variant="body2" color="text.secondary">
+                IVA ({Number(watchedTaxPct) || 0}%)
+              </Typography>
+              <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
+                ${totals.tax.toFixed(2)}
+              </Typography>
+            </Stack>
+            <Stack direction="row" justifyContent="space-between">
+              <Typography variant="body2" color="text.secondary">
+                IGTF ({Number(watchedIgtfPct) || 0}%)
+              </Typography>
+              <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
+                ${totals.igtf.toFixed(2)}
+              </Typography>
+            </Stack>
+            <Divider />
+            <Stack direction="row" justifyContent="space-between">
+              <Typography variant="subtitle1">Total a pagar</Typography>
+              <Typography variant="subtitle1" sx={{ fontFamily: 'monospace' }}>
+                ${totals.total.toFixed(2)}
+              </Typography>
+            </Stack>
           </Stack>
         </Card>
 

@@ -71,43 +71,58 @@ export type PurchaseOrderFilters = {
 export type GoodsReceiptItem = {
   id: string;
   goodsReceiptId: string;
+  purchaseOrderId: string | null;
   productId: string;
   lotId: string;
   quantity: number | string;
   unitCostUsd: number | string;
+  discountPct: number | string;
+  subtotalUsd: number | string;
+  salePrice: number | string;
+  lotNumber: string;
+  expirationDate: string;
 };
 
 export type GoodsReceipt = {
   id: string;
   branchId: string;
   supplierId: string;
-  purchaseOrderId: string | null;
+  purchaseOrderIds?: string[];
   receiptNumber: string;
   receiptDate: string;
   receiptType: ReceiptType;
   supplierInvoiceNumber: string | null;
   notes: string | null;
+  subtotalUsd: number | string;
+  totalDiscountUsd: number | string;
+  taxPct: number | string;
+  taxUsd: number | string;
+  igtfPct: number | string;
+  igtfUsd: number | string;
   totalUsd: number | string;
   createdAt: string;
   items?: GoodsReceiptItem[];
 };
 
 export type CreateGoodsReceiptItemPayload = {
+  purchaseOrderId?: string;
   productId: string;
   lotNumber: string;
   expirationDate: string;
   quantity: number;
   unitCostUsd: number;
   salePrice: number;
+  discountPct?: number;
   locationId?: string;
 };
 
 export type CreateGoodsReceiptPayload = {
   branchId: string;
   supplierId: string;
-  purchaseOrderId?: string;
   supplierInvoiceNumber?: string;
   receiptType?: ReceiptType;
+  taxPct?: number;
+  igtfPct?: number;
   notes?: string;
   items: CreateGoodsReceiptItemPayload[];
 };

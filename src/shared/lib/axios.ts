@@ -236,6 +236,10 @@ export const endpoints = {
     receipts: '/v1/purchases/receipts',
     receiptById: (id: string) => `/v1/purchases/receipts/${id}`,
   },
+  claims: {
+    root: '/v1/claims',
+    byId: (id: string) => `/v1/claims/${id}`,
+  },
   consignments: {
     entries: '/v1/consignments/entries',
     entryById: (id: string) => `/v1/consignments/entries/${id}`,

@@ -114,14 +114,28 @@ export function ReceiptsListView() {
         ),
       },
       {
-        field: 'purchaseOrderId',
+        field: 'purchaseOrderIds',
         headerName: 'Nº OC',
-        flex: 1,
-        minWidth: 140,
-        valueGetter: (value: string | null) =>
-          value ? (orderNumberById.get(value) ?? value.slice(0, 8)) : '—',
-        renderCell: ({ row }) =>
-          row.purchaseOrderId ? (
+        flex: 1.2,
+        minWidth: 160,
+        sortable: false,
+        filterable: false,
+        valueGetter: (value: string[] | null | undefined) =>
+          value && value.length > 0
+            ? value.map((id) => orderNumberById.get(id) ?? id.slice(0, 8)).join(', ')
+            : '—',
+        renderCell: ({ row }) => {
+          const ids = row.purchaseOrderIds ?? [];
+          if (ids.length === 0) {
+            return (
+              <Typography variant="body2" sx={{ color: 'text.disabled' }}>
+                —
+              </Typography>
+            );
+          }
+          const first = ids[0];
+          const rest = ids.length - 1;
+          return (
             <Typography
               variant="body2"
               sx={{
@@ -132,16 +146,14 @@ export function ReceiptsListView() {
               }}
               onClick={(e) => {
                 e.stopPropagation();
-                router.push(paths.dashboard.purchases.orders.detail(row.purchaseOrderId!));
+                router.push(paths.dashboard.purchases.orders.detail(first));
               }}
             >
-              {orderNumberById.get(row.purchaseOrderId) ?? row.purchaseOrderId.slice(0, 8)}
+              {orderNumberById.get(first) ?? first.slice(0, 8)}
+              {rest > 0 ? ` +${rest}` : ''}
             </Typography>
-          ) : (
-            <Typography variant="body2" sx={{ color: 'text.disabled' }}>
-              —
-            </Typography>
-          ),
+          );
+        },
       },
       {
         field: 'receiptType',

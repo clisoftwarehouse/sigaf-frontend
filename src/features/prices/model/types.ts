@@ -59,13 +59,12 @@ export interface PaginatedResponse<T> {
  * `source` indica de dónde viene el precio resuelto por la prelación:
  *   - `branch_override`: precio específico de sucursal
  *   - `global`: precio global del producto
- *   - `lot_fallback`: sale_price del lote más reciente (fallback)
  */
 export interface ResolvedPrice {
   productId: string;
   branchId: string | null;
   priceUsd: number;
-  source: 'branch_override' | 'global' | 'lot_fallback';
+  source: 'branch_override' | 'global';
   effectiveFrom: string | null;
   effectiveTo: string | null;
 }

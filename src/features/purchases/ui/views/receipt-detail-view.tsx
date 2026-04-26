@@ -9,6 +9,7 @@ import Card from '@mui/material/Card';
 import Stack from '@mui/material/Stack';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
+import Divider from '@mui/material/Divider';
 import Container from '@mui/material/Container';
 import Typography from '@mui/material/Typography';
 import CircularProgress from '@mui/material/CircularProgress';
@@ -23,7 +24,7 @@ import { useProductOptions } from '@/features/products/api/products.options';
 import { useSupplierOptions } from '@/features/suppliers/api/suppliers.options';
 
 import { RECEIPT_TYPE_LABEL } from '../../model/constants';
-import { useOrderQuery, useReceiptQuery } from '../../api/purchases.queries';
+import { useOrdersQuery, useReceiptQuery } from '../../api/purchases.queries';
 
 // ----------------------------------------------------------------------
 
@@ -45,16 +46,49 @@ export function ReceiptDetailView() {
   const { data: supplierOpts = [] } = useSupplierOptions();
   const supplierName = useMemo(
     () =>
-      supplierOpts.find((s) => s.id === receipt?.supplierId)?.label ??
-      receipt?.supplierId ??
-      '—',
+      supplierOpts.find((s) => s.id === receipt?.supplierId)?.label ?? receipt?.supplierId ?? '—',
     [supplierOpts, receipt]
   );
 
-  const { data: relatedOrder } = useOrderQuery(receipt?.purchaseOrderId ?? undefined);
+  const { data: ordersData } = useOrdersQuery({ page: 1, limit: 1000 });
+  const orderById = useMemo(
+    () => new Map((ordersData?.data ?? []).map((o) => [o.id, o] as const)),
+    [ordersData]
+  );
+  const linkedOrders = useMemo(
+    () =>
+      (receipt?.purchaseOrderIds ?? [])
+        .map((rid) => orderById.get(rid))
+        .filter((o): o is NonNullable<typeof o> => !!o),
+    [receipt, orderById]
+  );
 
   const itemColumns = useMemo<GridColDef<GoodsReceiptItem>[]>(
     () => [
+      {
+        field: 'purchaseOrderId',
+        headerName: 'OC',
+        flex: 0.8,
+        minWidth: 120,
+        valueGetter: (value: string | null) =>
+          value ? (orderById.get(value)?.orderNumber ?? value.slice(0, 8)) : '—',
+        renderCell: ({ row }) =>
+          row.purchaseOrderId ? (
+            <Typography
+              variant="body2"
+              sx={{ fontFamily: 'monospace', color: 'primary.main', cursor: 'pointer' }}
+              onClick={() =>
+                router.push(paths.dashboard.purchases.orders.detail(row.purchaseOrderId!))
+              }
+            >
+              {orderById.get(row.purchaseOrderId)?.orderNumber ?? row.purchaseOrderId.slice(0, 8)}
+            </Typography>
+          ) : (
+            <Typography variant="body2" sx={{ color: 'text.disabled' }}>
+              —
+            </Typography>
+          ),
+      },
       {
         field: 'productId',
         headerName: 'Producto',
@@ -98,21 +132,33 @@ export function ReceiptDetailView() {
         valueFormatter: (value: number) => `$${value.toFixed(2)}`,
       },
       {
-        field: 'subtotal',
+        field: 'discountPct',
+        headerName: 'Desc. %',
+        type: 'number',
+        flex: 0.7,
+        minWidth: 100,
+        valueGetter: (value: number | string | null) => Number(value) || 0,
+        valueFormatter: (value: number) => (value > 0 ? `${value.toFixed(2)}%` : '—'),
+      },
+      {
+        field: 'subtotalUsd',
         headerName: 'Subtotal',
         type: 'number',
         flex: 1,
         minWidth: 130,
-        valueGetter: (_v, row) => {
+        valueGetter: (value: number | string | null, row) => {
+          const stored = Number(value) || 0;
+          if (stored > 0) return stored;
           const qty = Number(row.quantity) || 0;
           const cost = Number(row.unitCostUsd) || 0;
-          return qty * cost;
+          const d = Number(row.discountPct) || 0;
+          return qty * cost * (1 - d / 100);
         },
         valueFormatter: (value: number) => `$${value.toFixed(2)}`,
         cellClassName: 'subtotal-cell',
       },
     ],
-    [productNameById]
+    [productNameById, orderById, router]
   );
 
   return (
@@ -122,19 +168,31 @@ export function ReceiptDetailView() {
         subtitle={receipt ? new Date(receipt.createdAt).toLocaleString('es-VE') : undefined}
         crumbs={[{ label: 'Compras' }, { label: 'Recepciones' }, { label: 'Detalle' }]}
         action={
-          <Button
-            variant="outlined"
-            color="inherit"
-            startIcon={
-              <Iconify
-                icon="solar:double-alt-arrow-right-bold-duotone"
-                sx={{ transform: 'scaleX(-1)' }}
-              />
-            }
-            onClick={() => router.push(paths.dashboard.purchases.receipts.root)}
-          >
-            Volver a recepciones
-          </Button>
+          <Stack direction="row" spacing={1}>
+            {receipt && (
+              <Button
+                variant="outlined"
+                color="warning"
+                startIcon={<Iconify icon="solar:danger-triangle-bold" />}
+                onClick={() => router.push(`${paths.dashboard.claims.new}?receiptId=${receipt.id}`)}
+              >
+                Crear reclamo
+              </Button>
+            )}
+            <Button
+              variant="outlined"
+              color="inherit"
+              startIcon={
+                <Iconify
+                  icon="solar:double-alt-arrow-right-bold-duotone"
+                  sx={{ transform: 'scaleX(-1)' }}
+                />
+              }
+              onClick={() => router.push(paths.dashboard.purchases.receipts.root)}
+            >
+              Volver a recepciones
+            </Button>
+          </Stack>
         }
       />
 
@@ -194,21 +252,22 @@ export function ReceiptDetailView() {
               </Box>
               <Box>
                 <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                  Orden de compra
+                  Órdenes de compra
                 </Typography>
-                {receipt.purchaseOrderId ? (
-                  <Button
-                    size="small"
-                    variant="text"
-                    onClick={() =>
-                      router.push(
-                        paths.dashboard.purchases.orders.detail(receipt.purchaseOrderId!)
-                      )
-                    }
-                    sx={{ p: 0, minWidth: 0, justifyContent: 'flex-start' }}
-                  >
-                    {relatedOrder?.orderNumber ?? receipt.purchaseOrderId.slice(0, 8)}
-                  </Button>
+                {linkedOrders.length > 0 ? (
+                  <Stack direction="row" spacing={0.5} sx={{ flexWrap: 'wrap', mt: 0.5 }}>
+                    {linkedOrders.map((o) => (
+                      <Button
+                        key={o.id}
+                        size="small"
+                        variant="outlined"
+                        onClick={() => router.push(paths.dashboard.purchases.orders.detail(o.id))}
+                        sx={{ py: 0.25 }}
+                      >
+                        {o.orderNumber}
+                      </Button>
+                    ))}
+                  </Stack>
                 ) : (
                   <Typography variant="body1" sx={{ color: 'text.disabled' }}>
                     —
@@ -246,14 +305,52 @@ export function ReceiptDetailView() {
               justifyContent="flex-end"
               sx={{ p: 3, borderTop: 1, borderColor: 'divider' }}
             >
-              <Box sx={{ textAlign: 'right', minWidth: 220 }}>
-                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                  Total recepción
-                </Typography>
-                <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                  ${(Number(receipt.totalUsd) || 0).toFixed(2)}
-                </Typography>
-              </Box>
+              <Stack spacing={1} sx={{ minWidth: 260 }}>
+                <Stack direction="row" justifyContent="space-between">
+                  <Typography variant="body2" color="text.secondary">
+                    Subtotal
+                  </Typography>
+                  <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
+                    ${(Number(receipt.subtotalUsd) || 0).toFixed(2)}
+                  </Typography>
+                </Stack>
+                {Number(receipt.totalDiscountUsd) > 0 && (
+                  <Stack direction="row" justifyContent="space-between">
+                    <Typography variant="body2" color="text.secondary">
+                      Descuentos
+                    </Typography>
+                    <Typography
+                      variant="body2"
+                      sx={{ fontFamily: 'monospace', color: 'error.main' }}
+                    >
+                      −${(Number(receipt.totalDiscountUsd) || 0).toFixed(2)}
+                    </Typography>
+                  </Stack>
+                )}
+                <Stack direction="row" justifyContent="space-between">
+                  <Typography variant="body2" color="text.secondary">
+                    IVA ({Number(receipt.taxPct) || 0}%)
+                  </Typography>
+                  <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
+                    ${(Number(receipt.taxUsd) || 0).toFixed(2)}
+                  </Typography>
+                </Stack>
+                <Stack direction="row" justifyContent="space-between">
+                  <Typography variant="body2" color="text.secondary">
+                    IGTF ({Number(receipt.igtfPct) || 0}%)
+                  </Typography>
+                  <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
+                    ${(Number(receipt.igtfUsd) || 0).toFixed(2)}
+                  </Typography>
+                </Stack>
+                <Divider />
+                <Stack direction="row" justifyContent="space-between">
+                  <Typography variant="subtitle1">Total recepción</Typography>
+                  <Typography variant="subtitle1" sx={{ fontFamily: 'monospace', fontWeight: 700 }}>
+                    ${(Number(receipt.totalUsd) || 0).toFixed(2)}
+                  </Typography>
+                </Stack>
+              </Stack>
             </Stack>
           </Card>
         </>

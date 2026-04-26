@@ -146,6 +146,11 @@ export const navData: NavSectionProps['data'] = [
             path: paths.dashboard.purchases.receipts.root,
             icon: ICONS.receipts,
           },
+          {
+            title: 'Reclamos',
+            path: paths.dashboard.claims.root,
+            icon: ICONS.orders,
+          },
         ],
       },
       {

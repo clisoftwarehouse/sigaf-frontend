@@ -10,6 +10,7 @@ const ROOTS = {
 const catalog = `${ROOTS.DASHBOARD}/catalog`;
 const inventory = `${ROOTS.DASHBOARD}/inventory`;
 const purchases = `${ROOTS.DASHBOARD}/purchases`;
+const claims = `${ROOTS.DASHBOARD}/claims`;
 const consignments = `${ROOTS.DASHBOARD}/consignments`;
 const org = `${ROOTS.DASHBOARD}/organization`;
 const admin = `${ROOTS.DASHBOARD}/admin`;
@@ -56,6 +57,12 @@ export const paths = {
       root: purchases,
       orders: crud(`${purchases}/orders`),
       receipts: crud(`${purchases}/receipts`),
+    },
+    claims: {
+      root: claims,
+      new: `${claims}/new`,
+      detail: (id: string) => `${claims}/${id}`,
+      print: (id: string) => `${claims}/${id}/print`,
     },
     consignments: {
       root: consignments,
