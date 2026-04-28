@@ -1,14 +1,17 @@
 import { useMemo } from 'react';
+import { varAlpha } from 'minimal-shared/utils';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Grid from '@mui/material/Grid';
 import Stack from '@mui/material/Stack';
-import Button from '@mui/material/Button';
 import Skeleton from '@mui/material/Skeleton';
+import SpeedDial from '@mui/material/SpeedDial';
 import Container from '@mui/material/Container';
 import { useTheme } from '@mui/material/styles';
 import Typography from '@mui/material/Typography';
+import SpeedDialIcon from '@mui/material/SpeedDialIcon';
+import SpeedDialAction from '@mui/material/SpeedDialAction';
 
 import { paths } from '@/app/routes/paths';
 import { CONFIG } from '@/app/global-config';
@@ -72,45 +75,69 @@ function KpiCard({ label, value, hint, icon, color, href, loading, trend }: KpiC
   const router = useRouter();
   return (
     <Card
-      sx={{
+      sx={(theme) => ({
         p: 3,
+        height: '100%',
+        position: 'relative',
+        overflow: 'hidden',
         cursor: href ? 'pointer' : 'default',
-        transition: (theme) => theme.transitions.create(['transform', 'box-shadow']),
+        border: `1px solid ${theme.vars.palette.divider}`,
+        transition: theme.transitions.create(['transform', 'box-shadow', 'border-color'], {
+          duration: theme.transitions.duration.shorter,
+        }),
+        '&::before': {
+          content: '""',
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: 3,
+          height: '100%',
+          backgroundColor: theme.vars.palette[color].main,
+          opacity: 0.85,
+        },
         '&:hover': href
-          ? { transform: 'translateY(-2px)', boxShadow: (theme) => theme.shadows[8] }
+          ? {
+              transform: 'translateY(-3px)',
+              borderColor: 'transparent',
+              boxShadow: theme.customShadows?.z16 ?? theme.shadows[10],
+            }
           : undefined,
-      }}
+      })}
       onClick={() => href && router.push(href)}
     >
       <Stack direction="row" alignItems="flex-start" spacing={2}>
         <Box
-          sx={{
-            width: 48,
-            height: 48,
-            borderRadius: 1.5,
+          sx={(theme) => ({
+            width: 52,
+            height: 52,
+            borderRadius: 2,
             display: 'flex',
+            flexShrink: 0,
             alignItems: 'center',
             justifyContent: 'center',
-            bgcolor: `${color}.lighter`,
-            color: `${color}.main`,
-          }}
+            color: theme.vars.palette[color].main,
+            background: `linear-gradient(135deg, ${varAlpha(theme.vars.palette[color].mainChannel, 0.16)} 0%, ${varAlpha(theme.vars.palette[color].mainChannel, 0.06)} 100%)`,
+          })}
         >
-          <Iconify icon={icon} width={26} />
+          <Iconify icon={icon} width={28} />
         </Box>
 
         <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+          <Typography
+            variant="overline"
+            sx={{ color: 'text.secondary', letterSpacing: 0.6, fontWeight: 600 }}
+          >
             {label}
           </Typography>
           {loading ? (
-            <Skeleton variant="text" width={60} sx={{ fontSize: '2rem' }} />
+            <Skeleton variant="text" width={80} sx={{ fontSize: '2.25rem' }} />
           ) : (
-            <Typography variant="h4" sx={{ mt: 0.25 }}>
+            <Typography variant="h3" sx={{ mt: 0.5, fontWeight: 700, lineHeight: 1.1 }}>
               {value}
             </Typography>
           )}
-          {hint && (
-            <Typography variant="caption" sx={{ color: 'text.disabled' }}>
+          {hint && !loading && (
+            <Typography variant="caption" sx={{ color: 'text.disabled', display: 'block', mt: 0.5 }}>
               {hint}
             </Typography>
           )}
@@ -123,6 +150,46 @@ function KpiCard({ label, value, hint, icon, color, href, loading, trend }: KpiC
         </Box>
       )}
     </Card>
+  );
+}
+
+// ----------------------------------------------------------------------
+
+function getGreeting() {
+  const hour = new Date().getHours();
+  if (hour < 12) return 'Buenos días';
+  if (hour < 19) return 'Buenas tardes';
+  return 'Buenas noches';
+}
+
+function SectionHeader({
+  title,
+  subtitle,
+}: {
+  title: string;
+  subtitle?: string;
+}) {
+  return (
+    <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 2.5 }}>
+      <Box
+        sx={(theme) => ({
+          width: 4,
+          height: 22,
+          borderRadius: 1,
+          backgroundColor: theme.vars.palette.primary.main,
+        })}
+      />
+      <Box>
+        <Typography variant="h6" sx={{ fontWeight: 700, lineHeight: 1.2 }}>
+          {title}
+        </Typography>
+        {subtitle && (
+          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+            {subtitle}
+          </Typography>
+        )}
+      </Box>
+    </Stack>
   );
 }
 
@@ -161,7 +228,6 @@ export default function Page() {
   });
   const { data: stockOut } = useStockQuery({ stockStatus: 'out', limit: 1 });
 
-  const { data: allLots, isLoading: loadingAllLots } = useLotsQuery({ limit: 1000 });
   const { data: receipts, isLoading: loadingReceipts } = useReceiptsQuery();
 
   // ── Donut: stock por estado ─────────────────────────────────────────
@@ -195,45 +261,6 @@ export default function Page() {
       },
     },
   });
-
-  // ── Bar: lotes por sucursal (top 5) ────────────────────────────────
-  const branchNameById = useMemo(
-    () => new Map(branches.map((b) => [b.id, b.name] as const)),
-    [branches]
-  );
-  const lotsByBranch = useMemo(() => {
-    const lots = allLots?.data ?? [];
-    const counts = new Map<string, number>();
-    lots.forEach((lot) => {
-      counts.set(lot.branchId, (counts.get(lot.branchId) ?? 0) + 1);
-    });
-    return Array.from(counts.entries())
-      .map(([branchId, count]) => ({
-        branchId,
-        name: branchNameById.get(branchId) ?? branchId.slice(0, 8),
-        count,
-      }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 5);
-  }, [allLots, branchNameById]);
-  const lotsBarOptions = useChart({
-    chart: { type: 'bar' },
-    xaxis: {
-      categories: lotsByBranch.map((b) => b.name),
-      labels: { style: { fontSize: '12px' } },
-    },
-    plotOptions: {
-      bar: {
-        horizontal: true,
-        borderRadius: 4,
-        barHeight: '60%',
-        borderRadiusApplication: 'end',
-      },
-    },
-    tooltip: { y: { formatter: (v: number) => `${v} lotes` } },
-    legend: { show: false },
-  });
-  const lotsBarSeries = [{ name: 'Lotes', data: lotsByBranch.map((b) => b.count) }];
 
   // ── Line: recepciones últimos 30 días ──────────────────────────────
   const receiptsTrend = useMemo(() => {
@@ -277,14 +304,106 @@ export default function Page() {
       <title>{metadata.title}</title>
 
       <Container maxWidth="xl">
-        <Box sx={{ py: 5 }}>
-          <Typography variant="h4">
-            Hola, {user?.displayName ?? user?.username ?? 'usuario'} 👋
-          </Typography>
-          <Typography variant="body1" sx={{ mt: 1, color: 'text.secondary' }}>
-            Bienvenido al panel de SIGAF. Aquí tienes un resumen rápido del estado del sistema.
-          </Typography>
-        </Box>
+        <Card
+          sx={{
+            position: 'relative',
+            overflow: 'hidden',
+            mt: 4,
+            mb: 4,
+            p: { xs: 3, md: 4 },
+            color: theme.vars.palette.common.white,
+            backgroundColor: '#0F1B2D',
+            backgroundImage: `
+              radial-gradient(circle at 88% 20%, ${varAlpha('156 28 44', 0.28)} 0px, transparent 45%),
+              radial-gradient(circle at 12% 80%, ${varAlpha('255 255 255', 0.08)} 0px, transparent 50%),
+              linear-gradient(135deg, #0F1B2D 0%, #1A2C46 60%, #233A56 100%)
+            `,
+          }}
+        >
+          <Box
+            aria-hidden
+            sx={{
+              position: 'absolute',
+              inset: 0,
+              pointerEvents: 'none',
+              backgroundImage: `
+                linear-gradient(${varAlpha(theme.vars.palette.common.whiteChannel, 0.04)} 1px, transparent 1px),
+                linear-gradient(90deg, ${varAlpha(theme.vars.palette.common.whiteChannel, 0.04)} 1px, transparent 1px)
+              `,
+              backgroundSize: '40px 40px',
+              maskImage:
+                'radial-gradient(ellipse at 30% 50%, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0) 70%)',
+            }}
+          />
+
+          <Stack
+            direction={{ xs: 'column', md: 'row' }}
+            alignItems={{ md: 'center' }}
+            justifyContent="space-between"
+            spacing={3}
+            sx={{ position: 'relative', zIndex: 1 }}
+          >
+            <Box>
+              <Typography
+                variant="overline"
+                sx={{ color: varAlpha('255 255 255', 0.6), letterSpacing: 1.4 }}
+              >
+                {new Date().toLocaleDateString('es-VE', {
+                  weekday: 'long',
+                  day: 'numeric',
+                  month: 'long',
+                  year: 'numeric',
+                })}
+              </Typography>
+              <Typography
+                variant="h4"
+                sx={{ mt: 0.5, fontWeight: 700, color: 'common.white' }}
+              >
+                {getGreeting()}, {user?.displayName ?? user?.username ?? 'usuario'}
+              </Typography>
+              <Typography
+                sx={{
+                  mt: 1,
+                  maxWidth: 560,
+                  color: varAlpha('255 255 255', 0.72),
+                  lineHeight: 1.6,
+                }}
+              >
+                Bienvenido al panel de SIGAF. Aquí tienes un resumen rápido del estado del
+                sistema y las alertas operativas más relevantes.
+              </Typography>
+            </Box>
+
+            {user?.role?.name && (
+              <Box
+                sx={{
+                  px: 2.5,
+                  py: 1.5,
+                  borderRadius: 2,
+                  alignSelf: { xs: 'flex-start', md: 'center' },
+                  backgroundColor: varAlpha('255 255 255', 0.08),
+                  border: `1px solid ${varAlpha('255 255 255', 0.12)}`,
+                  backdropFilter: 'blur(6px)',
+                }}
+              >
+                <Typography
+                  variant="caption"
+                  sx={{ color: varAlpha('255 255 255', 0.6), display: 'block' }}
+                >
+                  Sesión activa como
+                </Typography>
+                <Typography
+                  variant="subtitle2"
+                  sx={{ color: 'common.white', fontWeight: 600 }}
+                >
+                  {user.role.name}
+                </Typography>
+              </Box>
+            )}
+          </Stack>
+        </Card>
+
+        <SectionHeader title="Resumen del sistema" subtitle="Datos maestros y catálogos" />
 
         <Grid container spacing={3} sx={{ mb: 4 }}>
           <Grid size={{ xs: 12, sm: 6, md: 3 }}>
@@ -329,9 +448,10 @@ export default function Page() {
           </Grid>
         </Grid>
 
-        <Typography variant="h6" sx={{ mb: 2 }}>
-          Alertas de inventario
-        </Typography>
+        <SectionHeader
+          title="Alertas de inventario"
+          subtitle="Eventos que requieren atención inmediata"
+        />
 
         <Grid container spacing={3} sx={{ mb: 4 }}>
           <Grid size={{ xs: 12, sm: 6, md: 4 }}>
@@ -369,12 +489,13 @@ export default function Page() {
           </Grid>
         </Grid>
 
-        <Typography variant="h6" sx={{ mb: 2 }}>
-          Panorama general
-        </Typography>
+        <SectionHeader
+          title="Panorama general"
+          subtitle="Indicadores clave de inventario y operación"
+        />
 
         <Grid container spacing={3} sx={{ mb: 4 }}>
-          <Grid size={{ xs: 12, md: 4 }}>
+          <Grid size={{ xs: 12, md: 6 }}>
             <Card sx={{ p: 3, height: '100%' }}>
               <Typography variant="subtitle2">Estado del stock</Typography>
               <Typography variant="caption" sx={{ color: 'text.secondary' }}>
@@ -407,35 +528,7 @@ export default function Page() {
             </Card>
           </Grid>
 
-          <Grid size={{ xs: 12, md: 4 }}>
-            <Card sx={{ p: 3, height: '100%' }}>
-              <Typography variant="subtitle2">Top 5 sucursales por lotes</Typography>
-              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                Lotes registrados en inventario
-              </Typography>
-              <Box sx={{ mt: 2 }}>
-                {loadingAllLots || loadingBranches ? (
-                  <Skeleton variant="rounded" height={280} />
-                ) : lotsByBranch.length === 0 ? (
-                  <Box
-                    sx={{
-                      height: 280,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: 'text.disabled',
-                    }}
-                  >
-                    <Typography variant="caption">Sin lotes registrados</Typography>
-                  </Box>
-                ) : (
-                  <Chart type="bar" series={lotsBarSeries} options={lotsBarOptions} height={280} />
-                )}
-              </Box>
-            </Card>
-          </Grid>
-
-          <Grid size={{ xs: 12, md: 4 }}>
+          <Grid size={{ xs: 12, md: 6 }}>
             <Card sx={{ p: 3, height: '100%' }}>
               <Typography variant="subtitle2">Recepciones (últimos 30 días)</Typography>
               <Typography variant="caption" sx={{ color: 'text.secondary' }}>
@@ -457,45 +550,42 @@ export default function Page() {
           </Grid>
         </Grid>
 
-        <Card sx={{ p: 3 }}>
-          <Stack
-            direction={{ xs: 'column', sm: 'row' }}
-            spacing={2}
-            alignItems={{ sm: 'center' }}
-            justifyContent="space-between"
-          >
-            <Box>
-              <Typography variant="subtitle1">Acciones rápidas</Typography>
-              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                Accesos directos a las operaciones más comunes.
-              </Typography>
-            </Box>
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
-              <Button
-                variant="outlined"
-                startIcon={<Iconify icon="solar:add-circle-bold" />}
-                onClick={() => router.push(paths.dashboard.catalog.products.new)}
-              >
-                Nuevo producto
-              </Button>
-              <Button
-                variant="outlined"
-                startIcon={<Iconify icon="solar:add-circle-bold" />}
-                onClick={() => router.push(paths.dashboard.inventory.lots.new)}
-              >
-                Nuevo lote
-              </Button>
-              <Button
-                variant="outlined"
-                startIcon={<Iconify icon="solar:bill-list-bold" />}
-                onClick={() => router.push(paths.dashboard.inventory.kardex)}
-              >
-                Ver kardex
-              </Button>
-            </Stack>
-          </Stack>
-        </Card>
       </Container>
+
+      <SpeedDial
+        ariaLabel="Acciones rápidas"
+        icon={<SpeedDialIcon icon={<Iconify icon="solar:add-circle-bold" />} />}
+        sx={{
+          position: 'fixed',
+          right: { xs: 16, md: 32 },
+          bottom: { xs: 16, md: 32 },
+          '& .MuiFab-primary': {
+            width: 60,
+            height: 60,
+            boxShadow: theme.customShadows?.z16 ?? theme.shadows[8],
+          },
+        }}
+        FabProps={{ color: 'primary' }}
+      >
+        <SpeedDialAction
+          icon={<Iconify icon="solar:box-minimalistic-bold" width={22} />}
+          tooltipTitle="Nuevo producto"
+          tooltipOpen
+          onClick={() => router.push(paths.dashboard.catalog.products.new)}
+        />
+        <SpeedDialAction
+          icon={<Iconify icon="solar:calendar-date-bold" width={22} />}
+          tooltipTitle="Nuevo lote"
+          tooltipOpen
+          onClick={() => router.push(paths.dashboard.inventory.lots.new)}
+        />
+        <SpeedDialAction
+          icon={<Iconify icon="solar:bill-list-bold" width={22} />}
+          tooltipTitle="Ver kardex"
+          tooltipOpen
+          onClick={() => router.push(paths.dashboard.inventory.kardex)}
+        />
+      </SpeedDial>
     </>
   );
 }

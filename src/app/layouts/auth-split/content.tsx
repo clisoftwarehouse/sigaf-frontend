@@ -24,13 +24,13 @@ export function AuthSplitContent({
       sx={[
         (theme) => ({
           display: 'flex',
-          flex: '1 1 auto',
+          flex: '1 1 50%',
           alignItems: 'center',
           flexDirection: 'column',
           p: theme.spacing(3, 2, 10, 2),
           [theme.breakpoints.up(layoutQuery)]: {
             justifyContent: 'center',
-            p: theme.spacing(10, 2, 10, 2),
+            p: theme.spacing(8, 6, 8, 6),
           },
         }),
         ...(Array.isArray(sx) ? sx : [sx]),

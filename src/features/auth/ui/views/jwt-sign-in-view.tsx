@@ -6,10 +6,14 @@ import { zodResolver } from '@hookform/resolvers/zod';
 
 import Box from '@mui/material/Box';
 import Alert from '@mui/material/Alert';
+import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
+import Divider from '@mui/material/Divider';
 import IconButton from '@mui/material/IconButton';
+import Typography from '@mui/material/Typography';
 import InputAdornment from '@mui/material/InputAdornment';
 
+import { CONFIG } from '@/app/global-config';
 import { useRouter } from '@/app/routes/hooks';
 import { Iconify } from '@/app/components/iconify';
 import { Form, Field } from '@/app/components/hook-form';
@@ -24,7 +28,7 @@ import { signInWithPassword } from '../context/jwt';
 export type SignInSchemaType = z.infer<typeof SignInSchema>;
 
 export const SignInSchema = z.object({
-  email: z.string().min(1, { message: 'Ingresa tu email o usuario' }),
+  email: z.string().min(1, { message: 'Ingresa tu usuario' }),
   password: z
     .string()
     .min(1, { message: 'La contraseña es obligatoria' })
@@ -70,10 +74,11 @@ export function JwtSignInView() {
   });
 
   const renderForm = () => (
-    <Box sx={{ gap: 3, display: 'flex', flexDirection: 'column' }}>
+    <Stack spacing={2.5}>
       <Field.Text
         name="email"
-        label="Email o usuario"
+        label="Usuario"
+        placeholder="Tu nombre de usuario"
         slotProps={{ inputLabel: { shrink: true } }}
       />
 
@@ -98,24 +103,44 @@ export function JwtSignInView() {
 
       <Button
         fullWidth
-        color="inherit"
+        color="primary"
         size="large"
         type="submit"
         variant="contained"
         loading={isSubmitting}
         loadingIndicator="Ingresando…"
+        sx={{
+          mt: 1,
+          py: 1.5,
+          fontSize: 15,
+          fontWeight: 600,
+          textTransform: 'none',
+          boxShadow: '0 8px 16px -4px rgba(15, 27, 45, 0.25)',
+        }}
       >
         Iniciar sesión
       </Button>
-    </Box>
+    </Stack>
   );
 
   return (
-    <>
+    <Box
+      sx={(theme) => ({
+        width: 1,
+        p: { xs: 3, sm: 5 },
+        borderRadius: 2,
+        backgroundColor: 'background.paper',
+        boxShadow: {
+          xs: 'none',
+          md: '0 24px 48px -16px rgba(15, 27, 45, 0.12), 0 4px 12px -4px rgba(15, 27, 45, 0.05)',
+        },
+        border: { xs: 'none', md: `1px solid ${theme.vars.palette.divider}` },
+      })}
+    >
       <FormHead
-        title="Inicia sesión en SIGAF"
-        description="Usa las credenciales proporcionadas por tu administrador."
-        sx={{ textAlign: { xs: 'center', md: 'left' } }}
+        title="Inicia sesión"
+        description={`Accede a ${CONFIG.appName} con las credenciales proporcionadas por tu administrador.`}
+        sx={{ textAlign: 'center', alignItems: 'center' }}
       />
 
       {!!errorMessage && (
@@ -127,6 +152,21 @@ export function JwtSignInView() {
       <Form methods={methods} onSubmit={onSubmit}>
         {renderForm()}
       </Form>
-    </>
+
+      <Divider sx={{ my: 4 }} />
+
+      <Typography
+        variant="caption"
+        sx={{
+          display: 'block',
+          textAlign: 'center',
+          color: 'text.secondary',
+          lineHeight: 1.6,
+        }}
+      >
+        ¿Problemas para acceder? Contacta a tu administrador del sistema
+        <br />o al equipo de soporte de Grupo Universal 25.
+      </Typography>
+    </Box>
   );
 }

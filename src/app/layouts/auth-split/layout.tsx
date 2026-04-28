@@ -5,6 +5,7 @@ import type { MainSectionProps, LayoutSectionProps, HeaderSectionProps } from '.
 
 import { merge } from 'es-toolkit';
 
+import Box from '@mui/material/Box';
 import Alert from '@mui/material/Alert';
 
 import { Logo } from '@/app/components/logo';
@@ -46,10 +47,15 @@ export function AuthSplitLayout({
         </Alert>
       ),
       leftArea: (
-        <>
-          {/** @slot Logo */}
-          <Logo />
-        </>
+        <Box
+          sx={(theme) => ({
+            display: 'inline-flex',
+            [theme.breakpoints.up(layoutQuery)]: { display: 'none' },
+          })}
+        >
+          {/** @slot Logo (solo mobile; en desktop se muestra en el panel lateral) */}
+          <Logo sx={{ width: 180, height: 56 }} />
+        </Box>
       ),
     };
 
@@ -61,7 +67,10 @@ export function AuthSplitLayout({
         slots={{ ...headerSlots, ...slotProps?.header?.slots }}
         slotProps={merge(headerSlotProps, slotProps?.header?.slotProps ?? {})}
         sx={[
-          { position: { [layoutQuery]: 'fixed' } },
+          (theme) => ({
+            position: { [layoutQuery]: 'fixed' },
+            [theme.breakpoints.up(layoutQuery)]: { display: 'none' },
+          }),
           ...(Array.isArray(slotProps?.header?.sx) ? slotProps.header.sx : [slotProps?.header?.sx]),
         ]}
       />
