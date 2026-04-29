@@ -11,6 +11,8 @@ import Stack from '@mui/material/Stack';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
 import Tooltip from '@mui/material/Tooltip';
+import MenuItem from '@mui/material/MenuItem';
+import TextField from '@mui/material/TextField';
 import Container from '@mui/material/Container';
 import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
@@ -25,6 +27,7 @@ import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
 import { useBrandOptions } from '@/features/brands/api/brands.options';
 import { DataTable, createFkFilterOperators } from '@/app/components/data-table';
 import { useCategoryOptions } from '@/features/categories/api/categories.options';
+import { useTherapeuticUseOptions } from '@/features/therapeutic-uses/api/therapeutic-uses.options';
 
 import {
   TAX_TYPE_OPTIONS,
@@ -44,6 +47,7 @@ type ActiveFilter = 'active' | 'inactive';
 export function ProductsListView() {
   const router = useRouter();
   const [filter, setFilter] = useState<ActiveFilter>('active');
+  const [therapeuticUseId, setTherapeuticUseId] = useState<string>('');
   const [toDeactivate, setToDeactivate] = useState<{ id: string; name: string } | null>(null);
   const [toRestore, setToRestore] = useState<{ id: string; name: string } | null>(null);
 
@@ -51,12 +55,14 @@ export function ProductsListView() {
     page: 1,
     limit: 1000,
     isActive: filter === 'active',
+    therapeuticUseId: therapeuticUseId || undefined,
   });
   const deactivateMutation = useDeleteProductMutation();
   const restoreMutation = useRestoreProductMutation();
 
   const { data: categoryOpts = [] } = useCategoryOptions();
   const { data: brandOpts = [] } = useBrandOptions();
+  const { data: therapeuticUseOpts = [], isLoading: loadingUses } = useTherapeuticUseOptions();
 
   const categoryNameById = useMemo(
     () => new Map(categoryOpts.map((o) => [o.id, o.label] as const)),
@@ -369,9 +375,10 @@ export function ProductsListView() {
 
       <Card>
         <Stack
-          direction="row"
-          alignItems="center"
+          direction={{ xs: 'column', sm: 'row' }}
+          alignItems={{ xs: 'stretch', sm: 'center' }}
           justifyContent="space-between"
+          spacing={2}
           sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}
         >
           <ToggleButtonGroup
@@ -383,6 +390,24 @@ export function ProductsListView() {
             <ToggleButton value="active">Activos</ToggleButton>
             <ToggleButton value="inactive">Inactivos</ToggleButton>
           </ToggleButtonGroup>
+
+          <TextField
+            select
+            size="small"
+            label="Acción terapéutica"
+            value={therapeuticUseId}
+            onChange={(e) => setTherapeuticUseId(e.target.value)}
+            disabled={loadingUses}
+            slotProps={{ inputLabel: { shrink: true } }}
+            sx={{ minWidth: 260 }}
+          >
+            <MenuItem value="">— Todas —</MenuItem>
+            {therapeuticUseOpts.map((opt) => (
+              <MenuItem key={opt.id} value={opt.id}>
+                {opt.label}
+              </MenuItem>
+            ))}
+          </TextField>
         </Stack>
 
         {isError && (

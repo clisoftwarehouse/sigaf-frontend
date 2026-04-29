@@ -5,7 +5,6 @@ import { useParams } from 'react-router';
 
 import Box from '@mui/material/Box';
 import Alert from '@mui/material/Alert';
-import Stack from '@mui/material/Stack';
 import Container from '@mui/material/Container';
 import CircularProgress from '@mui/material/CircularProgress';
 
@@ -55,18 +54,18 @@ export function ProductEditView() {
       {isError && <Alert severity="error">{(error as Error)?.message ?? 'Error'}</Alert>}
 
       {product && (
-        <Stack spacing={3}>
-          <ProductForm
-            current={product}
-            submitting={mutation.isPending}
-            onSubmit={handleSubmit}
-            onCancel={() => router.push(paths.dashboard.catalog.products.root)}
-          />
-
-          <BarcodesManager product={product} />
-
-          <IngredientsManager product={product} />
-        </Stack>
+        <ProductForm
+          current={product}
+          submitting={mutation.isPending}
+          onSubmit={handleSubmit}
+          onCancel={() => router.push(paths.dashboard.catalog.products.root)}
+          extraSections={
+            <>
+              <BarcodesManager product={product} />
+              <IngredientsManager product={product} />
+            </>
+          }
+        />
       )}
     </Container>
   );

@@ -1,6 +1,11 @@
 import axios from '@/shared/lib/axios';
 
-import { JWT_STORAGE_KEY, JWT_EXPIRES_AT_KEY, JWT_REFRESH_STORAGE_KEY } from './constant';
+import {
+  JWT_STORAGE_KEY,
+  JWT_EXPIRES_AT_KEY,
+  JWT_REFRESH_STORAGE_KEY,
+  SESSION_EXPIRED_REASON_KEY,
+} from './constant';
 
 // ----------------------------------------------------------------------
 
@@ -36,6 +41,8 @@ export function setSession(tokens: SessionTokens | null) {
   if (tokens.tokenExpires) {
     sessionStorage.setItem(JWT_EXPIRES_AT_KEY, String(tokens.tokenExpires));
   }
+  // Tras un login exitoso, descartamos cualquier banner residual de sesión expirada.
+  sessionStorage.removeItem(SESSION_EXPIRED_REASON_KEY);
   axios.defaults.headers.common.Authorization = `Bearer ${tokens.token}`;
 }
 

@@ -1,6 +1,8 @@
+import type { SessionExpiredReason } from '../context/jwt/constant';
+
 import * as z from 'zod';
-import { useState } from 'react';
 import { useForm } from 'react-hook-form';
+import { useState, useEffect } from 'react';
 import { useBoolean } from 'minimal-shared/hooks';
 import { zodResolver } from '@hookform/resolvers/zod';
 
@@ -22,6 +24,7 @@ import { useAuthContext } from '../hooks';
 import { getErrorMessage } from '../utils';
 import { FormHead } from '../components/form-head';
 import { signInWithPassword } from '../context/jwt';
+import { SESSION_EXPIRED_REASON_KEY } from '../context/jwt/constant';
 
 // ----------------------------------------------------------------------
 
@@ -37,6 +40,11 @@ export const SignInSchema = z.object({
 
 // ----------------------------------------------------------------------
 
+const EXPIRED_REASON_MESSAGE: Record<SessionExpiredReason, string> = {
+  idle: 'Tu sesión expiró por inactividad. Inicia sesión nuevamente para continuar.',
+  'token-expired': 'Tu sesión expiró. Por favor inicia sesión de nuevo.',
+};
+
 export function JwtSignInView() {
   const router = useRouter();
 
@@ -45,6 +53,17 @@ export function JwtSignInView() {
   const { checkUserSession } = useAuthContext();
 
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [expiredReason, setExpiredReason] = useState<string | null>(null);
+
+  // Lee y limpia la razón de expiración guardada por el axios interceptor o
+  // el idle timer. Solo se muestra una vez: al volver a iniciar sesión, queda limpio.
+  useEffect(() => {
+    const reason = sessionStorage.getItem(SESSION_EXPIRED_REASON_KEY);
+    if (reason && reason in EXPIRED_REASON_MESSAGE) {
+      setExpiredReason(EXPIRED_REASON_MESSAGE[reason as SessionExpiredReason]);
+      sessionStorage.removeItem(SESSION_EXPIRED_REASON_KEY);
+    }
+  }, []);
 
   const defaultValues: SignInSchemaType = {
     email: '',
@@ -142,6 +161,12 @@ export function JwtSignInView() {
         description={`Accede a ${CONFIG.appName} con las credenciales proporcionadas por tu administrador.`}
         sx={{ textAlign: 'center', alignItems: 'center' }}
       />
+
+      {!!expiredReason && !errorMessage && (
+        <Alert severity="warning" sx={{ mb: 3 }}>
+          {expiredReason}
+        </Alert>
+      )}
 
       {!!errorMessage && (
         <Alert severity="error" sx={{ mb: 3 }}>

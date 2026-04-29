@@ -83,11 +83,12 @@ export function ActiveIngredientsListView() {
           ),
       },
       {
-        field: 'therapeuticGroup',
-        headerName: 'Grupo terapéutico',
+        field: 'therapeuticUse',
+        headerName: 'Acción terapéutica',
         flex: 2,
         minWidth: 220,
-        valueGetter: (value: string | null) => value ?? '—',
+        sortable: false,
+        valueGetter: (_v, row) => row.therapeuticUse?.name ?? '—',
       },
       {
         field: 'actions',

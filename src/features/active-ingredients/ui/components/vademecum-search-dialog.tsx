@@ -260,13 +260,18 @@ export function VademecumSearchDialog({
                   )}
                 </Box>
 
-                {details.therapeuticGroup && (
+                {details.therapeuticUse ? (
                   <Box>
                     <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                      Grupo terapéutico derivado
+                      Acción terapéutica sugerida (auto-mapeada por código ATC)
                     </Typography>
-                    <Typography variant="body1">{details.therapeuticGroup}</Typography>
+                    <Typography variant="body1">{details.therapeuticUse.name}</Typography>
                   </Box>
+                ) : (
+                  <Alert severity="info">
+                    No se encontró una acción terapéutica que coincida con el código ATC. Podrás
+                    asignarla manualmente luego desde el formulario.
+                  </Alert>
                 )}
 
                 <Divider sx={{ borderStyle: 'dashed' }} />

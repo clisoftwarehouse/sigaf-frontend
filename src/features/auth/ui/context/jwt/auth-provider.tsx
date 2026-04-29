@@ -5,9 +5,10 @@ import { useMemo, useEffect, useCallback } from 'react';
 
 import axios, { endpoints } from '@/shared/lib/axios';
 
-import { JWT_STORAGE_KEY } from './constant';
 import { AuthContext } from '../auth-context';
 import { setSession, isSessionValid } from './utils';
+import { useIdleLogout } from '../../hooks/use-idle-logout';
+import { JWT_STORAGE_KEY, SESSION_EXPIRED_EVENT } from './constant';
 
 // ----------------------------------------------------------------------
 
@@ -52,7 +53,22 @@ export function AuthProvider({ children }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Escucha el evento global de sesión expirada (lo dispara el axios interceptor
+  // cuando un 401 no se pudo refrescar, o el hook de idle al alcanzar el timeout)
+  // y limpia el estado. AuthGuard se encarga del redirect cuando ve user=null.
+  useEffect(() => {
+    const handleExpired = () => {
+      setSession(null);
+      setState({ user: null, loading: false });
+    };
+    window.addEventListener(SESSION_EXPIRED_EVENT, handleExpired);
+    return () => window.removeEventListener(SESSION_EXPIRED_EVENT, handleExpired);
+  }, [setState]);
+
   const status = state.loading ? 'loading' : state.user ? 'authenticated' : 'unauthenticated';
+
+  // Solo activamos el idle timer mientras el usuario está autenticado.
+  useIdleLogout(status === 'authenticated');
 
   const memoizedValue = useMemo(
     () => ({

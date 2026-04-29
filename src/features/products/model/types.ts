@@ -42,7 +42,8 @@ export type ProductIngredient = {
   activeIngredient?: {
     id: string;
     name: string;
-    therapeuticGroup: string | null;
+    therapeuticUseId: string | null;
+    therapeuticUse?: { id: string; name: string; atcCode: string | null } | null;
   };
 };
 
@@ -128,6 +129,7 @@ export type ProductFilters = {
   brandId?: string;
   productType?: ProductType;
   taxType?: TaxType;
+  therapeuticUseId?: string;
   isActive?: boolean;
   stockStatus?: StockStatus;
   page?: number;

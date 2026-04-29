@@ -22,6 +22,7 @@ export async function fetchProducts(
   if (filters.brandId) params.brandId = filters.brandId;
   if (filters.productType) params.productType = filters.productType;
   if (filters.taxType) params.taxType = filters.taxType;
+  if (filters.therapeuticUseId) params.therapeuticUseId = filters.therapeuticUseId;
   if (filters.isActive !== undefined) params.isActive = String(filters.isActive);
   if (filters.stockStatus) params.stockStatus = filters.stockStatus;
   params.page = String(filters.page ?? 1);

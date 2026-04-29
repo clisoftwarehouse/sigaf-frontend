@@ -6,7 +6,10 @@ import { CONFIG } from '@/app/global-config';
 import {
   JWT_STORAGE_KEY,
   JWT_EXPIRES_AT_KEY,
+  SESSION_EXPIRED_EVENT,
   JWT_REFRESH_STORAGE_KEY,
+  type SessionExpiredReason,
+  SESSION_EXPIRED_REASON_KEY,
 } from '@/features/auth/ui/context/jwt/constant';
 
 // ----------------------------------------------------------------------
@@ -28,9 +31,9 @@ axiosInstance.interceptors.request.use((config) => {
   return config;
 });
 
-// Backend devuelve códigos cortos en `errors.<campo>` para casos sensibles (auth).
-// Aquí los traducimos a mensajes legibles. Para validaciones de DTO el backend ya
-// envía mensajes en español; los pasamos directo.
+// Backend devuelve códigos cortos en `errors.<campo>` para casos sensibles (auth,
+// users, files). Aquí los traducimos a mensajes legibles. Para validaciones de
+// DTO el backend ya envía mensajes en español; los pasamos directo.
 const BACKEND_ERROR_CODES: Record<string, string> = {
   invalidCredentials: 'Credenciales inválidas',
   userInactive: 'Usuario inactivo. Contacta al administrador.',
@@ -38,6 +41,11 @@ const BACKEND_ERROR_CODES: Record<string, string> = {
   notFound: 'No encontrado',
   incorrectOldPassword: 'La contraseña actual es incorrecta',
   missingOldPassword: 'Debes ingresar tu contraseña actual para cambiarla',
+  emailAlreadyExists: 'Ya existe un usuario con ese email',
+  usernameAlreadyExists: 'Ya existe un usuario con ese nombre',
+  wrongToken: 'Token de autenticación inválido',
+  selectFile: 'Debes seleccionar un archivo',
+  cantUploadFileType: 'Tipo de archivo no permitido',
 };
 
 // Mensajes default de NestJS que no son útiles al usuario.
@@ -116,6 +124,16 @@ function clearSession(): void {
   delete axiosInstance.defaults.headers.common.Authorization;
 }
 
+/**
+ * Dispara el evento global de sesión expirada con la razón. AuthProvider lo
+ * escucha para limpiar el estado y AuthGuard se encarga de redirigir al login.
+ * El sign-in view lee la razón de sessionStorage para mostrar un banner.
+ */
+export function notifySessionExpired(reason: SessionExpiredReason): void {
+  sessionStorage.setItem(SESSION_EXPIRED_REASON_KEY, reason);
+  window.dispatchEvent(new CustomEvent(SESSION_EXPIRED_EVENT, { detail: { reason } }));
+}
+
 async function performRefresh(): Promise<string> {
   const refreshToken = sessionStorage.getItem(JWT_REFRESH_STORAGE_KEY);
   if (!refreshToken) throw new Error('Sin refresh token');
@@ -146,11 +164,11 @@ axiosInstance.interceptors.response.use(
     const originalRequest = error?.config as RetriableConfig | undefined;
     const url = originalRequest?.url ?? '';
 
-    // Solo intentamos auto-refresh si es 401 sobre una request normal,
-    // tenemos refresh token y no es ya un retry ni un endpoint de auth.
     const isAuthEndpoint = url.endsWith(REFRESH_URL) || url.endsWith(LOGIN_URL);
     const hasRefresh = !!sessionStorage.getItem(JWT_REFRESH_STORAGE_KEY);
+    const hadSession = !!sessionStorage.getItem(JWT_STORAGE_KEY);
 
+    // 1) Auto-refresh sobre 401 cuando hay refresh token disponible.
     if (
       status === 401 &&
       originalRequest &&
@@ -169,15 +187,26 @@ axiosInstance.interceptors.response.use(
         originalRequest.headers.Authorization = `Bearer ${newToken}`;
         return await axiosInstance(originalRequest);
       } catch {
-        // Refresh falló: limpiamos sesión y caemos al manejo normal del 401.
+        // Refresh falló: la sesión está muerta.
         clearSession();
+        notifySessionExpired('token-expired');
+        return Promise.reject(
+          new Error('Tu sesión ha expirado. Por favor inicia sesión de nuevo.')
+        );
       }
     }
 
-    if (status === 401) {
+    // 2) 401 sobre un endpoint normal (no /auth/login) cuando ya teníamos sesión:
+    // significa que el access token caducó y no había refresh token utilizable.
+    if (status === 401 && hadSession && !isAuthEndpoint) {
       clearSession();
+      notifySessionExpired('token-expired');
+      return Promise.reject(
+        new Error('Tu sesión ha expirado. Por favor inicia sesión de nuevo.')
+      );
     }
 
+    // 3) Caso normal: error de negocio o credenciales inválidas en /auth/login.
     const friendly = extractFriendlyMessage(error?.response?.data, status);
     return Promise.reject(new Error(friendly));
   }
@@ -257,6 +286,7 @@ export const endpoints = {
     vademecumDetails: '/v1/active-ingredients/vademecum-details',
     vademecumImport: '/v1/active-ingredients/vademecum-import',
   },
+  therapeuticUses: resource('/v1/therapeutic-uses'),
   suppliers: resource('/v1/suppliers'),
   branches: resource('/v1/branches'),
   terminals: resource('/v1/terminals'),

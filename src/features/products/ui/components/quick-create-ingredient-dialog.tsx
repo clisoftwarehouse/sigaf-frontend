@@ -4,12 +4,14 @@ import { useState, useEffect } from 'react';
 import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
+import MenuItem from '@mui/material/MenuItem';
 import TextField from '@mui/material/TextField';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 
 import { Iconify } from '@/app/components/iconify';
+import { useTherapeuticUseOptions } from '@/features/therapeutic-uses/api/therapeutic-uses.options';
 import { VademecumSearchDialog } from '@/features/active-ingredients/ui/components/vademecum-search-dialog';
 import { useCreateActiveIngredientMutation } from '@/features/active-ingredients/api/active-ingredients.queries';
 
@@ -23,15 +25,16 @@ type Props = {
 
 export function QuickCreateIngredientDialog({ open, onClose, onCreated }: Props) {
   const mutation = useCreateActiveIngredientMutation();
+  const { data: therapeuticUseOptions = [], isLoading: loadingUses } = useTherapeuticUseOptions();
   const [name, setName] = useState('');
-  const [therapeuticGroup, setTherapeuticGroup] = useState('');
+  const [therapeuticUseId, setTherapeuticUseId] = useState('');
   const [atcCode, setAtcCode] = useState('');
   const [vademecumOpen, setVademecumOpen] = useState(false);
 
   useEffect(() => {
     if (open) {
       setName('');
-      setTherapeuticGroup('');
+      setTherapeuticUseId('');
       setAtcCode('');
     }
   }, [open]);
@@ -45,7 +48,7 @@ export function QuickCreateIngredientDialog({ open, onClose, onCreated }: Props)
     try {
       const created = await mutation.mutateAsync({
         name: trimmedName,
-        therapeuticGroup: therapeuticGroup.trim() || undefined,
+        therapeuticUseId: therapeuticUseId || undefined,
         atcCode: atcCode.trim() || undefined,
       });
       toast.success(`Principio activo "${created.name}" creado`);
@@ -86,13 +89,21 @@ export function QuickCreateIngredientDialog({ open, onClose, onCreated }: Props)
               </Button>
             </Stack>
             <TextField
-              label="Grupo terapéutico (opcional)"
-              value={therapeuticGroup}
-              onChange={(e) => setTherapeuticGroup(e.target.value)}
-              placeholder="Ej. Antihipertensivos"
+              select
+              label="Acción terapéutica (opcional)"
+              value={therapeuticUseId}
+              onChange={(e) => setTherapeuticUseId(e.target.value)}
+              disabled={loadingUses}
               slotProps={{ inputLabel: { shrink: true } }}
               fullWidth
-            />
+            >
+              <MenuItem value="">— Sin asignar —</MenuItem>
+              {therapeuticUseOptions.map((opt) => (
+                <MenuItem key={opt.id} value={opt.id}>
+                  {opt.label}
+                </MenuItem>
+              ))}
+            </TextField>
             <TextField
               label="Código ATC (opcional)"
               value={atcCode}
@@ -122,7 +133,7 @@ export function QuickCreateIngredientDialog({ open, onClose, onCreated }: Props)
         onPick={(candidate, details) => {
           setName(candidate.name);
           if (candidate.atcCode) setAtcCode(candidate.atcCode);
-          if (details.therapeuticGroup) setTherapeuticGroup(details.therapeuticGroup);
+          if (details.therapeuticUse) setTherapeuticUseId(details.therapeuticUse.id);
           setVademecumOpen(false);
         }}
       />

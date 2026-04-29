@@ -1,7 +1,11 @@
+import type { TherapeuticUse } from '@/features/therapeutic-uses/model/types';
+
 export type ActiveIngredient = {
   id: string;
   name: string;
-  therapeuticGroup: string | null;
+  therapeuticUseId: string | null;
+  /** Eager-loaded relation when listing/finding (backend joins therapeuticUse). */
+  therapeuticUse?: TherapeuticUse | null;
   atcCode: string | null;
   innName: string | null;
   createdAt: string;
@@ -9,7 +13,7 @@ export type ActiveIngredient = {
 
 export type CreateActiveIngredientPayload = {
   name: string;
-  therapeuticGroup?: string;
+  therapeuticUseId?: string;
   atcCode?: string;
   innName?: string;
 };
@@ -37,9 +41,12 @@ export type VademecumAtcLevel = {
   url: string;
 };
 
-/** Detalles enriquecidos de un candidato: jerarquía completa + grupo derivado. */
+/**
+ * Detalles enriquecidos de un candidato: jerarquía completa + acción terapéutica
+ * sugerida (auto-mapeada por prefijo ATC contra el catálogo `therapeutic_uses`).
+ */
 export type VademecumDetails = {
   candidate: VademecumCandidate;
   atcHierarchy: VademecumAtcLevel[];
-  therapeuticGroup: string | null;
+  therapeuticUse: TherapeuticUse | null;
 };

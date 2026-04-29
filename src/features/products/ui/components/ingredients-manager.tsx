@@ -122,9 +122,9 @@ export function IngredientsManager({ product }: Props) {
             >
               <Box sx={{ flex: 1 }}>
                 <Typography variant="subtitle2">{name}</Typography>
-                {i.activeIngredient?.therapeuticGroup && (
+                {i.activeIngredient?.therapeuticUse?.name && (
                   <Typography variant="caption" sx={{ color: 'text.disabled' }}>
-                    {i.activeIngredient.therapeuticGroup}
+                    {i.activeIngredient.therapeuticUse.name}
                   </Typography>
                 )}
               </Box>

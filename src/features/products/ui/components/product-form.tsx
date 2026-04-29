@@ -142,6 +142,13 @@ type Props = {
   submitting?: boolean;
   onSubmit: (values: CreateProductPayload) => Promise<void> | void;
   onCancel?: () => void;
+  /**
+   * Secciones adicionales (ej. BarcodesManager / IngredientsManager en edit)
+   * renderizadas entre el card principal y el footer sticky. Necesario para
+   * que la barra de acciones quede al final de la página y no parezca cortar
+   * el formulario por la mitad.
+   */
+  extraSections?: React.ReactNode;
 };
 
 function composeProductName(input: {
@@ -163,7 +170,7 @@ function composeProductName(input: {
   return parts.join(' ').trim();
 }
 
-export function ProductForm({ current, submitting, onSubmit, onCancel }: Props) {
+export function ProductForm({ current, submitting, onSubmit, onCancel, extraSections }: Props) {
   const isEdit = Boolean(current);
 
   const { flat: categories, isLoading: loadingCategories } = useCategoriesQuery();
@@ -673,7 +680,7 @@ export function ProductForm({ current, submitting, onSubmit, onCancel }: Props) 
                         options={ingredientsCatalog.map((ing) => ({
                           id: ing.id,
                           label: ing.name,
-                          secondaryLabel: ing.therapeuticGroup ?? null,
+                          secondaryLabel: ing.therapeuticUse?.name ?? null,
                         }))}
                       />
                       <Tooltip title="Crear nuevo principio activo">
@@ -735,6 +742,8 @@ export function ProductForm({ current, submitting, onSubmit, onCancel }: Props) 
 
         </Stack>
       </Card>
+
+      {extraSections && <Stack spacing={3} sx={{ mt: 3 }}>{extraSections}</Stack>}
 
       <FormFooter
         preview={

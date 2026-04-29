@@ -11,12 +11,13 @@ import Button from '@mui/material/Button';
 
 import { FormFooter } from '@/shared/ui/form-footer';
 import { Form, Field } from '@/app/components/hook-form';
+import { useTherapeuticUseOptions } from '@/features/therapeutic-uses/api/therapeutic-uses.options';
 
 // ----------------------------------------------------------------------
 
 export const ActiveIngredientSchema = z.object({
   name: z.string().min(1, { message: 'El nombre es obligatorio' }).max(200),
-  therapeuticGroup: z.string().max(100).optional().or(z.literal('')),
+  therapeuticUseId: z.string().uuid().optional().or(z.literal('')),
   atcCode: z.string().max(20).optional().or(z.literal('')),
   innName: z.string().max(200).optional().or(z.literal('')),
 });
@@ -31,12 +32,14 @@ type Props = {
 };
 
 export function ActiveIngredientForm({ current, submitting, onSubmit, onCancel }: Props) {
+  const { data: therapeuticUseOptions = [], isLoading: loadingUses } = useTherapeuticUseOptions();
+
   const methods = useForm<ActiveIngredientFormValues>({
     mode: 'onBlur',
     resolver: zodResolver(ActiveIngredientSchema),
     defaultValues: {
       name: current?.name ?? '',
-      therapeuticGroup: current?.therapeuticGroup ?? '',
+      therapeuticUseId: current?.therapeuticUseId ?? '',
       atcCode: current?.atcCode ?? '',
       innName: current?.innName ?? '',
     },
@@ -48,7 +51,7 @@ export function ActiveIngredientForm({ current, submitting, onSubmit, onCancel }
     if (current) {
       reset({
         name: current.name,
-        therapeuticGroup: current.therapeuticGroup ?? '',
+        therapeuticUseId: current.therapeuticUseId ?? '',
         atcCode: current.atcCode ?? '',
         innName: current.innName ?? '',
       });
@@ -58,7 +61,7 @@ export function ActiveIngredientForm({ current, submitting, onSubmit, onCancel }
   const submit = handleSubmit(async (values) => {
     await onSubmit({
       name: values.name.trim(),
-      therapeuticGroup: values.therapeuticGroup ? values.therapeuticGroup.trim() : undefined,
+      therapeuticUseId: values.therapeuticUseId ? values.therapeuticUseId : undefined,
       atcCode: values.atcCode ? values.atcCode.trim().toUpperCase() : undefined,
       innName: values.innName ? values.innName.trim() : undefined,
     });
@@ -93,11 +96,13 @@ export function ActiveIngredientForm({ current, submitting, onSubmit, onCancel }
             />
           </Stack>
 
-          <Field.Text
-            name="therapeuticGroup"
-            label="Grupo terapéutico (opcional)"
-            placeholder="Ej. Antihipertensivos"
-            slotProps={{ inputLabel: { shrink: true } }}
+          <Field.IdAutocomplete
+            name="therapeuticUseId"
+            label="Acción terapéutica (opcional)"
+            placeholder="Buscar acción terapéutica…"
+            options={therapeuticUseOptions}
+            loading={loadingUses}
+            helperText="Determina cómo se filtra el producto que use este principio activo."
           />
         </Stack>
       </Card>
