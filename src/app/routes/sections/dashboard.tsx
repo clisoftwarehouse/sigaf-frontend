@@ -27,6 +27,7 @@ import { promotionsRoutes } from '@/features/promotions/routes';
 import { LoadingScreen } from '@/app/components/loading-screen';
 import { permissionsRoutes } from '@/features/permissions/routes';
 import { consignmentsRoutes } from '@/features/consignments/routes';
+import { branchGroupsRoutes } from '@/features/branch-groups/routes';
 import { exchangeRatesRoutes } from '@/features/exchange-rates/routes';
 import { activeIngredientsRoutes } from '@/features/active-ingredients/routes';
 
@@ -113,6 +114,7 @@ export const dashboardRoutes: RouteObject[] = [
           ...branchesRoutes,
           ...terminalsRoutes,
           ...locationsRoutes,
+          ...branchGroupsRoutes,
         ],
       },
       {

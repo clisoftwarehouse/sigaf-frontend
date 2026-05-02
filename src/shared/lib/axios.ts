@@ -262,9 +262,12 @@ export const endpoints = {
     orders: '/v1/purchases/orders',
     orderById: (id: string) => `/v1/purchases/orders/${id}`,
     approveOrder: (id: string) => `/v1/purchases/orders/${id}/approve`,
+    orderApprovalStatus: (id: string) => `/v1/purchases/orders/${id}/approval-status`,
     receipts: '/v1/purchases/receipts',
     receiptById: (id: string) => `/v1/purchases/receipts/${id}`,
+    reapproveReceipt: (id: string) => `/v1/purchases/receipts/${id}/reapprove`,
   },
+  branchGroups: resource('/v1/branch-groups'),
   claims: {
     root: '/v1/claims',
     byId: (id: string) => `/v1/claims/${id}`,

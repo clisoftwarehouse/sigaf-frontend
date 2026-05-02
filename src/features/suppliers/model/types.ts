@@ -1,3 +1,5 @@
+export type SupplierInvoiceCurrency = 'USD' | 'VES';
+
 export type Supplier = {
   id: string;
   rif: string;
@@ -11,6 +13,7 @@ export type Supplier = {
   apiEndpoint: string | null;
   paymentTermsDays: number | null;
   consignmentCommissionPct: number | null;
+  invoicesInCurrency: SupplierInvoiceCurrency;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -27,6 +30,7 @@ export type CreateSupplierPayload = {
   isDrugstore?: boolean;
   paymentTermsDays?: number;
   consignmentCommissionPct?: number;
+  invoicesInCurrency?: SupplierInvoiceCurrency;
 };
 
 export type UpdateSupplierPayload = Partial<CreateSupplierPayload>;

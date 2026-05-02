@@ -9,6 +9,7 @@ import Card from '@mui/material/Card';
 import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
 import Divider from '@mui/material/Divider';
+import MenuItem from '@mui/material/MenuItem';
 import Typography from '@mui/material/Typography';
 
 import { FormFooter } from '@/shared/ui/form-footer';
@@ -52,6 +53,7 @@ export const SupplierSchema = z.object({
     .optional()
     .or(z.literal(''))
     .refine((v) => !v || /^\d+(\.\d+)?$/.test(v), { message: 'Debe ser un número' }),
+  invoicesInCurrency: z.enum(['USD', 'VES']),
 });
 
 export type SupplierFormValues = z.infer<typeof SupplierSchema>;
@@ -76,6 +78,7 @@ function toFormValues(s?: Supplier): SupplierFormValues {
     paymentTermsDays: s?.paymentTermsDays != null ? String(s.paymentTermsDays) : '',
     consignmentCommissionPct:
       s?.consignmentCommissionPct != null ? String(s.consignmentCommissionPct) : '',
+    invoicesInCurrency: s?.invoicesInCurrency ?? 'USD',
   };
 }
 
@@ -106,6 +109,7 @@ export function SupplierForm({ current, submitting, onSubmit, onCancel }: Props)
       consignmentCommissionPct: values.consignmentCommissionPct
         ? Number(values.consignmentCommissionPct)
         : undefined,
+      invoicesInCurrency: values.invoicesInCurrency,
     });
   });
 
@@ -190,6 +194,16 @@ export function SupplierForm({ current, submitting, onSubmit, onCancel }: Props)
               sx={{ flex: 1 }}
             />
           </Stack>
+
+          <Field.Select
+            name="invoicesInCurrency"
+            label="Moneda de facturación"
+            helperText="Pre-selecciona la moneda al registrar recepciones. Puede sobreescribirse caso por caso."
+            slotProps={{ inputLabel: { shrink: true } }}
+          >
+            <MenuItem value="USD">USD — Dólares</MenuItem>
+            <MenuItem value="VES">VES — Bolívares</MenuItem>
+          </Field.Select>
 
         </Stack>
       </Card>

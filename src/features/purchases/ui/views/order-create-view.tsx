@@ -128,7 +128,7 @@ export function OrderCreateView() {
   });
 
   return (
-    <Container maxWidth="lg">
+    <Container maxWidth="lg" sx={{ pb: 6 }}>
       <PageHeader
         title="Nueva orden de compra"
         subtitle="Crea una orden en estado borrador. Puedes aprobarla desde su detalle."

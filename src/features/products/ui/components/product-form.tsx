@@ -85,6 +85,7 @@ export const ProductSchema = z.object({
   taxType: z.enum(['exempt', 'general', 'reduced']),
   isControlled: z.boolean(),
   isAntibiotic: z.boolean(),
+  isImported: z.boolean(),
   requiresRecipe: z.boolean(),
   isWeighable: z.boolean(),
   unitOfMeasure: z.enum(['UND', 'KG', 'G', 'L', 'ML']),
@@ -120,6 +121,7 @@ function toFormValues(p?: Product): ProductFormValues {
     taxType: p?.taxType ?? 'exempt',
     isControlled: p?.isControlled ?? false,
     isAntibiotic: p?.isAntibiotic ?? false,
+    isImported: p?.isImported ?? false,
     requiresRecipe: p?.requiresRecipe ?? false,
     isWeighable: p?.isWeighable ?? false,
     unitOfMeasure: (p?.unitOfMeasure as UnitOfMeasure) ?? 'UND',
@@ -239,6 +241,7 @@ export function ProductForm({ current, submitting, onSubmit, onCancel, extraSect
       taxType: values.taxType,
       isControlled: values.isControlled,
       isAntibiotic: values.isAntibiotic,
+      isImported: values.isImported,
       requiresRecipe: values.requiresRecipe,
       isWeighable: values.isWeighable,
       unitOfMeasure: values.unitOfMeasure,
@@ -445,6 +448,11 @@ export function ProductForm({ current, submitting, onSubmit, onCancel, extraSect
               name="isAntibiotic"
               label="Antibiótico"
               helperText="Sujeto a control de resistencia antimicrobiana."
+            />
+            <Field.Switch
+              name="isImported"
+              label="Producto importado"
+              helperText="Comprado a mayoristas extranjeros. Puede activar aprobación especial en OCs."
             />
           </Stack>
 

@@ -4,8 +4,10 @@ import axios, { endpoints } from '@/shared/lib/axios';
 
 // ----------------------------------------------------------------------
 
-export async function fetchBranches(): Promise<Branch[]> {
-  const res = await axios.get<Branch[]>(endpoints.branches.root);
+export async function fetchBranches(filters: { isActive?: boolean } = {}): Promise<Branch[]> {
+  const params: Record<string, string> = {};
+  if (filters.isActive !== undefined) params.isActive = String(filters.isActive);
+  const res = await axios.get<Branch[]>(endpoints.branches.root, { params });
   return res.data;
 }
 

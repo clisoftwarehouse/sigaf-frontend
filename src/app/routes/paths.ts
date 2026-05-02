@@ -75,6 +75,7 @@ export const paths = {
       branches: crud(`${org}/branches`),
       terminals: crud(`${org}/terminals`),
       locations: crud(`${org}/locations`),
+      branchGroups: crud(`${org}/branch-groups`),
     },
     admin: {
       root: admin,

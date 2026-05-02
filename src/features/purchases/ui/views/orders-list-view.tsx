@@ -6,6 +6,7 @@ import { useMemo } from 'react';
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Chip from '@mui/material/Chip';
+import Stack from '@mui/material/Stack';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
 import Tooltip from '@mui/material/Tooltip';
@@ -139,16 +140,39 @@ export function OrdersListView() {
         field: 'status',
         headerName: 'Estado',
         type: 'singleSelect',
-        flex: 1,
-        minWidth: 140,
+        flex: 1.2,
+        minWidth: 180,
         valueOptions: ORDER_STATUS_OPTIONS,
-        renderCell: ({ row }) => (
-          <Chip
-            size="small"
-            color={ORDER_STATUS_COLOR[row.status]}
-            label={ORDER_STATUS_LABEL[row.status]}
-          />
-        ),
+        renderCell: ({ row }) => {
+          const days = row.daysUntilAutoCancel;
+          const showExpiryWarning =
+            row.status === 'draft' && typeof days === 'number' && days <= 7;
+          return (
+            <Stack direction="row" spacing={0.5} alignItems="center" sx={{ height: '100%' }}>
+              <Chip
+                size="small"
+                color={ORDER_STATUS_COLOR[row.status]}
+                label={ORDER_STATUS_LABEL[row.status]}
+              />
+              {showExpiryWarning && (
+                <Tooltip
+                  title={
+                    days === 0
+                      ? 'Esta OC se cancelará automáticamente esta noche por estar >30 días en borrador.'
+                      : `Esta OC se auto-cancelará en ${days} día${days === 1 ? '' : 's'} si no se aprueba.`
+                  }
+                >
+                  <Chip
+                    size="small"
+                    variant="outlined"
+                    color={days === 0 ? 'error' : 'warning'}
+                    label={days === 0 ? 'Vence hoy' : `Vence en ${days}d`}
+                  />
+                </Tooltip>
+              )}
+            </Stack>
+          );
+        },
       },
       {
         field: 'actions',

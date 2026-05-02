@@ -14,12 +14,24 @@ import {
 
 export const branchKeys = {
   all: ['branches'] as const,
-  list: () => [...branchKeys.all, 'list'] as const,
+  list: (filters: { isActive?: boolean } = {}) => [...branchKeys.all, 'list', filters] as const,
   detail: (id: string) => [...branchKeys.all, 'detail', id] as const,
 };
 
-export function useBranchesQuery() {
-  return useQuery({ queryKey: branchKeys.list(), queryFn: fetchBranches });
+/**
+ * Por default retorna solo sucursales **activas** — comportamiento esperado
+ * por la mayoría de consumers (formularios de OC, recepción, claims, etc.).
+ *
+ * Si necesitas las inactivas también (típicamente módulos admin / configuración
+ * para ver sucursales archivadas asignadas a algún recurso), pasa
+ * `{ includeInactive: true }`.
+ */
+export function useBranchesQuery(opts: { includeInactive?: boolean } = {}) {
+  const filters = opts.includeInactive ? {} : { isActive: true };
+  return useQuery({
+    queryKey: branchKeys.list(filters),
+    queryFn: () => fetchBranches(filters),
+  });
 }
 
 export function useBranchQuery(id: string | undefined) {

@@ -99,8 +99,11 @@ export function ExchangeRatesView() {
   };
 
   const renderLatestCard = () => {
-    if (!latest) return null;
-    const rate = typeof latest.rate === 'string' ? Number(latest.rate) : latest.rate;
+    const rate = latest
+      ? typeof latest.rate === 'string'
+        ? Number(latest.rate)
+        : latest.rate
+      : null;
     return (
       <Card sx={{ p: 3, mb: 3 }}>
         <Stack
@@ -113,28 +116,37 @@ export function ExchangeRatesView() {
             <Typography variant="caption" sx={{ color: 'text.secondary' }}>
               Tasa más reciente
             </Typography>
-            <Typography variant="h3" sx={{ mt: 0.5 }}>
-              {rate.toLocaleString('es-VE', {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 4,
-              })}{' '}
-              <Typography component="span" variant="subtitle1" sx={{ color: 'text.secondary' }}>
-                {latest.currencyFrom} → {latest.currencyTo}
+            {latest && rate !== null ? (
+              <>
+                <Typography variant="h3" sx={{ mt: 0.5 }}>
+                  {rate.toLocaleString('es-VE', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 4,
+                  })}{' '}
+                  <Typography component="span" variant="subtitle1" sx={{ color: 'text.secondary' }}>
+                    {latest.currencyFrom} → {latest.currencyTo}
+                  </Typography>
+                </Typography>
+                <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 0.5 }}>
+                  <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                    {latest.source} · {latest.effectiveDate}
+                  </Typography>
+                  {latest.isOverridden ? (
+                    <Chip size="small" color="warning" label="Manual (override)" />
+                  ) : (
+                    <Chip size="small" color="success" variant="outlined" label="Automática" />
+                  )}
+                </Stack>
+              </>
+            ) : (
+              <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>
+                No hay tasas registradas todavía. Usa el botón para traer la tasa oficial del
+                BCV o registra una manualmente más abajo.
               </Typography>
-            </Typography>
-            <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 0.5 }}>
-              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                {latest.source} · {latest.effectiveDate}
-              </Typography>
-              {latest.isOverridden ? (
-                <Chip size="small" color="warning" label="Manual (override)" />
-              ) : (
-                <Chip size="small" color="success" variant="outlined" label="Automática" />
-              )}
-            </Stack>
+            )}
           </Box>
           <Button
-            variant="outlined"
+            variant="contained"
             startIcon={<Iconify icon="solar:download-bold" />}
             loading={fetchBcvMutation.isPending}
             onClick={handleFetchBcv}

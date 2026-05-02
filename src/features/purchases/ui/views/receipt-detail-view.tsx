@@ -1,17 +1,24 @@
 import type { GridColDef } from '@mui/x-data-grid';
 import type { GoodsReceiptItem } from '../../model/types';
 
-import { useMemo } from 'react';
+import { toast } from 'sonner';
 import { useParams } from 'react-router';
+import { useMemo, useState } from 'react';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
+import Chip from '@mui/material/Chip';
 import Stack from '@mui/material/Stack';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
+import Dialog from '@mui/material/Dialog';
 import Divider from '@mui/material/Divider';
+import TextField from '@mui/material/TextField';
 import Container from '@mui/material/Container';
 import Typography from '@mui/material/Typography';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogActions from '@mui/material/DialogActions';
 import CircularProgress from '@mui/material/CircularProgress';
 
 import { paths } from '@/app/routes/paths';
@@ -23,8 +30,12 @@ import { useBranchOptions } from '@/features/branches/api/branches.options';
 import { useProductOptions } from '@/features/products/api/products.options';
 import { useSupplierOptions } from '@/features/suppliers/api/suppliers.options';
 
-import { RECEIPT_TYPE_LABEL } from '../../model/constants';
-import { useOrdersQuery, useReceiptQuery } from '../../api/purchases.queries';
+import { RECEIPT_TYPE_LABEL, ORDER_STATUS_LABEL, ORDER_STATUS_COLOR } from '../../model/constants';
+import {
+  useOrdersQuery,
+  useReceiptQuery,
+  useReapproveReceiptMutation,
+} from '../../api/purchases.queries';
 
 // ----------------------------------------------------------------------
 
@@ -32,6 +43,9 @@ export function ReceiptDetailView() {
   const router = useRouter();
   const { id } = useParams<{ id: string }>();
   const { data: receipt, isLoading, isError, error } = useReceiptQuery(id);
+  const reapproveMutation = useReapproveReceiptMutation();
+  const [reapproveOpen, setReapproveOpen] = useState(false);
+  const [justification, setJustification] = useState('');
 
   const { data: productOpts = [] } = useProductOptions();
   const productNameById = useMemo(
@@ -108,11 +122,16 @@ export function ReceiptDetailView() {
         headerName: 'Lote creado',
         flex: 1.5,
         minWidth: 160,
-        renderCell: ({ row }) => (
-          <Typography variant="body2" sx={{ fontFamily: 'monospace', color: 'text.secondary' }}>
-            {row.lotId.slice(0, 8)}
-          </Typography>
-        ),
+        renderCell: ({ row }) =>
+          row.lotId ? (
+            <Typography variant="body2" sx={{ fontFamily: 'monospace', color: 'text.secondary' }}>
+              {row.lotId.slice(0, 8)}
+            </Typography>
+          ) : (
+            <Typography variant="caption" sx={{ color: 'warning.main', fontStyle: 'italic' }}>
+              Pendiente reaprobación
+            </Typography>
+          ),
       },
       {
         field: 'quantity',
@@ -162,7 +181,7 @@ export function ReceiptDetailView() {
   );
 
   return (
-    <Container maxWidth="lg">
+    <Container maxWidth="lg" sx={{ pb: 6 }}>
       <PageHeader
         title={receipt ? `Recepción ${receipt.receiptNumber}` : 'Recepción de mercancía'}
         subtitle={receipt ? new Date(receipt.createdAt).toLocaleString('es-VE') : undefined}
@@ -203,6 +222,86 @@ export function ReceiptDetailView() {
       )}
 
       {isError && <Alert severity="error">{(error as Error)?.message ?? 'Error'}</Alert>}
+
+      {receipt?.requiresReapproval && (
+        <Alert
+          severity="warning"
+          sx={{ mb: 3 }}
+          icon={<Iconify icon="solar:danger-triangle-bold" />}
+          action={
+            <Button
+              size="small"
+              color="warning"
+              variant="contained"
+              onClick={() => setReapproveOpen(true)}
+            >
+              Reaprobar
+            </Button>
+          }
+        >
+          Esta recepción excedió la tolerancia y está bloqueada. Los lotes NO se han creado y los
+          precios no se han publicado. Reapruébala con justificación para liberarla a inventario.
+        </Alert>
+      )}
+
+      {receipt?.reapprovedBy && receipt.reapprovedAt && (
+        <Alert severity="success" sx={{ mb: 3 }} icon={<Iconify icon="solar:shield-check-bold" />}>
+          Reaprobada el {new Date(receipt.reapprovedAt).toLocaleString('es-VE')}.
+          {receipt.reapprovalJustification && (
+            <Typography variant="caption" sx={{ display: 'block', mt: 0.5 }}>
+              Justificación: {receipt.reapprovalJustification}
+            </Typography>
+          )}
+        </Alert>
+      )}
+
+      <Dialog open={reapproveOpen} onClose={() => setReapproveOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Reaprobar recepción</DialogTitle>
+        <DialogContent dividers>
+          <Stack spacing={2} sx={{ mt: 1 }}>
+            <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+              Al reaprobar se crearán los lotes correspondientes y la mercancía entrará al
+              inventario. La justificación quedará en el log de auditoría.
+            </Typography>
+            <TextField
+              autoFocus
+              label="Justificación"
+              placeholder="Ej. Proveedor confirmó el incremento de costo por escasez de inventario."
+              value={justification}
+              onChange={(e) => setJustification(e.target.value)}
+              multiline
+              minRows={3}
+              slotProps={{ inputLabel: { shrink: true } }}
+              fullWidth
+            />
+            <Typography variant="caption" sx={{ color: 'text.disabled' }}>
+              Mínimo 10 caracteres.
+            </Typography>
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setReapproveOpen(false)}>Cancelar</Button>
+          <Button
+            variant="contained"
+            color="warning"
+            disabled={justification.trim().length < 10}
+            loading={reapproveMutation.isPending}
+            onClick={async () => {
+              if (!id) return;
+              try {
+                await reapproveMutation.mutateAsync({ id, justification: justification.trim() });
+                toast.success('Recepción reaprobada. Lotes creados y precios publicados.');
+                setReapproveOpen(false);
+                setJustification('');
+              } catch (err) {
+                toast.error((err as Error).message);
+              }
+            }}
+          >
+            Confirmar reaprobación
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {receipt && (
         <>
@@ -250,22 +349,46 @@ export function ReceiptDetailView() {
                   {receipt.supplierInvoiceNumber ?? '—'}
                 </Typography>
               </Box>
+              {receipt.nativeCurrency === 'VES' && (
+                <Box>
+                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                    Factura en moneda original
+                  </Typography>
+                  <Typography variant="body1" sx={{ fontFamily: 'monospace' }}>
+                    Bs. {Number(receipt.nativeTotal ?? 0).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </Typography>
+                  <Typography variant="caption" sx={{ color: 'text.disabled' }}>
+                    Tasa BCV usada: {Number(receipt.exchangeRateUsed ?? 0).toFixed(4)} Bs./USD
+                  </Typography>
+                </Box>
+              )}
               <Box>
                 <Typography variant="caption" sx={{ color: 'text.secondary' }}>
                   Órdenes de compra
                 </Typography>
                 {linkedOrders.length > 0 ? (
-                  <Stack direction="row" spacing={0.5} sx={{ flexWrap: 'wrap', mt: 0.5 }}>
+                  <Stack direction="row" spacing={0.75} sx={{ flexWrap: 'wrap', mt: 0.5, gap: 0.5 }}>
                     {linkedOrders.map((o) => (
-                      <Button
+                      <Stack
                         key={o.id}
-                        size="small"
-                        variant="outlined"
-                        onClick={() => router.push(paths.dashboard.purchases.orders.detail(o.id))}
-                        sx={{ py: 0.25 }}
+                        direction="row"
+                        spacing={0.5}
+                        alignItems="center"
                       >
-                        {o.orderNumber}
-                      </Button>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          onClick={() => router.push(paths.dashboard.purchases.orders.detail(o.id))}
+                          sx={{ py: 0.25 }}
+                        >
+                          {o.orderNumber}
+                        </Button>
+                        <Chip
+                          size="small"
+                          color={ORDER_STATUS_COLOR[o.status]}
+                          label={ORDER_STATUS_LABEL[o.status]}
+                        />
+                      </Stack>
                     ))}
                   </Stack>
                 ) : (

@@ -57,6 +57,7 @@ export type Product = {
   productType: ProductType;
   isControlled: boolean;
   isAntibiotic: boolean;
+  isImported: boolean;
   requiresRecipe: boolean;
   isWeighable: boolean;
   unitOfMeasure: UnitOfMeasure;
@@ -103,6 +104,7 @@ export type CreateProductPayload = {
   productType?: ProductType;
   isControlled?: boolean;
   isAntibiotic?: boolean;
+  isImported?: boolean;
   requiresRecipe?: boolean;
   isWeighable?: boolean;
   unitOfMeasure?: UnitOfMeasure;

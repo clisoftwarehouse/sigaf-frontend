@@ -5,6 +5,8 @@ import { useMemo } from 'react';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
+import Chip from '@mui/material/Chip';
+import Stack from '@mui/material/Stack';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
 import Tooltip from '@mui/material/Tooltip';
@@ -60,12 +62,23 @@ export function ReceiptsListView() {
       {
         field: 'receiptNumber',
         headerName: 'Nº recepción',
-        flex: 1,
-        minWidth: 140,
+        flex: 1.2,
+        minWidth: 180,
         renderCell: ({ row }) => (
-          <Typography variant="subtitle2" sx={{ fontFamily: 'monospace' }}>
-            {row.receiptNumber}
-          </Typography>
+          <Stack spacing={0.5}>
+            <Typography variant="subtitle2" sx={{ fontFamily: 'monospace' }}>
+              {row.receiptNumber}
+            </Typography>
+            {row.requiresReapproval && (
+              <Chip
+                size="small"
+                color="warning"
+                variant="outlined"
+                label="Pendiente reaprobación"
+                sx={{ height: 20, fontSize: 11 }}
+              />
+            )}
+          </Stack>
         ),
       },
       {
@@ -165,6 +178,50 @@ export function ReceiptsListView() {
         valueFormatter: (value: ReceiptType) => RECEIPT_TYPE_LABEL[value] ?? value,
       },
       {
+        field: 'subtotalUsd',
+        headerName: 'Subtotal',
+        type: 'number',
+        flex: 1,
+        minWidth: 120,
+        align: 'right',
+        headerAlign: 'right',
+        valueGetter: (value: number | string) => Number(value) || 0,
+        valueFormatter: (value: number) => `$${value.toFixed(2)}`,
+      },
+      {
+        field: 'totalDiscountUsd',
+        headerName: 'Descuento',
+        type: 'number',
+        flex: 1,
+        minWidth: 120,
+        align: 'right',
+        headerAlign: 'right',
+        valueGetter: (value: number | string) => Number(value) || 0,
+        valueFormatter: (value: number) => (value > 0 ? `-$${value.toFixed(2)}` : '—'),
+      },
+      {
+        field: 'taxUsd',
+        headerName: 'IVA',
+        type: 'number',
+        flex: 1,
+        minWidth: 120,
+        align: 'right',
+        headerAlign: 'right',
+        valueGetter: (value: number | string) => Number(value) || 0,
+        valueFormatter: (value: number) => (value > 0 ? `$${value.toFixed(2)}` : '—'),
+      },
+      {
+        field: 'igtfUsd',
+        headerName: 'IGTF',
+        type: 'number',
+        flex: 1,
+        minWidth: 120,
+        align: 'right',
+        headerAlign: 'right',
+        valueGetter: (value: number | string) => Number(value) || 0,
+        valueFormatter: (value: number) => (value > 0 ? `$${value.toFixed(2)}` : '—'),
+      },
+      {
         field: 'totalUsd',
         headerName: 'Total',
         type: 'number',
@@ -174,6 +231,7 @@ export function ReceiptsListView() {
         headerAlign: 'right',
         valueGetter: (value: number | string) => Number(value) || 0,
         valueFormatter: (value: number) => `$${value.toFixed(2)}`,
+        cellClassName: 'total-cell',
       },
       {
         field: 'actions',
@@ -236,13 +294,29 @@ export function ReceiptsListView() {
           </Box>
         )}
 
-        <Box sx={{ width: '100%' }}>
+        <Box
+          sx={{
+            width: '100%',
+            '& .total-cell': { fontWeight: 600 },
+          }}
+        >
           <DataTable
             columns={columns}
             rows={receipts?.data}
             loading={isLoading}
             disableRowSelectionOnClick
             autoHeight
+            initialState={{
+              columns: {
+                // Por default ocultamos descuento/IVA/IGTF para no saturar la
+                // tabla. El usuario puede mostrarlas desde el menú de columnas.
+                columnVisibilityModel: {
+                  totalDiscountUsd: false,
+                  taxUsd: false,
+                  igtfUsd: false,
+                },
+              },
+            }}
           />
         </Box>
       </Card>

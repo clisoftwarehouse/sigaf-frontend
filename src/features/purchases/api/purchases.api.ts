@@ -58,6 +58,31 @@ export async function approveOrder(id: string): Promise<PurchaseOrder> {
   return res.data;
 }
 
+export type CategoryFlag = 'controlled' | 'antibiotic' | 'cold_chain' | 'imported';
+
+export type ApprovalRequirement = {
+  bypassed: boolean;
+  requiredApproverRoles: Array<{
+    id: string;
+    name: string;
+    reason: 'amount' | CategoryFlag;
+  }>;
+  totalUsd: number;
+  triggeredCategoryFlags: CategoryFlag[];
+  reason: string;
+};
+
+export type ApprovalCheck = {
+  canApprove: boolean;
+  requirement: ApprovalRequirement;
+  denialReason?: string;
+};
+
+export async function fetchOrderApprovalStatus(id: string): Promise<ApprovalCheck> {
+  const res = await axios.get<ApprovalCheck>(endpoints.purchases.orderApprovalStatus(id));
+  return res.data;
+}
+
 // ─── Receipts ───────────────────────────────────────────────────────────
 
 export async function fetchReceipts(
@@ -74,7 +99,36 @@ export async function fetchReceipt(id: string): Promise<GoodsReceipt> {
   return res.data;
 }
 
-export async function createReceipt(payload: CreateGoodsReceiptPayload): Promise<GoodsReceipt> {
-  const res = await axios.post<GoodsReceipt>(endpoints.purchases.receipts, payload);
+export type CreateReceiptResponse = GoodsReceipt & {
+  /**
+   * Resumen de las OCs cuyo status fue recalculado tras esta recepción. El UI
+   * lo usa para mostrar un toast detallado ("OC X → completa, OC Y → parcial").
+   * Vacío si la recepción no estaba asociada a ninguna OC o quedó bloqueada
+   * en `requiresReapproval` (las OCs no avanzan hasta reaprobación).
+   */
+  affectedOrders?: Array<{
+    orderNumber: string;
+    previousStatus: string;
+    newStatus: string;
+  }>;
+  /** True cuando la recepción excedió tolerancia y quedó bloqueada. */
+  toleranceExceeded?: boolean;
+  /** Lista legible de cuáles tolerancias se excedieron, para mostrar al usuario. */
+  toleranceDetails?: string[];
+};
+
+export async function createReceipt(payload: CreateGoodsReceiptPayload): Promise<CreateReceiptResponse> {
+  const res = await axios.post<CreateReceiptResponse>(endpoints.purchases.receipts, payload);
+  return res.data;
+}
+
+export async function reapproveReceipt(
+  id: string,
+  justification: string,
+): Promise<CreateReceiptResponse> {
+  const res = await axios.put<CreateReceiptResponse>(
+    endpoints.purchases.reapproveReceipt(id),
+    { justification },
+  );
   return res.data;
 }

@@ -25,8 +25,12 @@ import { useBranchOptions } from '@/features/branches/api/branches.options';
 import { useProductOptions } from '@/features/products/api/products.options';
 import { useSupplierOptions } from '@/features/suppliers/api/suppliers.options';
 
-import { useOrderQuery, useApproveOrderMutation } from '../../api/purchases.queries';
 import { ORDER_TYPE_LABEL, ORDER_STATUS_LABEL, ORDER_STATUS_COLOR } from '../../model/constants';
+import {
+  useOrderQuery,
+  useApproveOrderMutation,
+  useOrderApprovalStatusQuery,
+} from '../../api/purchases.queries';
 
 // ----------------------------------------------------------------------
 
@@ -34,6 +38,12 @@ export function OrderDetailView() {
   const router = useRouter();
   const { id } = useParams<{ id: string }>();
   const { data: order, isLoading, isError, error } = useOrderQuery(id);
+  // Solo consultamos el motor de aprobación cuando la OC está en draft (es
+  // cuando el badge tiene sentido). Para otros estados el endpoint igual
+  // respondería bien pero ahorramos la query.
+  const { data: approvalCheck } = useOrderApprovalStatusQuery(
+    order?.status === 'draft' ? id : undefined,
+  );
   const approveMutation = useApproveOrderMutation();
 
   const { data: productOpts = [] } = useProductOptions();
@@ -62,7 +72,11 @@ export function OrderDetailView() {
     }
   };
 
-  const canApprove = order?.status === 'draft';
+  // El usuario puede aprobar si: (1) está en draft y (2) el motor de aprobación
+  // dice que su rol está autorizado. Mientras la consulta carga, mostramos el
+  // botón habilitado y dejamos que el backend rechace si no aplica (defensa).
+  const canApprove =
+    order?.status === 'draft' && (approvalCheck === undefined || approvalCheck.canApprove);
 
   const itemColumns = useMemo<GridColDef<PurchaseOrderItem>[]>(
     () => [
@@ -135,7 +149,7 @@ export function OrderDetailView() {
   );
 
   return (
-    <Container maxWidth="lg">
+    <Container maxWidth="lg" sx={{ pb: 6 }}>
       <PageHeader
         title={order ? `Orden ${order.orderNumber}` : 'Orden de compra'}
         subtitle={order ? new Date(order.createdAt).toLocaleString('es-VE') : undefined}
@@ -180,6 +194,37 @@ export function OrderDetailView() {
 
       {order && (
         <>
+          {order.status === 'draft' &&
+            typeof order.daysUntilAutoCancel === 'number' &&
+            order.daysUntilAutoCancel <= 7 && (
+              <Alert
+                severity={order.daysUntilAutoCancel === 0 ? 'error' : 'warning'}
+                sx={{ mb: 3 }}
+                icon={<Iconify icon="solar:clock-circle-bold" />}
+              >
+                {order.daysUntilAutoCancel === 0
+                  ? 'Esta OC se cancelará automáticamente esta noche por estar más de 30 días en borrador. Apruébala ahora si aún es válida.'
+                  : `Esta OC se auto-cancelará en ${order.daysUntilAutoCancel} día${
+                      order.daysUntilAutoCancel === 1 ? '' : 's'
+                    } por estar en borrador más de 30 días. Apruébala antes para evitar la cancelación.`}
+              </Alert>
+            )}
+
+          {/* Estado de aprobación según el motor (PDF Política OC §1+2). Se
+              muestra solo en draft: si el rol del usuario actual no califica,
+              se ve por qué (rol esperado, monto, categorías sensibles). */}
+          {order.status === 'draft' && approvalCheck && !approvalCheck.requirement.bypassed && (
+            <Alert
+              severity={approvalCheck.canApprove ? 'success' : 'info'}
+              sx={{ mb: 3 }}
+              icon={<Iconify icon="solar:shield-check-bold" />}
+            >
+              {approvalCheck.canApprove
+                ? `Tu rol puede aprobar esta OC. ${approvalCheck.requirement.reason}`
+                : (approvalCheck.denialReason ?? approvalCheck.requirement.reason)}
+            </Alert>
+          )}
+
           <Card sx={{ p: 3, mb: 3 }}>
             <Stack
               direction={{ xs: 'column', sm: 'row' }}

@@ -17,6 +17,8 @@ import {
   fetchReceipt,
   fetchReceipts,
   createReceipt,
+  reapproveReceipt,
+  fetchOrderApprovalStatus,
 } from './purchases.api';
 
 // ----------------------------------------------------------------------
@@ -25,6 +27,7 @@ export const purchaseKeys = {
   all: ['purchases'] as const,
   orders: (filters: PurchaseOrderFilters) => [...purchaseKeys.all, 'orders', filters] as const,
   order: (id: string) => [...purchaseKeys.all, 'order', id] as const,
+  orderApproval: (id: string) => [...purchaseKeys.all, 'order-approval', id] as const,
   receipts: (filters: GoodsReceiptFilters) =>
     [...purchaseKeys.all, 'receipts', filters] as const,
   receipt: (id: string) => [...purchaseKeys.all, 'receipt', id] as const,
@@ -43,6 +46,14 @@ export function useOrderQuery(id: string | undefined) {
   return useQuery({
     queryKey: purchaseKeys.order(id ?? ''),
     queryFn: () => fetchOrder(id as string),
+    enabled: Boolean(id),
+  });
+}
+
+export function useOrderApprovalStatusQuery(id: string | undefined) {
+  return useQuery({
+    queryKey: purchaseKeys.orderApproval(id ?? ''),
+    queryFn: () => fetchOrderApprovalStatus(id as string),
     enabled: Boolean(id),
   });
 }
@@ -99,6 +110,19 @@ export function useCreateReceiptMutation() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (payload: CreateGoodsReceiptPayload) => createReceipt(payload),
+    onSuccess: () => {
+      // Invalida tanto receipts como orders: el status de las OCs afectadas
+      // pudo cambiar a partial/complete y debe reflejarse en sus listados/detalles.
+      qc.invalidateQueries({ queryKey: purchaseKeys.all });
+    },
+  });
+}
+
+export function useReapproveReceiptMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, justification }: { id: string; justification: string }) =>
+      reapproveReceipt(id, justification),
     onSuccess: () => qc.invalidateQueries({ queryKey: purchaseKeys.all }),
   });
 }
