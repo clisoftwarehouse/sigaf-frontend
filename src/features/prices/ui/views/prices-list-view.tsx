@@ -24,7 +24,6 @@ import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
 import { useBranchOptions } from '@/features/branches/api/branches.options';
 import { useProductOptions } from '@/features/products/api/products.options';
 
-import { PriceEditDialog } from '../components/price-edit-dialog';
 import { PriceFormDialog } from '../components/price-form-dialog';
 import { usePricesQuery, useExpirePriceMutation } from '../../api/prices.queries';
 
@@ -232,9 +231,14 @@ export function PricesListView() {
         </Box>
       </Card>
 
-      <PriceFormDialog open={formOpen} onClose={() => setFormOpen(false)} />
-
-      <PriceEditDialog open={!!toEdit} price={toEdit} onClose={() => setToEdit(null)} />
+      <PriceFormDialog
+        open={formOpen || !!toEdit}
+        editingPrice={toEdit}
+        onClose={() => {
+          setFormOpen(false);
+          setToEdit(null);
+        }}
+      />
 
       <ConfirmDialog
         open={!!toExpire}
