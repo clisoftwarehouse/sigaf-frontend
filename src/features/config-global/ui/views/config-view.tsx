@@ -1,4 +1,5 @@
 import type { ConfigMap } from '../../api/config.api';
+import type { ConfigKeyMeta } from '../../model/config-keys';
 
 import { toast } from 'sonner';
 import { useMemo, useState, useEffect } from 'react';
@@ -8,98 +9,94 @@ import Card from '@mui/material/Card';
 import Stack from '@mui/material/Stack';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
-import Divider from '@mui/material/Divider';
 import Container from '@mui/material/Container';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
-import IconButton from '@mui/material/IconButton';
+import InputAdornment from '@mui/material/InputAdornment';
 import CircularProgress from '@mui/material/CircularProgress';
 
 import { Iconify } from '@/app/components/iconify';
 import { PageHeader } from '@/shared/ui/page-header';
 
+import { CONFIG_GROUPS, KNOWN_CONFIG_KEYS } from '../../model/config-keys';
 import { useConfigQuery, useUpdateConfigMutation } from '../../api/config.queries';
 
 // ----------------------------------------------------------------------
 
-type Row = { key: string; value: string; dirty: boolean; isNew?: boolean };
-
-function mapToRows(m: ConfigMap): Row[] {
-  return Object.entries(m)
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([key, value]) => ({ key, value, dirty: false }));
-}
+type DirtyMap = Record<string, string>;
 
 export function ConfigView() {
   const { data: config, isLoading, isError, error, refetch } = useConfigQuery();
   const mutation = useUpdateConfigMutation();
 
-  const [rows, setRows] = useState<Row[]>([]);
-  const [newKey, setNewKey] = useState('');
-  const [newValue, setNewValue] = useState('');
+  const [values, setValues] = useState<ConfigMap>({});
+  const [dirty, setDirty] = useState<DirtyMap>({});
 
   useEffect(() => {
-    if (config) setRows(mapToRows(config));
+    if (config) {
+      setValues(config);
+      setDirty({});
+    }
   }, [config]);
 
-  const dirtyCount = useMemo(() => rows.filter((r) => r.dirty).length, [rows]);
+  const dirtyCount = Object.keys(dirty).length;
 
-  const handleValueChange = (key: string, value: string) => {
-    setRows((prev) =>
-      prev.map((r) =>
-        r.key === key ? { ...r, value, dirty: r.isNew ? true : r.value !== value || r.dirty } : r
-      )
-    );
-  };
+  const unknownKeys = useMemo(
+    () =>
+      Object.keys(values)
+        .filter((k) => !KNOWN_CONFIG_KEYS.has(k))
+        .sort(),
+    [values]
+  );
 
-  const handleAddRow = () => {
-    const key = newKey.trim();
-    if (!key) {
-      toast.error('El nombre de la clave es obligatorio');
-      return;
-    }
-    if (rows.some((r) => r.key === key)) {
-      toast.error(`Ya existe una clave llamada "${key}"`);
-      return;
-    }
-    setRows((prev) => [...prev, { key, value: newValue, dirty: true, isNew: true }]);
-    setNewKey('');
-    setNewValue('');
+  const handleChange = (key: string, value: string) => {
+    setValues((prev) => ({ ...prev, [key]: value }));
+    setDirty((prev) => {
+      const original = config?.[key] ?? '';
+      if (value === original) {
+        const { [key]: _omit, ...rest } = prev;
+        return rest;
+      }
+      return { ...prev, [key]: value };
+    });
   };
 
   const handleSave = async () => {
-    const dirty = rows.filter((r) => r.dirty);
-    if (dirty.length === 0) {
+    if (dirtyCount === 0) {
       toast.info?.('No hay cambios para guardar');
       return;
     }
-
-    const payload: ConfigMap = {};
-    dirty.forEach((r) => {
-      payload[r.key] = r.value;
-    });
-
     try {
-      await mutation.mutateAsync(payload);
-      toast.success(`${dirty.length} ${dirty.length === 1 ? 'entrada actualizada' : 'entradas actualizadas'}`);
+      await mutation.mutateAsync(dirty);
+      toast.success(
+        `${dirtyCount} ${dirtyCount === 1 ? 'parámetro actualizado' : 'parámetros actualizados'}`
+      );
     } catch (err) {
       toast.error((err as Error).message);
     }
   };
 
   const handleReset = () => {
-    if (config) setRows(mapToRows(config));
+    if (config) {
+      setValues(config);
+      setDirty({});
+    }
   };
 
   return (
-    <Container maxWidth="lg">
+    <Container maxWidth="xl">
       <PageHeader
         title="Configuración global"
-        subtitle="Parámetros del sistema (IVA, IGTF, tasas BCV, límites de descuento, etc.)."
+        subtitle="Parámetros del sistema (IVA, IGTF, tasa BCV, alertas FEFO, tolerancias de compra)."
         crumbs={[{ label: 'Administración' }, { label: 'Configuración' }]}
         action={
           <Stack direction="row" spacing={1.5}>
-            <Button variant="outlined" color="inherit" onClick={handleReset} disabled={dirtyCount === 0}>
+            <Button
+              variant="outlined"
+              color="inherit"
+              onClick={handleReset}
+              disabled={dirtyCount === 0}
+            >
               Descartar
             </Button>
             <Button
@@ -135,77 +132,105 @@ export function ConfigView() {
         </Box>
       )}
 
-      {!isLoading && rows.length === 0 && !isError && (
-        <Alert severity="info" sx={{ mb: 2 }}>
-          No hay parámetros configurados. Agrega el primero con el formulario de abajo.
-        </Alert>
-      )}
+      {!isLoading && (
+        <Stack spacing={3}>
+          {CONFIG_GROUPS.map((group) => (
+            <Card key={group.title} sx={{ p: 3 }}>
+              <Box sx={{ mb: 2.5 }}>
+                <Typography variant="h6">{group.title}</Typography>
+                {group.description && (
+                  <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>
+                    {group.description}
+                  </Typography>
+                )}
+              </Box>
 
-      {rows.length > 0 && (
-        <Card sx={{ p: 3, mb: 3 }}>
-          <Stack spacing={2}>
-            {rows.map((row) => (
-              <Stack
-                key={row.key}
-                direction={{ xs: 'column', sm: 'row' }}
-                spacing={2}
-                alignItems={{ sm: 'center' }}
-              >
-                <TextField
-                  value={row.key}
-                  label="Clave"
-                  disabled
-                  sx={{ minWidth: 240, fontFamily: 'monospace' }}
-                  slotProps={{ inputLabel: { shrink: true } }}
-                />
-                <TextField
-                  value={row.value}
-                  onChange={(e) => handleValueChange(row.key, e.target.value)}
-                  label="Valor"
-                  fullWidth
-                  slotProps={{ inputLabel: { shrink: true } }}
-                  helperText={row.dirty ? 'Modificado (sin guardar)' : undefined}
-                  color={row.dirty ? 'warning' : undefined}
-                  focused={row.dirty || undefined}
-                />
+              <Stack spacing={2.5}>
+                {group.keys.map((meta) => (
+                  <ConfigField
+                    key={meta.key}
+                    meta={meta}
+                    value={values[meta.key] ?? ''}
+                    isDirty={meta.key in dirty}
+                    onChange={(v) => handleChange(meta.key, v)}
+                  />
+                ))}
               </Stack>
-            ))}
-          </Stack>
-        </Card>
-      )}
+            </Card>
+          ))}
 
-      <Card sx={{ p: 3 }}>
-        <Stack spacing={2}>
-          <Typography variant="subtitle2" sx={{ color: 'text.secondary' }}>
-            Agregar nueva clave
-          </Typography>
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ sm: 'center' }}>
-            <TextField
-              value={newKey}
-              onChange={(e) => setNewKey(e.target.value)}
-              label="Clave"
-              placeholder="Ej. iva_pct"
-              sx={{ minWidth: 240 }}
-              slotProps={{ inputLabel: { shrink: true } }}
-            />
-            <TextField
-              value={newValue}
-              onChange={(e) => setNewValue(e.target.value)}
-              label="Valor"
-              fullWidth
-              slotProps={{ inputLabel: { shrink: true } }}
-            />
-            <IconButton color="primary" onClick={handleAddRow}>
-              <Iconify icon="solar:add-circle-bold" />
-            </IconButton>
-          </Stack>
-          <Divider sx={{ borderStyle: 'dashed' }} />
-          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-            Las nuevas claves se crean al guardar. Si una clave ya existe en el backend, su valor
-            se sobreescribe.
-          </Typography>
+          {unknownKeys.length > 0 && (
+            <Card sx={{ p: 3 }}>
+              <Box sx={{ mb: 2.5 }}>
+                <Typography variant="h6">Otros parámetros</Typography>
+                <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>
+                  Parámetros existentes en el backend que aún no tienen metadatos en esta UI.
+                </Typography>
+              </Box>
+              <Stack spacing={2.5}>
+                {unknownKeys.map((key) => (
+                  <ConfigField
+                    key={key}
+                    meta={{ key, label: key, type: 'text' }}
+                    value={values[key] ?? ''}
+                    isDirty={key in dirty}
+                    onChange={(v) => handleChange(key, v)}
+                  />
+                ))}
+              </Stack>
+            </Card>
+          )}
         </Stack>
-      </Card>
+      )}
     </Container>
+  );
+}
+
+// ----------------------------------------------------------------------
+
+type ConfigFieldProps = {
+  meta: ConfigKeyMeta;
+  value: string;
+  isDirty: boolean;
+  onChange: (value: string) => void;
+};
+
+function ConfigField({ meta, value, isDirty, onChange }: ConfigFieldProps) {
+  const inputType = meta.type === 'text' ? 'text' : 'number';
+  const step = meta.type === 'integer' ? '1' : '0.01';
+
+  return (
+    <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ sm: 'flex-start' }}>
+      <Box sx={{ minWidth: { sm: 260 }, flex: { sm: '0 0 260px' } }}>
+        <Typography variant="subtitle2">{meta.label}</Typography>
+        {meta.description && (
+          <Typography
+            variant="caption"
+            sx={{ color: 'text.secondary', display: 'block', mt: 0.25 }}
+          >
+            {meta.description}
+          </Typography>
+        )}
+      </Box>
+
+      <TextField
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        type={inputType}
+        fullWidth
+        size="small"
+        slotProps={{
+          input: {
+            inputProps: inputType === 'number' ? { step, min: 0 } : undefined,
+            endAdornment: meta.unit ? (
+              <InputAdornment position="end">{meta.unit}</InputAdornment>
+            ) : undefined,
+          },
+        }}
+        helperText={isDirty ? 'Modificado (sin guardar)' : ' '}
+        color={isDirty ? 'warning' : undefined}
+        focused={isDirty || undefined}
+      />
+    </Stack>
   );
 }

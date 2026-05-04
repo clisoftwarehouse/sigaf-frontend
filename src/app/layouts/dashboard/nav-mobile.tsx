@@ -6,12 +6,12 @@ import { mergeClasses } from 'minimal-shared/utils';
 import Box from '@mui/material/Box';
 import Drawer from '@mui/material/Drawer';
 
-import { Logo } from '@/app/components/logo';
 import { usePathname } from '@/app/routes/hooks';
 import { Scrollbar } from '@/app/components/scrollbar';
 import { NavSectionVertical } from '@/app/components/nav-section';
 
 import { layoutClasses } from '../core';
+import { SidebarLogo } from '../components/sidebar-logo';
 
 // ----------------------------------------------------------------------
 
@@ -62,8 +62,16 @@ export function NavMobile({
       }}
     >
       {slots?.topArea ?? (
-        <Box sx={{ pl: 3.5, pt: 2.5, pb: 1 }}>
-          <Logo />
+        <Box
+          sx={{
+            display: 'flex',
+            justifyContent: 'center',
+            px: 2.5,
+            pt: 2.5,
+            pb: 1.5,
+          }}
+        >
+          <SidebarLogo width={232} height={84} scale={2} />
         </Box>
       )}
 

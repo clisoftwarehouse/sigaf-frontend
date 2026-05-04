@@ -81,7 +81,7 @@ export function RolesListView() {
   );
 
   return (
-    <Container maxWidth="lg">
+    <Container maxWidth="xl">
       <PageHeader
         title="Roles"
         subtitle="Los roles controlan el acceso a los módulos mediante permisos granulares."

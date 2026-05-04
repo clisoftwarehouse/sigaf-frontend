@@ -574,10 +574,10 @@ export default function Page() {
           onClick={() => router.push(paths.dashboard.catalog.products.new)}
         />
         <SpeedDialAction
-          icon={<Iconify icon="solar:calendar-date-bold" width={22} />}
-          tooltipTitle="Nuevo lote"
+          icon={<Iconify icon="solar:inbox-in-bold-duotone" width={22} />}
+          tooltipTitle="Nueva recepción"
           tooltipOpen
-          onClick={() => router.push(paths.dashboard.inventory.lots.new)}
+          onClick={() => router.push(paths.dashboard.purchases.receipts.new)}
         />
         <SpeedDialAction
           icon={<Iconify icon="solar:bill-list-bold" width={22} />}

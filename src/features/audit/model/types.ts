@@ -37,4 +37,6 @@ export type AuditLogResponse = {
   total: number;
   page: number;
   limit: number;
+  /** Mapa uuid → fullName para resolver referencias a usuarios en oldValues/newValues. */
+  users?: Record<string, string>;
 };

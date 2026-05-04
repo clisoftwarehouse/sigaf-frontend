@@ -83,12 +83,22 @@ export function BrandsListView() {
         type: 'boolean',
         flex: 1,
         minWidth: 130,
-        renderCell: ({ row }) =>
-          row.isLaboratory ? (
-            <Chip size="small" color="info" label="Laboratorio" />
-          ) : (
-            <Chip size="small" variant="outlined" label="Marca" />
-          ),
+        renderCell: ({ row }) => (
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              height: '100%',
+            }}
+          >
+            {row.isLaboratory ? (
+              <Chip size="small" color="info" label="Laboratorio" />
+            ) : (
+              <Chip size="small" variant="outlined" label="Marca" />
+            )}
+          </Box>
+        ),
       },
       {
         field: 'createdAt',
@@ -97,6 +107,18 @@ export function BrandsListView() {
         flex: 1,
         minWidth: 180,
         valueGetter: (value: string) => (value ? new Date(value) : null),
+        renderCell: ({ value }) => (
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              height: '100%',
+            }}
+          >
+            {value ? (value as Date).toLocaleString() : ''}
+          </Box>
+        ),
       },
       {
         field: 'actions',
@@ -105,33 +127,45 @@ export function BrandsListView() {
         width: 130,
         align: 'right',
         headerAlign: 'right',
-        renderCell: ({ row }) =>
-          row.isActive ? (
-            <>
-              <Tooltip title="Editar">
-                <IconButton onClick={() => router.push(paths.dashboard.catalog.brands.edit(row.id))}>
-                  <Iconify icon="solar:pen-bold" />
-                </IconButton>
-              </Tooltip>
-              <Tooltip title="Inactivar">
+        renderCell: ({ row }) => (
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'flex-end',
+              height: '100%',
+            }}
+          >
+            {row.isActive ? (
+              <>
+                <Tooltip title="Editar">
+                  <IconButton
+                    onClick={() => router.push(paths.dashboard.catalog.brands.edit(row.id))}
+                  >
+                    <Iconify icon="solar:pen-bold" />
+                  </IconButton>
+                </Tooltip>
+                <Tooltip title="Inactivar">
+                  <IconButton
+                    color="warning"
+                    onClick={() => setToDeactivate({ id: row.id, name: row.name })}
+                  >
+                    <Iconify icon="solar:forbidden-circle-bold" />
+                  </IconButton>
+                </Tooltip>
+              </>
+            ) : (
+              <Tooltip title="Reactivar">
                 <IconButton
-                  color="warning"
-                  onClick={() => setToDeactivate({ id: row.id, name: row.name })}
+                  color="success"
+                  onClick={() => setToRestore({ id: row.id, name: row.name })}
                 >
-                  <Iconify icon="solar:forbidden-circle-bold" />
+                  <Iconify icon="solar:restart-bold" />
                 </IconButton>
               </Tooltip>
-            </>
-          ) : (
-            <Tooltip title="Reactivar">
-              <IconButton
-                color="success"
-                onClick={() => setToRestore({ id: row.id, name: row.name })}
-              >
-                <Iconify icon="solar:restart-bold" />
-              </IconButton>
-            </Tooltip>
-          ),
+            )}
+          </Box>
+        ),
       },
     ],
     [router]

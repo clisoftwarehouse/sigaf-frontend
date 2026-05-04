@@ -43,7 +43,6 @@ export const paths = {
     inventory: {
       root: inventory,
       stock: `${inventory}/stock`,
-      lots: crud(`${inventory}/lots`),
       productDetail: (id: string) => `${inventory}/products/${id}`,
       kardex: `${inventory}/kardex`,
       counts: {

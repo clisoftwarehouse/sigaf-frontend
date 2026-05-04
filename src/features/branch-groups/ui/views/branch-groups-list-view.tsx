@@ -105,12 +105,21 @@ export function BranchGroupsListView() {
         sortComparator: (a, b) => Number(a) - Number(b),
         valueGetter: (value: number | undefined) => value ?? 0,
         renderCell: ({ value }) => (
-          <Chip
-            size="small"
-            variant="outlined"
-            color={Number(value) > 0 ? 'info' : 'default'}
-            label={`${value} sucursal${Number(value) === 1 ? '' : 'es'}`}
-          />
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              height: '100%',
+            }}
+          >
+            <Chip
+              size="small"
+              variant="outlined"
+              color={Number(value) > 0 ? 'info' : 'default'}
+              label={`${value} sucursal${Number(value) === 1 ? '' : 'es'}`}
+            />
+          </Box>
         ),
       },
       {
@@ -119,12 +128,22 @@ export function BranchGroupsListView() {
         type: 'boolean',
         flex: 1,
         minWidth: 110,
-        renderCell: ({ row }) =>
-          row.isActive ? (
-            <Chip size="small" color="success" variant="outlined" label="Activo" />
-          ) : (
-            <Chip size="small" color="default" variant="outlined" label="Inactivo" />
-          ),
+        renderCell: ({ row }) => (
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              height: '100%',
+            }}
+          >
+            {row.isActive ? (
+              <Chip size="small" color="success" variant="outlined" label="Activo" />
+            ) : (
+              <Chip size="small" color="default" variant="outlined" label="Inactivo" />
+            )}
+          </Box>
+        ),
       },
       {
         field: 'createdAt',
@@ -133,6 +152,18 @@ export function BranchGroupsListView() {
         flex: 1,
         minWidth: 160,
         valueGetter: (value: string) => new Date(value),
+        renderCell: ({ value }) => (
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              height: '100%',
+            }}
+          >
+            {(value as Date).toLocaleString()}
+          </Box>
+        ),
       },
       {
         field: 'actions',

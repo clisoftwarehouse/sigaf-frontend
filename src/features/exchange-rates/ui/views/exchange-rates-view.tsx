@@ -217,7 +217,7 @@ export function ExchangeRatesView() {
   );
 
   return (
-    <Container maxWidth="lg">
+    <Container maxWidth="xl">
       <PageHeader
         title="Tasas de cambio"
         subtitle="Historial de tasas BCV usadas para conversión USD/VES."

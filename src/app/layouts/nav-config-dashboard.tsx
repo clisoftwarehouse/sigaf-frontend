@@ -141,6 +141,7 @@ export const navData: NavSectionProps['data'] = [
         title: 'Compras',
         path: paths.dashboard.purchases.root,
         icon: ICONS.purchases,
+        extraMatchPaths: [paths.dashboard.claims.root],
         children: [
           {
             title: 'Órdenes de compra',

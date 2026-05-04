@@ -33,27 +33,6 @@ export type InventoryLot = {
   expirySignal: ExpirySignal;
 };
 
-export type CreateLotPayload = {
-  productId: string;
-  branchId: string;
-  lotNumber: string;
-  expirationDate: string;
-  manufactureDate?: string;
-  acquisitionType?: AcquisitionType;
-  supplierId?: string;
-  costUsd: number;
-  salePrice: number;
-  quantityReceived: number;
-  consignmentEntryId?: string;
-  locationId?: string;
-};
-
-export type UpdateLotPayload = {
-  salePrice?: number;
-  locationId?: string;
-  status?: LotStatus;
-};
-
 export type QuarantineLotPayload = {
   quarantine: boolean;
   reason: string;

@@ -6,11 +6,11 @@ import { varAlpha, mergeClasses } from 'minimal-shared/utils';
 import Box from '@mui/material/Box';
 import { styled } from '@mui/material/styles';
 
-import { Logo } from '@/app/components/logo';
 import { Scrollbar } from '@/app/components/scrollbar';
 import { NavSectionMini, NavSectionVertical } from '@/app/components/nav-section';
 
 import { layoutClasses } from '../core';
+import { SidebarLogo } from '../components/sidebar-logo';
 import { NavToggleButton } from '../components/nav-toggle-button';
 
 // ----------------------------------------------------------------------
@@ -41,8 +41,16 @@ export function NavVertical({
   const renderNavVertical = () => (
     <>
       {slots?.topArea ?? (
-        <Box sx={{ pl: 3.5, pt: 2.5, pb: 1 }}>
-          <Logo />
+        <Box
+          sx={{
+            display: 'flex',
+            justifyContent: 'center',
+            px: 2.5,
+            pt: 2.5,
+            pb: 1.5,
+          }}
+        >
+          <SidebarLogo width={232} height={84} scale={2} />
         </Box>
       )}
 
@@ -62,8 +70,8 @@ export function NavVertical({
   const renderNavMini = () => (
     <>
       {slots?.topArea ?? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 2.5 }}>
-          <Logo sx={{ width: 64, height: 64 }} />
+        <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+          <SidebarLogo width={56} height={56} scale={2.4} radius={1.25} />
         </Box>
       )}
 

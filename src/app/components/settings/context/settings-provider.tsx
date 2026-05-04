@@ -1,69 +1,51 @@
-import type { SettingsState, SettingsProviderProps } from '../types';
+import type { SettingsProviderProps } from '../types';
 
-import { isEqual } from 'es-toolkit';
-import { useLocalStorage } from 'minimal-shared/hooks';
-import { useMemo, useState, useEffect, useCallback } from 'react';
-import { getStorage as getStorageValue } from 'minimal-shared/utils';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 
 import { SettingsContext } from './settings-context';
 import { SETTINGS_STORAGE_KEY } from '../settings-config';
 
 // ----------------------------------------------------------------------
 
+/**
+ * El theme/picker dinámico de la plantilla Minimal está deshabilitado: queremos
+ * apariencia idéntica entre dev y prod (sin "drift" por ajustes guardados en
+ * localStorage de cada navegador). El provider siempre devuelve `defaultSettings`,
+ * ignora cualquier mutación, y limpia la entrada `app-settings` heredada en el
+ * primer render para que máquinas con valores viejos converjan.
+ */
 export function SettingsProvider({
   children,
   defaultSettings,
   storageKey = SETTINGS_STORAGE_KEY,
 }: SettingsProviderProps) {
-  const { state, setState, resetState, setField } = useLocalStorage<SettingsState>(
-    storageKey,
-    defaultSettings
-  );
-
   const [openDrawer, setOpenDrawer] = useState(false);
 
-  const onToggleDrawer = useCallback(() => {
-    setOpenDrawer((prev) => !prev);
-  }, []);
-
-  const onCloseDrawer = useCallback(() => {
-    setOpenDrawer(false);
-  }, []);
-
-  const canReset = !isEqual(state, defaultSettings);
-
-  const onReset = useCallback(() => {
-    resetState(defaultSettings);
-  }, [defaultSettings, resetState]);
-
-  // Version check and reset handling
   useEffect(() => {
-    const storedValue = getStorageValue<SettingsState>(storageKey);
-
-    if (storedValue) {
-      try {
-        if (!storedValue.version || storedValue.version !== defaultSettings.version) {
-          onReset();
-        }
-      } catch {
-        onReset();
-      }
+    if (typeof window === 'undefined') return;
+    try {
+      window.localStorage.removeItem(storageKey);
+    } catch {
+      // SSR/permisos: ignorar.
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [storageKey]);
+
+  const noop = useCallback(() => {}, []);
+  const onCloseDrawer = useCallback(() => setOpenDrawer(false), []);
+  const onToggleDrawer = useCallback(() => setOpenDrawer((prev) => !prev), []);
 
   const memoizedValue = useMemo(
     () => ({
-      canReset,
-      onReset,
+      state: defaultSettings,
+      canReset: false,
+      onReset: noop,
+      setState: noop,
+      setField: noop,
       openDrawer,
       onCloseDrawer,
       onToggleDrawer,
-      state,
-      setState,
-      setField,
     }),
-    [canReset, onReset, openDrawer, onCloseDrawer, onToggleDrawer, state, setField, setState]
+    [defaultSettings, noop, openDrawer, onCloseDrawer, onToggleDrawer]
   );
 
   return <SettingsContext value={memoizedValue}>{children}</SettingsContext>;

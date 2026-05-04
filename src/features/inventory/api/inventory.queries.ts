@@ -2,8 +2,6 @@ import type {
   LotFilters,
   StockFilters,
   KardexFilters,
-  CreateLotPayload,
-  UpdateLotPayload,
   QuarantineLotPayload,
   CreateAdjustmentPayload,
 } from '../model/types';
@@ -12,9 +10,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import {
   fetchLot,
-  createLot,
   fetchLots,
-  updateLot,
   fetchStock,
   fetchKardex,
   fetchStockFefo,
@@ -49,26 +45,6 @@ export function useLotQuery(id: string | undefined) {
     queryKey: inventoryKeys.lotDetail(id ?? ''),
     queryFn: () => fetchLot(id as string),
     enabled: Boolean(id),
-  });
-}
-
-export function useCreateLotMutation() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (payload: CreateLotPayload) => createLot(payload),
-    onSuccess: () => qc.invalidateQueries({ queryKey: inventoryKeys.all }),
-  });
-}
-
-export function useUpdateLotMutation() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: ({ id, payload }: { id: string; payload: UpdateLotPayload }) =>
-      updateLot(id, payload),
-    onSuccess: (_data, { id }) => {
-      qc.invalidateQueries({ queryKey: inventoryKeys.lots() });
-      qc.invalidateQueries({ queryKey: inventoryKeys.lotDetail(id) });
-    },
   });
 }
 

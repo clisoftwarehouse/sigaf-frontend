@@ -5,8 +5,6 @@ import type {
   InventoryLot,
   StockSummary,
   KardexFilters,
-  CreateLotPayload,
-  UpdateLotPayload,
   PaginatedResponse,
   QuarantineLotPayload,
   CreateAdjustmentPayload,
@@ -39,16 +37,6 @@ export async function fetchLots(
 
 export async function fetchLot(id: string): Promise<InventoryLot> {
   const res = await axios.get<InventoryLot>(endpoints.inventory.lotById(id));
-  return res.data;
-}
-
-export async function createLot(payload: CreateLotPayload): Promise<InventoryLot> {
-  const res = await axios.post<InventoryLot>(endpoints.inventory.lots, payload);
-  return res.data;
-}
-
-export async function updateLot(id: string, payload: UpdateLotPayload): Promise<InventoryLot> {
-  const res = await axios.put<InventoryLot>(endpoints.inventory.lotById(id), payload);
   return res.data;
 }
 
