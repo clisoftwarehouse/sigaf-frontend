@@ -8,10 +8,9 @@ import { merge } from 'es-toolkit';
 import Box from '@mui/material/Box';
 import Alert from '@mui/material/Alert';
 
-import { Logo } from '@/app/components/logo';
-
 import { AuthSplitSection } from './section';
 import { AuthSplitContent } from './content';
+import { SidebarLogo } from '../components/sidebar-logo';
 import { MainSection, LayoutSection, HeaderSection } from '../core';
 
 // ----------------------------------------------------------------------
@@ -46,7 +45,7 @@ export function AuthSplitLayout({
           This is an info Alert.
         </Alert>
       ),
-      leftArea: (
+      centerArea: (
         <Box
           sx={(theme) => ({
             display: 'inline-flex',
@@ -54,7 +53,7 @@ export function AuthSplitLayout({
           })}
         >
           {/** @slot Logo (solo mobile; en desktop se muestra en el panel lateral) */}
-          <Logo sx={{ width: 180, height: 56 }} />
+          <SidebarLogo width={200} height={72} scale={2} />
         </Box>
       ),
     };
