@@ -24,6 +24,7 @@ import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
 import { useBranchOptions } from '@/features/branches/api/branches.options';
 import { useProductOptions } from '@/features/products/api/products.options';
 
+import { PriceEditDialog } from '../components/price-edit-dialog';
 import { PriceFormDialog } from '../components/price-form-dialog';
 import { usePricesQuery, useExpirePriceMutation } from '../../api/prices.queries';
 
@@ -33,6 +34,7 @@ export function PricesListView() {
   const [includeHistory, setIncludeHistory] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
   const [toExpire, setToExpire] = useState<Price | null>(null);
+  const [toEdit, setToEdit] = useState<Price | null>(null);
 
   const { data, isLoading, isError, error, refetch } = usePricesQuery({
     includeHistory,
@@ -142,16 +144,23 @@ export function PricesListView() {
         field: 'actions',
         type: 'actions',
         headerName: '',
-        width: 70,
+        width: 110,
         align: 'right',
         headerAlign: 'right',
         renderCell: ({ row }) =>
           !row.effectiveTo ? (
-            <Tooltip title="Expirar precio (effective_to = ahora)">
-              <IconButton color="warning" onClick={() => setToExpire(row)}>
-                <Iconify icon="solar:clock-circle-bold" />
-              </IconButton>
-            </Tooltip>
+            <Stack direction="row" spacing={0.5}>
+              <Tooltip title="Editar precio (corrección con justificación)">
+                <IconButton color="primary" onClick={() => setToEdit(row)}>
+                  <Iconify icon="solar:pen-bold" />
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="Expirar precio (effective_to = ahora)">
+                <IconButton color="warning" onClick={() => setToExpire(row)}>
+                  <Iconify icon="solar:clock-circle-bold" />
+                </IconButton>
+              </Tooltip>
+            </Stack>
           ) : null,
       },
     ],
@@ -224,6 +233,8 @@ export function PricesListView() {
       </Card>
 
       <PriceFormDialog open={formOpen} onClose={() => setFormOpen(false)} />
+
+      <PriceEditDialog open={!!toEdit} price={toEdit} onClose={() => setToEdit(null)} />
 
       <ConfirmDialog
         open={!!toExpire}

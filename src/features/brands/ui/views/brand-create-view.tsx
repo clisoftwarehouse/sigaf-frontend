@@ -29,7 +29,7 @@ export function BrandCreateView() {
   };
 
   return (
-    <Container maxWidth="sm">
+    <Container maxWidth="xl">
       <Box sx={{ mb: 4 }}>
         <Typography variant="h4">Nueva marca</Typography>
         <Typography variant="body2" sx={{ color: 'text.secondary' }}>

@@ -288,7 +288,7 @@ export function CyclicSchedulesView() {
         </Box>
       </Card>
 
-      <Dialog open={dialogOpen} onClose={close} maxWidth="sm" fullWidth>
+      <Dialog open={dialogOpen} onClose={close} maxWidth="xl" fullWidth>
         <DialogTitle>
           {editing ? 'Editar programa' : 'Nuevo programa de conteo cíclico'}
         </DialogTitle>
@@ -356,9 +356,7 @@ export function CyclicSchedulesView() {
                 label="Frecuencia (días)"
                 type="number"
                 value={draft.frequencyDays}
-                onChange={(e) =>
-                  setDraft({ ...draft, frequencyDays: Number(e.target.value) || 1 })
-                }
+                onChange={(e) => setDraft({ ...draft, frequencyDays: Number(e.target.value) || 1 })}
                 fullWidth
                 slotProps={{
                   inputLabel: { shrink: true },

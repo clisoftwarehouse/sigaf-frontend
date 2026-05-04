@@ -43,15 +43,14 @@ export function AdminGuard({ children }: Props) {
 
   if (user && !isAdmin) {
     return (
-      <Container maxWidth="sm" sx={{ py: 8 }}>
+      <Container maxWidth="xl" sx={{ py: 8 }}>
         <Alert severity="warning" icon={<Iconify icon="solar:shield-keyhole-bold-duotone" />}>
           <Typography variant="subtitle1" sx={{ mb: 1 }}>
             Acceso restringido
           </Typography>
           <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2 }}>
-            Esta sección solo está disponible para usuarios con rol{' '}
-            <strong>administrador</strong>. Tu rol actual:{' '}
-            <strong>{user.role?.name ?? 'sin rol'}</strong>.
+            Esta sección solo está disponible para usuarios con rol <strong>administrador</strong>.
+            Tu rol actual: <strong>{user.role?.name ?? 'sin rol'}</strong>.
           </Typography>
           <Box sx={{ display: 'flex', gap: 1 }}>
             <Button

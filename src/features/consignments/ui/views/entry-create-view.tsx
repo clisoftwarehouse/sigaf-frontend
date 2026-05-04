@@ -122,15 +122,11 @@ export function EntryCreateView() {
   });
 
   return (
-    <Container maxWidth="lg">
+    <Container maxWidth="xl">
       <PageHeader
         title="Nueva entrada de consignación"
         subtitle="Registra mercancía consignada. Se crean lotes automáticamente con marca de consignación."
-        crumbs={[
-          { label: 'Consignaciones' },
-          { label: 'Entradas' },
-          { label: 'Nueva' },
-        ]}
+        crumbs={[{ label: 'Consignaciones' }, { label: 'Entradas' }, { label: 'Nueva' }]}
       />
 
       <Form methods={methods} onSubmit={submit}>

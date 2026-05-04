@@ -88,7 +88,7 @@ export function PromotionScopesDialog({ open, onClose, promotion }: Props) {
   const existingScopes = promotion?.scopes ?? [];
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+    <Dialog open={open} onClose={onClose} maxWidth="xl" fullWidth>
       <DialogTitle>Restricciones de &quot;{promotion?.name ?? ''}&quot;</DialogTitle>
       <DialogContent dividers>
         <Stack spacing={2.5}>

@@ -1,7 +1,7 @@
 import * as z from 'zod';
 import { toast } from 'sonner';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm , Controller } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
@@ -78,12 +78,12 @@ export function CountCreateView() {
   });
 
   return (
-    <Container maxWidth="md">
+    <Container maxWidth="xl">
       <Box sx={{ mb: 4 }}>
         <Typography variant="h4">Nueva toma de inventario</Typography>
         <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-          Define el alcance y crea la toma en estado borrador. Luego podrás iniciarla para
-          registrar cantidades físicas.
+          Define el alcance y crea la toma en estado borrador. Luego podrás iniciarla para registrar
+          cantidades físicas.
         </Typography>
       </Box>
 
@@ -125,7 +125,10 @@ export function CountCreateView() {
               <Typography variant="subtitle2" sx={{ color: 'text.secondary', mb: 2 }}>
                 Alcance parcial
               </Typography>
-              <Typography variant="caption" sx={{ color: 'text.disabled', display: 'block', mb: 2 }}>
+              <Typography
+                variant="caption"
+                sx={{ color: 'text.disabled', display: 'block', mb: 2 }}
+              >
                 Filtra por categoría, ubicación o una lista específica de productos.
               </Typography>
               <Stack spacing={2}>
@@ -181,7 +184,10 @@ export function CountCreateView() {
               <Typography variant="subtitle2" sx={{ color: 'text.secondary', mb: 2 }}>
                 Alcance cíclico
               </Typography>
-              <Typography variant="caption" sx={{ color: 'text.disabled', display: 'block', mb: 2 }}>
+              <Typography
+                variant="caption"
+                sx={{ color: 'text.disabled', display: 'block', mb: 2 }}
+              >
                 Selecciona los productos a rotar. Usa el módulo de Programas cíclicos para
                 automatizar esto por clases ABC.
               </Typography>
@@ -206,9 +212,7 @@ export function CountCreateView() {
                           );
                         })
                       }
-                      renderInput={(params) => (
-                        <TextField {...params} label="Productos a contar" />
-                      )}
+                      renderInput={(params) => <TextField {...params} label="Productos a contar" />}
                     />
                   );
                 }}

@@ -38,7 +38,7 @@ export function ProductEditView() {
   };
 
   return (
-    <Container maxWidth="md">
+    <Container maxWidth="xl">
       <PageHeader
         title="Editar producto"
         subtitle={product?.description}

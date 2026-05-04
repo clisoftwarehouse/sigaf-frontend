@@ -44,7 +44,7 @@ export function SupplierEditView() {
   };
 
   return (
-    <Container maxWidth="lg">
+    <Container maxWidth="xl">
       <Box sx={{ mb: 3 }}>
         <Typography variant="h4">Editar proveedor</Typography>
         {supplier && (

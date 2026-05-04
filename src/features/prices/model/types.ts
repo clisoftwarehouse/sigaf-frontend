@@ -36,6 +36,8 @@ export interface CreatePricePayload {
 export interface UpdatePricePayload {
   priceUsd?: number;
   notes?: string;
+  /** Obligatorio cuando se cambia priceUsd. Se persiste en audit_log. */
+  justification?: string;
 }
 
 export interface PriceFilters {

@@ -49,7 +49,7 @@ export function QuickCreateCategoryDialog({ open, onClose, onCreated }: Props) {
   };
 
   return (
-    <Dialog open={open} onClose={mutation.isPending ? undefined : onClose} maxWidth="sm" fullWidth>
+    <Dialog open={open} onClose={mutation.isPending ? undefined : onClose} maxWidth="xl" fullWidth>
       <DialogTitle>Nueva categoría</DialogTitle>
       <DialogContent>
         <Stack spacing={2} sx={{ mt: 1 }}>

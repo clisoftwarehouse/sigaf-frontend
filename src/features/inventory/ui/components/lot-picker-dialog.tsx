@@ -56,7 +56,7 @@ export function LotPickerDialog({
   const active = lots.filter((l) => l.status === 'available' && Number(l.quantityAvailable) > 0);
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+    <Dialog open={open} onClose={onClose} maxWidth="xl" fullWidth>
       <DialogTitle>Seleccionar lote para ajustar</DialogTitle>
 
       <DialogContent dividers sx={{ maxHeight: 500 }}>

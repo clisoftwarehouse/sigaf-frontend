@@ -36,7 +36,7 @@ export function BranchEditView() {
   };
 
   return (
-    <Container maxWidth="md">
+    <Container maxWidth="xl">
       <Box sx={{ mb: 4 }}>
         <Typography variant="h4">Editar sucursal</Typography>
         {branch && (

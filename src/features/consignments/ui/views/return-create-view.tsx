@@ -24,7 +24,11 @@ import { PageHeader } from '@/shared/ui/page-header';
 import { Form, Field } from '@/app/components/hook-form';
 
 import { CONSIGNMENT_RETURN_REASONS } from '../../model/constants';
-import { useEntryQuery, useEntriesQuery, useCreateReturnMutation } from '../../api/consignments.queries';
+import {
+  useEntryQuery,
+  useEntriesQuery,
+  useCreateReturnMutation,
+} from '../../api/consignments.queries';
 
 // ----------------------------------------------------------------------
 
@@ -111,15 +115,11 @@ export function ReturnCreateView() {
   });
 
   return (
-    <Container maxWidth="lg">
+    <Container maxWidth="xl">
       <PageHeader
         title="Nueva devolución de consignación"
         subtitle="Devuelve ítems específicos de una consignación activa al proveedor."
-        crumbs={[
-          { label: 'Consignaciones' },
-          { label: 'Devoluciones' },
-          { label: 'Nueva' },
-        ]}
+        crumbs={[{ label: 'Consignaciones' }, { label: 'Devoluciones' }, { label: 'Nueva' }]}
       />
 
       <Form methods={methods} onSubmit={submit}>

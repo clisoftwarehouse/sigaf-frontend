@@ -72,7 +72,7 @@ export function ClaimDetailView() {
   };
 
   return (
-    <Container maxWidth="md">
+    <Container maxWidth="xl">
       <PageHeader
         title={claim ? `Reclamo ${claim.claimNumber}` : 'Reclamo'}
         subtitle={claim ? new Date(claim.createdAt).toLocaleString('es-VE') : undefined}
@@ -188,7 +188,10 @@ export function ClaimDetailView() {
             <Divider sx={{ my: 2.5, borderStyle: 'dashed' }} />
 
             <Typography variant="subtitle1">{claim.title}</Typography>
-            <Typography variant="body2" sx={{ mt: 1, whiteSpace: 'pre-wrap', color: 'text.secondary' }}>
+            <Typography
+              variant="body2"
+              sx={{ mt: 1, whiteSpace: 'pre-wrap', color: 'text.secondary' }}
+            >
               {claim.description}
             </Typography>
           </Card>
@@ -202,7 +205,10 @@ export function ClaimDetailView() {
                 {claim.resolutionNotes}
               </Typography>
               {claim.resolvedAt && (
-                <Typography variant="caption" sx={{ color: 'text.disabled', display: 'block', mt: 1 }}>
+                <Typography
+                  variant="caption"
+                  sx={{ color: 'text.disabled', display: 'block', mt: 1 }}
+                >
                   Resuelto el {new Date(claim.resolvedAt).toLocaleString('es-VE')}
                 </Typography>
               )}

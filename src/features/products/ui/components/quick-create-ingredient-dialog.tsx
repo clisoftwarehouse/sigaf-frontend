@@ -63,7 +63,7 @@ export function QuickCreateIngredientDialog({ open, onClose, onCreated }: Props)
       <Dialog
         open={open}
         onClose={mutation.isPending ? undefined : onClose}
-        maxWidth="sm"
+        maxWidth="xl"
         fullWidth
       >
         <DialogTitle>Nuevo principio activo</DialogTitle>

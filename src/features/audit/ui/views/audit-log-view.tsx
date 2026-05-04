@@ -105,10 +105,7 @@ export function AuditLogView() {
         renderCell: ({ row }) => (
           <Stack sx={{ py: 0.5 }}>
             <Typography variant="body2">{getTableLabel(row.tableName)}</Typography>
-            <Typography
-              variant="caption"
-              sx={{ color: 'text.secondary', fontFamily: 'monospace' }}
-            >
+            <Typography variant="caption" sx={{ color: 'text.secondary', fontFamily: 'monospace' }}>
               {row.tableName}
             </Typography>
           </Stack>
@@ -128,10 +125,7 @@ export function AuditLogView() {
               height: '100%',
             }}
           >
-            <Typography
-              variant="caption"
-              sx={{ fontFamily: 'monospace', color: 'text.secondary' }}
-            >
+            <Typography variant="caption" sx={{ fontFamily: 'monospace', color: 'text.secondary' }}>
               {row.recordId.slice(0, 8)}…
             </Typography>
           </Box>
@@ -297,7 +291,7 @@ type AuditDetailDialogProps = {
 
 function AuditDetailDialog({ detail, userMap, onClose }: AuditDetailDialogProps) {
   return (
-    <Dialog open={detail !== null} onClose={onClose} maxWidth="md" fullWidth>
+    <Dialog open={detail !== null} onClose={onClose} maxWidth="xl" fullWidth>
       <DialogTitle>Detalle del cambio</DialogTitle>
       <DialogContent dividers>
         {detail && (
@@ -321,13 +315,7 @@ function AuditDetailDialog({ detail, userMap, onClose }: AuditDetailDialogProps)
   );
 }
 
-function SummaryHeader({
-  detail,
-  userMap,
-}: {
-  detail: AuditLog;
-  userMap: Record<string, string>;
-}) {
+function SummaryHeader({ detail, userMap }: { detail: AuditLog; userMap: Record<string, string> }) {
   const userName = userMap[detail.userId];
   return (
     <Stack spacing={0.5}>
@@ -350,13 +338,7 @@ function SummaryHeader({
   );
 }
 
-function FieldDiff({
-  detail,
-  userMap,
-}: {
-  detail: AuditLog;
-  userMap: Record<string, string>;
-}) {
+function FieldDiff({ detail, userMap }: { detail: AuditLog; userMap: Record<string, string> }) {
   const fields = inferChangedFields(detail.changedFields, detail.oldValues, detail.newValues);
 
   if (fields.length === 0) {

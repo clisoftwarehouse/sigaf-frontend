@@ -236,7 +236,7 @@ export function BranchGroupsListView() {
         </Box>
       </Card>
 
-      <Dialog open={createOpen} onClose={() => setCreateOpen(false)} maxWidth="sm" fullWidth>
+      <Dialog open={createOpen} onClose={() => setCreateOpen(false)} maxWidth="xl" fullWidth>
         <DialogTitle>Nuevo grupo</DialogTitle>
         <DialogContent dividers>
           <Stack spacing={2.5} sx={{ mt: 1 }}>

@@ -148,7 +148,7 @@ export function VademecumSearchDialog({
   const showDetails = selectedIdx != null;
 
   return (
-    <Dialog open={open} onClose={working ? undefined : onClose} maxWidth="md" fullWidth>
+    <Dialog open={open} onClose={working ? undefined : onClose} maxWidth="xl" fullWidth>
       <DialogTitle>
         {showDetails ? 'Detalles del principio activo' : 'Buscar en Vademecum'}
       </DialogTitle>

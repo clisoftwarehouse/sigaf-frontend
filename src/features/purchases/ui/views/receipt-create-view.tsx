@@ -775,7 +775,7 @@ export function ReceiptCreateView() {
   }
 
   return (
-    <Container maxWidth="lg" sx={{ pb: 6 }}>
+    <Container maxWidth="xl" sx={{ pb: 6 }}>
       <PageHeader
         title="Nueva recepción de mercancía"
         subtitle="Los ítems se convierten en lotes de inventario y entran al kardex."

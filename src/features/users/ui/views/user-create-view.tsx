@@ -29,7 +29,7 @@ export function UserCreateView() {
   };
 
   return (
-    <Container maxWidth="md">
+    <Container maxWidth="xl">
       <Box sx={{ mb: 4 }}>
         <Typography variant="h4">Nuevo usuario</Typography>
         <Typography variant="body2" sx={{ color: 'text.secondary' }}>

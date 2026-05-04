@@ -44,9 +44,7 @@ export function QuarantineDialog({ lot, onClose }: Props) {
         payload: { quarantine: shouldQuarantine, reason: reason.trim() },
       });
       toast.success(
-        shouldQuarantine
-          ? `Lote ${lot.lotNumber} en cuarentena`
-          : `Lote ${lot.lotNumber} liberado`
+        shouldQuarantine ? `Lote ${lot.lotNumber} en cuarentena` : `Lote ${lot.lotNumber} liberado`
       );
       onClose();
     } catch (err) {
@@ -55,12 +53,7 @@ export function QuarantineDialog({ lot, onClose }: Props) {
   };
 
   return (
-    <Dialog
-      open={!!lot}
-      onClose={mutation.isPending ? undefined : onClose}
-      maxWidth="sm"
-      fullWidth
-    >
+    <Dialog open={!!lot} onClose={mutation.isPending ? undefined : onClose} maxWidth="xl" fullWidth>
       <DialogTitle>{title}</DialogTitle>
       <DialogContent>
         <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2 }}>

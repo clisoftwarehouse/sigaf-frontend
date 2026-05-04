@@ -98,7 +98,7 @@ export function AdjustmentDialog({ lot, onClose }: Props) {
   });
 
   return (
-    <Dialog open={!!lot} onClose={mutation.isPending ? undefined : onClose} maxWidth="sm" fullWidth>
+    <Dialog open={!!lot} onClose={mutation.isPending ? undefined : onClose} maxWidth="xl" fullWidth>
       <Form methods={methods} onSubmit={submit}>
         <DialogTitle>Nuevo ajuste de inventario</DialogTitle>
         <DialogContent>

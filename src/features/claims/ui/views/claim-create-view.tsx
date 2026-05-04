@@ -107,7 +107,7 @@ export function ClaimCreateView() {
   });
 
   return (
-    <Container maxWidth="md">
+    <Container maxWidth="xl">
       <PageHeader
         title="Nuevo reclamo"
         subtitle="Registra una inconformidad sobre calidad, cantidad o precio frente a un proveedor."
@@ -134,8 +134,7 @@ export function ClaimCreateView() {
           <Stack spacing={3}>
             {prefillReceipt && (
               <Alert severity="info" icon={<Iconify icon="solar:bill-list-bold" />}>
-                Reclamo vinculado a la recepción{' '}
-                <strong>{prefillReceipt.receiptNumber}</strong>
+                Reclamo vinculado a la recepción <strong>{prefillReceipt.receiptNumber}</strong>
                 {supplierName ? ` · ${supplierName}` : ''}.
               </Alert>
             )}
@@ -195,11 +194,7 @@ export function ClaimCreateView() {
               />
             </Stack>
 
-            <Field.Text
-              name="title"
-              label="Asunto"
-              slotProps={{ inputLabel: { shrink: true } }}
-            />
+            <Field.Text name="title" label="Asunto" slotProps={{ inputLabel: { shrink: true } }} />
 
             <Field.Text
               name="description"

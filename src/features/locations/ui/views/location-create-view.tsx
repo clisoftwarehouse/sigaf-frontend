@@ -29,7 +29,7 @@ export function LocationCreateView() {
   };
 
   return (
-    <Container maxWidth="md">
+    <Container maxWidth="xl">
       <Box sx={{ mb: 4 }}>
         <Typography variant="h4">Nueva ubicación</Typography>
       </Box>

@@ -42,7 +42,7 @@ export function OrderDetailView() {
   // cuando el badge tiene sentido). Para otros estados el endpoint igual
   // respondería bien pero ahorramos la query.
   const { data: approvalCheck } = useOrderApprovalStatusQuery(
-    order?.status === 'draft' ? id : undefined,
+    order?.status === 'draft' ? id : undefined
   );
   const approveMutation = useApproveOrderMutation();
 
@@ -149,7 +149,7 @@ export function OrderDetailView() {
   );
 
   return (
-    <Container maxWidth="lg" sx={{ pb: 6 }}>
+    <Container maxWidth="xl" sx={{ pb: 6 }}>
       <PageHeader
         title={order ? `Orden ${order.orderNumber}` : 'Orden de compra'}
         subtitle={order ? new Date(order.createdAt).toLocaleString('es-VE') : undefined}

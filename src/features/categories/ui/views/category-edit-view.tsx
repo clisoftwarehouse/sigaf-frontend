@@ -41,7 +41,7 @@ export function CategoryEditView() {
   };
 
   return (
-    <Container maxWidth="md">
+    <Container maxWidth="xl">
       <Box sx={{ mb: 4 }}>
         <Typography variant="h4">Editar categoría</Typography>
         {current && (

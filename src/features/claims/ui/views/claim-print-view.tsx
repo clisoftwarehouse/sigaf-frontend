@@ -57,8 +57,11 @@ export function ClaimPrintView() {
         @page { size: A4; margin: 20mm; }
       `}</style>
 
-      <Container maxWidth="md" sx={{ py: 4, bgcolor: 'background.paper' }}>
-        <Box className="no-print" sx={{ mb: 2, display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
+      <Container maxWidth="xl" sx={{ py: 4, bgcolor: 'background.paper' }}>
+        <Box
+          className="no-print"
+          sx={{ mb: 2, display: 'flex', justifyContent: 'flex-end', gap: 1 }}
+        >
           <Button
             variant="contained"
             startIcon={<Iconify icon="solar:printer-minimalistic-bold" />}
@@ -81,7 +84,12 @@ export function ClaimPrintView() {
 
         {claim && (
           <Box>
-            <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 3 }}>
+            <Stack
+              direction="row"
+              justifyContent="space-between"
+              alignItems="flex-start"
+              sx={{ mb: 3 }}
+            >
               <Box>
                 <Typography variant="h5" sx={{ fontWeight: 700 }}>
                   {CONFIG.appName ?? 'SIGAF'}
@@ -200,7 +208,10 @@ export function ClaimPrintView() {
                   {claim.resolutionNotes}
                 </Typography>
                 {claim.resolvedAt && (
-                  <Typography variant="caption" sx={{ color: 'text.disabled', display: 'block', mt: 1 }}>
+                  <Typography
+                    variant="caption"
+                    sx={{ color: 'text.disabled', display: 'block', mt: 1 }}
+                  >
                     Resuelto el{' '}
                     {new Date(claim.resolvedAt).toLocaleDateString('es-VE', {
                       year: 'numeric',

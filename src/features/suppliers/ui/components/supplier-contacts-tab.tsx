@@ -1,8 +1,5 @@
 import type { GridColDef } from '@mui/x-data-grid';
-import type {
-  SupplierContact,
-  CreateSupplierContactPayload,
-} from '../../model/types';
+import type { SupplierContact, CreateSupplierContactPayload } from '../../model/types';
 
 import { toast } from 'sonner';
 import { useMemo, useState } from 'react';
@@ -68,7 +65,13 @@ interface Props {
 }
 
 export function SupplierContactsTab({ supplierId }: Props) {
-  const { data: contacts = [], isLoading, isError, error, refetch } = useSupplierContactsQuery(supplierId);
+  const {
+    data: contacts = [],
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = useSupplierContactsQuery(supplierId);
   const createMutation = useCreateSupplierContactMutation(supplierId);
   const updateMutation = useUpdateSupplierContactMutation(supplierId);
   const deleteMutation = useDeleteSupplierContactMutation(supplierId);
@@ -251,7 +254,7 @@ export function SupplierContactsTab({ supplierId }: Props) {
         />
       </Box>
 
-      <Dialog open={dialogOpen} onClose={closeDialog} maxWidth="sm" fullWidth>
+      <Dialog open={dialogOpen} onClose={closeDialog} maxWidth="xl" fullWidth>
         <DialogTitle>{editing ? 'Editar contacto' : 'Nuevo contacto'}</DialogTitle>
         <DialogContent dividers>
           <Stack spacing={2} sx={{ pt: 1 }}>

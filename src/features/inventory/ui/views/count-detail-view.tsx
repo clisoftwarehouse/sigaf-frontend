@@ -30,11 +30,7 @@ import { DataTable } from '@/app/components/data-table';
 import { useBranchOptions } from '@/features/branches/api/branches.options';
 import { useProductOptions } from '@/features/products/api/products.options';
 
-import {
-  COUNT_TYPE_LABEL,
-  COUNT_STATUS_COLOR,
-  COUNT_STATUS_LABEL,
-} from '../../model/counts-types';
+import { COUNT_TYPE_LABEL, COUNT_STATUS_COLOR, COUNT_STATUS_LABEL } from '../../model/counts-types';
 import {
   useCountQuery,
   useStartCountMutation,
@@ -226,8 +222,7 @@ export function CountDetailView() {
         editable: true,
         flex: 1,
         minWidth: 130,
-        valueGetter: (value: number | string | null) =>
-          value == null ? null : Number(value),
+        valueGetter: (value: number | string | null) => (value == null ? null : Number(value)),
       },
       {
         field: 'difference',
@@ -235,12 +230,16 @@ export function CountDetailView() {
         type: 'number',
         flex: 1,
         minWidth: 120,
-        valueGetter: (value: number | string | null) =>
-          value == null ? null : Number(value),
+        valueGetter: (value: number | string | null) => (value == null ? null : Number(value)),
         renderCell: ({ value, row }) => {
           if (value == null) return <span>—</span>;
           const n = value as number;
-          const color = row.differenceType === 'over' ? 'success.main' : row.differenceType === 'short' ? 'error.main' : 'text.primary';
+          const color =
+            row.differenceType === 'over'
+              ? 'success.main'
+              : row.differenceType === 'short'
+                ? 'error.main'
+                : 'text.primary';
           return (
             <Typography variant="body2" sx={{ color, fontFamily: 'monospace', fontWeight: 600 }}>
               {n > 0 ? '+' : ''}
@@ -342,9 +341,7 @@ export function CountDetailView() {
                 <Typography variant="caption" sx={{ color: 'text.secondary' }}>
                   Bloqueo de ventas
                 </Typography>
-                <Typography variant="body2">
-                  {count.blocksSales ? 'Activo' : 'Inactivo'}
-                </Typography>
+                <Typography variant="body2">{count.blocksSales ? 'Activo' : 'Inactivo'}</Typography>
               </Box>
 
               <Stack direction="row" spacing={1} flexWrap="wrap">
@@ -390,11 +387,7 @@ export function CountDetailView() {
                   </Button>
                 )}
                 {canCancel && (
-                  <Button
-                    variant="outlined"
-                    color="error"
-                    onClick={() => setCancelOpen(true)}
-                  >
+                  <Button variant="outlined" color="error" onClick={() => setCancelOpen(true)}>
                     Cancelar
                   </Button>
                 )}
@@ -427,12 +420,12 @@ export function CountDetailView() {
         </Stack>
       )}
 
-      <Dialog open={approveOpen} onClose={() => setApproveOpen(false)} maxWidth="sm" fullWidth>
+      <Dialog open={approveOpen} onClose={() => setApproveOpen(false)} maxWidth="xl" fullWidth>
         <DialogTitle>Aprobar toma</DialogTitle>
         <DialogContent dividers>
           <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2 }}>
-            Al aprobar se generarán ajustes automáticos y movimientos de kardex para las
-            diferencias encontradas.
+            Al aprobar se generarán ajustes automáticos y movimientos de kardex para las diferencias
+            encontradas.
           </Typography>
           <TextField
             label="Justificación"
@@ -460,7 +453,7 @@ export function CountDetailView() {
         </DialogActions>
       </Dialog>
 
-      <Dialog open={cancelOpen} onClose={() => setCancelOpen(false)} maxWidth="sm" fullWidth>
+      <Dialog open={cancelOpen} onClose={() => setCancelOpen(false)} maxWidth="xl" fullWidth>
         <DialogTitle>Cancelar toma</DialogTitle>
         <DialogContent dividers>
           <TextField
@@ -492,7 +485,7 @@ export function CountDetailView() {
       <Dialog
         open={recountFor !== null}
         onClose={() => setRecountFor(null)}
-        maxWidth="sm"
+        maxWidth="xl"
         fullWidth
       >
         <DialogTitle>Marcar ítem para recuento</DialogTitle>
@@ -515,11 +508,7 @@ export function CountDetailView() {
           <Button color="inherit" onClick={() => setRecountFor(null)}>
             Cancelar
           </Button>
-          <Button
-            variant="contained"
-            onClick={runRecount}
-            loading={recountMutation.isPending}
-          >
+          <Button variant="contained" onClick={runRecount} loading={recountMutation.isPending}>
             Marcar
           </Button>
         </DialogActions>

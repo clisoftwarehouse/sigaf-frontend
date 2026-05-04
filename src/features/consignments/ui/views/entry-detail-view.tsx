@@ -86,7 +86,7 @@ export function EntryDetailView() {
   );
 
   return (
-    <Container maxWidth="lg">
+    <Container maxWidth="xl">
       <PageHeader
         title="Entrada de consignación"
         subtitle={entry ? new Date(entry.createdAt).toLocaleString('es-VE') : undefined}

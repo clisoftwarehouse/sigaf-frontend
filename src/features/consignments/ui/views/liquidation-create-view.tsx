@@ -74,23 +74,19 @@ export function LiquidationCreateView() {
   });
 
   return (
-    <Container maxWidth="md">
+    <Container maxWidth="xl">
       <PageHeader
         title="Nueva liquidación"
         subtitle="Calcula comisiones sobre las ventas del periodo seleccionado."
-        crumbs={[
-          { label: 'Consignaciones' },
-          { label: 'Liquidaciones' },
-          { label: 'Nueva' },
-        ]}
+        crumbs={[{ label: 'Consignaciones' }, { label: 'Liquidaciones' }, { label: 'Nueva' }]}
       />
 
       <Form methods={methods} onSubmit={submit}>
         <Card sx={{ p: 3 }}>
           <Stack spacing={3}>
             <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-              Si no especificas una entrada, se liquidan todas las entradas activas del proveedor
-              en el periodo.
+              Si no especificas una entrada, se liquidan todas las entradas activas del proveedor en
+              el periodo.
             </Typography>
 
             <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>

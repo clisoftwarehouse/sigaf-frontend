@@ -1,8 +1,5 @@
 import type { GridColDef } from '@mui/x-data-grid';
-import type {
-  SupplierProduct,
-  CreateSupplierProductPayload,
-} from '../../model/types';
+import type { SupplierProduct, CreateSupplierProductPayload } from '../../model/types';
 
 import { toast } from 'sonner';
 import { useMemo, useState } from 'react';
@@ -156,8 +153,7 @@ export function SupplierProductsTab({ supplierId }: Props) {
         type: 'number',
         flex: 1,
         minWidth: 120,
-        valueGetter: (value: number | string | null) =>
-          value == null ? null : Number(value),
+        valueGetter: (value: number | string | null) => (value == null ? null : Number(value)),
         valueFormatter: (value: number | null) => (value == null ? '—' : `$${value.toFixed(2)}`),
       },
       {
@@ -166,8 +162,7 @@ export function SupplierProductsTab({ supplierId }: Props) {
         type: 'number',
         flex: 1,
         minWidth: 130,
-        valueGetter: (value: number | string | null) =>
-          value == null ? null : Number(value),
+        valueGetter: (value: number | string | null) => (value == null ? null : Number(value)),
         valueFormatter: (value: number | null) => (value == null ? '—' : `$${value.toFixed(2)}`),
       },
       {
@@ -176,8 +171,7 @@ export function SupplierProductsTab({ supplierId }: Props) {
         type: 'number',
         flex: 1,
         minWidth: 120,
-        valueGetter: (value: number | string | null) =>
-          value == null ? null : Number(value),
+        valueGetter: (value: number | string | null) => (value == null ? null : Number(value)),
         valueFormatter: (value: number | null) => (value == null ? '—' : `${value.toFixed(2)}%`),
       },
       {
@@ -248,7 +242,7 @@ export function SupplierProductsTab({ supplierId }: Props) {
         />
       </Box>
 
-      <Dialog open={dialogOpen} onClose={closeDialog} maxWidth="sm" fullWidth>
+      <Dialog open={dialogOpen} onClose={closeDialog} maxWidth="xl" fullWidth>
         <DialogTitle>{editing ? 'Editar asociación' : 'Asociar producto'}</DialogTitle>
         <DialogContent dividers>
           <Stack spacing={2} sx={{ pt: 1 }}>

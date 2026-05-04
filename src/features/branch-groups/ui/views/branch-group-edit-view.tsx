@@ -90,7 +90,7 @@ export function BranchGroupEditView() {
         roleId: r.roleId,
         minUsd: String(r.minUsd),
         maxUsd: r.maxUsd === null ? '' : String(r.maxUsd),
-      })),
+      }))
     );
 
     const cat: Record<CategoryFlag, string> = {
@@ -109,7 +109,7 @@ export function BranchGroupEditView() {
 
   if (isLoading) {
     return (
-      <Container maxWidth="lg" sx={{ pb: 6 }}>
+      <Container maxWidth="xl" sx={{ pb: 6 }}>
         <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
           <CircularProgress />
         </Box>
@@ -119,7 +119,7 @@ export function BranchGroupEditView() {
 
   if (isError || !group) {
     return (
-      <Container maxWidth="lg" sx={{ pb: 6 }}>
+      <Container maxWidth="xl" sx={{ pb: 6 }}>
         <Alert severity="error">{(error as Error)?.message ?? 'Error al cargar grupo'}</Alert>
       </Container>
     );
@@ -201,7 +201,7 @@ export function BranchGroupEditView() {
   };
 
   return (
-    <Container maxWidth="lg" sx={{ pb: 6 }}>
+    <Container maxWidth="xl" sx={{ pb: 6 }}>
       <PageHeader
         title={`Grupo: ${group.name}`}
         subtitle="Configura la matriz de aprobación y las sucursales que pertenecen a este grupo."
@@ -280,8 +280,8 @@ export function BranchGroupEditView() {
             Sucursales asignadas
           </Typography>
           <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 2 }}>
-            Las OCs creadas en estas sucursales usarán las matrices de este grupo para
-            determinar quién puede aprobarlas.
+            Las OCs creadas en estas sucursales usarán las matrices de este grupo para determinar
+            quién puede aprobarlas.
           </Typography>
           <Autocomplete
             multiple
@@ -336,7 +336,12 @@ export function BranchGroupEditView() {
 
         {/* ─── Matriz por monto ───────────────────────────────────────────── */}
         <Card sx={{ p: 3 }}>
-          <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 0.5 }}>
+          <Stack
+            direction="row"
+            justifyContent="space-between"
+            alignItems="center"
+            sx={{ mb: 0.5 }}
+          >
             <Typography variant="subtitle1">Matriz de aprobación por monto</Typography>
             <Button
               size="small"
@@ -382,7 +387,7 @@ export function BranchGroupEditView() {
                     value={rule.roleId}
                     onChange={(e) =>
                       setAmountRules((rules) =>
-                        rules.map((r, i) => (i === idx ? { ...r, roleId: e.target.value } : r)),
+                        rules.map((r, i) => (i === idx ? { ...r, roleId: e.target.value } : r))
                       )
                     }
                     slotProps={{ inputLabel: { shrink: true } }}
@@ -401,7 +406,7 @@ export function BranchGroupEditView() {
                     value={rule.minUsd}
                     onChange={(e) =>
                       setAmountRules((rules) =>
-                        rules.map((r, i) => (i === idx ? { ...r, minUsd: e.target.value } : r)),
+                        rules.map((r, i) => (i === idx ? { ...r, minUsd: e.target.value } : r))
                       )
                     }
                     slotProps={{ inputLabel: { shrink: true } }}
@@ -414,7 +419,7 @@ export function BranchGroupEditView() {
                     value={rule.maxUsd}
                     onChange={(e) =>
                       setAmountRules((rules) =>
-                        rules.map((r, i) => (i === idx ? { ...r, maxUsd: e.target.value } : r)),
+                        rules.map((r, i) => (i === idx ? { ...r, maxUsd: e.target.value } : r))
                       )
                     }
                     slotProps={{ inputLabel: { shrink: true } }}
@@ -422,9 +427,7 @@ export function BranchGroupEditView() {
                   />
                   <IconButton
                     color="error"
-                    onClick={() =>
-                      setAmountRules((rules) => rules.filter((_, i) => i !== idx))
-                    }
+                    onClick={() => setAmountRules((rules) => rules.filter((_, i) => i !== idx))}
                   >
                     <Iconify icon="solar:trash-bin-trash-bold" />
                   </IconButton>

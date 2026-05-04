@@ -28,7 +28,7 @@ export function ProductCreateView() {
   };
 
   return (
-    <Container maxWidth="md">
+    <Container maxWidth="xl">
       <PageHeader
         title="Nuevo producto"
         subtitle='El backend auto-ajusta algunos campos: tipo "controlado" fuerza récipe, producto pesable fuerza KG con 3 decimales.'

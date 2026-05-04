@@ -7,7 +7,6 @@ import Box from '@mui/material/Box';
 import Chip from '@mui/material/Chip';
 import Stack from '@mui/material/Stack';
 import Alert from '@mui/material/Alert';
-import Divider from '@mui/material/Divider';
 import TextField from '@mui/material/TextField';
 import Accordion from '@mui/material/Accordion';
 import Typography from '@mui/material/Typography';
@@ -39,8 +38,9 @@ type Props = {
  * de la recepción sin obligar al operador a saltar al módulo de Precios.
  *
  * Comportamiento:
- *  - Si el operador escribe un %, calcula salePrice = costo × (1 + %/100) y lo
- *    persiste en el form (`items.${idx}.salePrice`).
+ *  - Si el operador escribe un %, calcula salePrice = costo / (1 - %/100) (margen
+ *    sobre precio de venta) y lo persiste en el form (`items.${idx}.salePrice`).
+ *    Ej: costo=10, margen=30% → 10/0.7 = 14.29.
  *  - Si el operador escribe un salePrice arriba (en la fila), recalculamos el
  *    margen mostrado pero NO sobreescribimos el % manual.
  *  - Lectura de "último precio publicado" usa el endpoint /prices/current con
@@ -75,14 +75,15 @@ export function ReceiptPricingHelper({
   const lastPrice = lastPublishedQuery.data?.priceUsd ?? null;
   const lastSource = lastPublishedQuery.data?.source ?? null;
 
-  // Si el operador edita el % aplicamos margen sobre el costo y persistimos el
-  // salePrice resultante en el form.
+  // Si el operador edita el % aplicamos margen sobre el precio de venta y
+  // persistimos el salePrice resultante en el form: salePrice = cost / (1 - m).
   const applyMargin = (pctRaw: string) => {
     setMarginInput(pctRaw);
     if (!pctRaw || !/^\d+(\.\d+)?$/.test(pctRaw)) return;
     if (!costUsd || costUsd <= 0) return;
     const pct = Number(pctRaw);
-    const computed = costUsd * (1 + pct / 100);
+    if (pct >= 100 || pct < 0) return;
+    const computed = costUsd / (1 - pct / 100);
     setValue(`items.${itemIndex}.salePrice`, computed.toFixed(4), { shouldValidate: true });
   };
 
@@ -99,12 +100,12 @@ export function ReceiptPricingHelper({
       : null;
 
   useEffect(() => {
-    if (!marginInput && computedMarkup != null) {
-      setMarginInput(computedMarkup.toFixed(2));
+    if (!marginInput && computedMargin != null) {
+      setMarginInput(computedMargin.toFixed(2));
     }
     // Intencionalmente sin marginInput en deps — solo sincroniza al inicio.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [computedMarkup]);
+  }, [computedMargin]);
 
   const isBelowMinMargin =
     computedMargin != null && computedMargin < minMarginWarningPct && currentSalePrice && currentSalePrice > 0;
@@ -123,11 +124,15 @@ export function ReceiptPricingHelper({
         boxShadow: 'none',
         border: (theme) => `solid 1px ${theme.vars.palette.divider}`,
         borderRadius: 1,
+        // El theme global pone padding lateral 0 en summary/details cuando
+        // disableGutters está activo. Lo restauramos para este accordion.
+        '& .MuiAccordionSummary-root': { px: 2, py: 1, minHeight: 48 },
+        '& .MuiAccordionDetails-root': { px: 2, pt: 0, pb: 2 },
       }}
     >
       <AccordionSummary
         expandIcon={<Iconify icon="eva:arrow-ios-downward-fill" width={18} />}
-        sx={{ minHeight: 40, '& .MuiAccordionSummary-content': { my: 0.5 } }}
+        sx={{ '& .MuiAccordionSummary-content': { my: 0 } }}
       >
         <Stack direction="row" spacing={1} alignItems="center" sx={{ flex: 1 }}>
           <Iconify icon="solar:wad-of-money-bold" width={16} />
@@ -153,8 +158,8 @@ export function ReceiptPricingHelper({
         </Stack>
       </AccordionSummary>
 
-      <AccordionDetails sx={{ pt: 0 }}>
-        <Stack spacing={1.5}>
+      <AccordionDetails>
+        <Stack spacing={2}>
           {/* Lectura del último precio publicado */}
           {lastPublishedQuery.isLoading && (
             <Typography variant="caption" sx={{ color: 'text.disabled' }}>
@@ -162,7 +167,18 @@ export function ReceiptPricingHelper({
             </Typography>
           )}
           {lastPrice != null && (
-            <Stack direction="row" spacing={1} alignItems="center" justifyContent="space-between">
+            <Stack
+              direction="row"
+              spacing={1.5}
+              alignItems="center"
+              justifyContent="space-between"
+              sx={{
+                p: 1.5,
+                borderRadius: 1,
+                bgcolor: 'background.paper',
+                border: (theme) => `solid 1px ${theme.vars.palette.divider}`,
+              }}
+            >
               <Box>
                 <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
                   Último precio publicado
@@ -190,40 +206,53 @@ export function ReceiptPricingHelper({
             </Alert>
           )}
 
-          <Divider sx={{ borderStyle: 'dashed' }} />
-
           {/* Calculadora de margen */}
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignItems="flex-start">
-            <TextField
-              label="Margen sobre costo (%)"
-              value={marginInput}
-              onChange={(e) => applyMargin(e.target.value)}
-              placeholder="Ej. 30"
-              size="small"
-              disabled={!costUsd || costUsd <= 0}
-              helperText={
-                !costUsd || costUsd <= 0
-                  ? 'Ingresa el costo USD primero'
-                  : 'Aplica margen sobre costo y autocalcula el precio venta'
-              }
-              slotProps={{ inputLabel: { shrink: true } }}
-              sx={{ flex: 1 }}
-            />
-            <Stack spacing={0.5} sx={{ flex: 1, pt: 0.5 }}>
-              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                Cálculo
-              </Typography>
-              <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
-                Costo: ${(costUsd || 0).toFixed(4)}
-              </Typography>
-              {computedMarkup != null && (
-                <Typography variant="caption" sx={{ color: 'text.disabled' }}>
-                  Markup: {computedMarkup.toFixed(2)}% · Margen real:{' '}
-                  {computedMargin != null ? `${computedMargin.toFixed(2)}%` : '—'}
+          <Box
+            sx={{
+              p: 1.5,
+              borderRadius: 1,
+              bgcolor: 'background.paper',
+              border: (theme) => `solid 1px ${theme.vars.palette.divider}`,
+            }}
+          >
+            <Stack
+              direction={{ xs: 'column', sm: 'row' }}
+              spacing={2}
+              alignItems={{ xs: 'stretch', sm: 'flex-start' }}
+            >
+              <TextField
+                label="Margen sobre venta (%)"
+                value={marginInput}
+                onChange={(e) => applyMargin(e.target.value)}
+                placeholder="Ej. 30"
+                size="small"
+                disabled={!costUsd || costUsd <= 0}
+                helperText={
+                  !costUsd || costUsd <= 0
+                    ? 'Ingresa el costo USD primero'
+                    : 'Precio = costo / (1 − margen). Ej: 30% → costo / 0.7'
+                }
+                slotProps={{ inputLabel: { shrink: true } }}
+                sx={{ flex: 1 }}
+              />
+              <Stack spacing={0.5} sx={{ flex: 1, pt: 0.25 }}>
+                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                  Cálculo
                 </Typography>
-              )}
+                <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
+                  Costo: ${(costUsd || 0).toFixed(4)}
+                </Typography>
+                {computedMargin != null && (
+                  <Typography variant="caption" sx={{ color: 'text.disabled' }}>
+                    Margen sobre venta: {computedMargin.toFixed(2)}%
+                    {computedMarkup != null && (
+                      <> · Markup sobre costo: {computedMarkup.toFixed(2)}%</>
+                    )}
+                  </Typography>
+                )}
+              </Stack>
             </Stack>
-          </Stack>
+          </Box>
 
           {isBelowMinMargin && (
             <Alert severity="warning" variant="outlined" sx={{ py: 0.5 }}>
@@ -233,8 +262,8 @@ export function ReceiptPricingHelper({
           )}
 
           <Typography variant="caption" sx={{ color: 'text.disabled', mt: 0.5 }}>
-            <strong>Markup</strong> = ganancia sobre costo · <strong>Margen real</strong> = ganancia
-            sobre precio de venta. Son distintos: 30% markup ≈ 23% margen real.
+            <strong>Margen sobre venta</strong> = ganancia / precio de venta. Fórmula: precio =
+            costo / (1 − margen). Ej: costo 10 con 30% → 14.29.
           </Typography>
         </Stack>
       </AccordionDetails>

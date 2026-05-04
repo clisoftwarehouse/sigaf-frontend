@@ -36,7 +36,7 @@ export function BrandEditView() {
   };
 
   return (
-    <Container maxWidth="sm">
+    <Container maxWidth="xl">
       <Box sx={{ mb: 4 }}>
         <Typography variant="h4">Editar marca</Typography>
         {brand && (

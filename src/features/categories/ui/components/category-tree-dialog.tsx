@@ -75,7 +75,7 @@ export function CategoryTreeDialog({ open, onClose, tree, focusId }: Props) {
   }, [items, focusId]);
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+    <Dialog open={open} onClose={onClose} maxWidth="xl" fullWidth>
       <DialogTitle>Árbol de categorías</DialogTitle>
       <DialogContent dividers sx={{ maxHeight: 500 }}>
         {items.length === 0 ? (
@@ -103,10 +103,7 @@ export function CategoryTreeDialog({ open, onClose, tree, focusId }: Props) {
                           alignItems: 'center',
                         }}
                       >
-                        <Typography
-                          variant="body2"
-                          sx={{ fontWeight: isFocused ? 700 : 400 }}
-                        >
+                        <Typography variant="body2" sx={{ fontWeight: isFocused ? 700 : 400 }}>
                           {node?.label}
                         </Typography>
                         {node?.code && (
@@ -123,11 +120,7 @@ export function CategoryTreeDialog({ open, onClose, tree, focusId }: Props) {
                           </Typography>
                         )}
                         {node?.isPharmaceutical && (
-                          <Iconify
-                            icon="solar:heart-bold"
-                            width={16}
-                            sx={{ color: 'info.main' }}
-                          />
+                          <Iconify icon="solar:heart-bold" width={16} sx={{ color: 'info.main' }} />
                         )}
                       </Box>
                     }
@@ -145,11 +138,7 @@ export function CategoryTreeDialog({ open, onClose, tree, focusId }: Props) {
           alignItems="center"
           sx={{ width: '100%', justifyContent: 'space-between' }}
         >
-          <Chip
-            size="small"
-            variant="outlined"
-            label={`${flat.length} categorías en total`}
-          />
+          <Chip size="small" variant="outlined" label={`${flat.length} categorías en total`} />
           <Button onClick={onClose}>Cerrar</Button>
         </Stack>
       </DialogActions>

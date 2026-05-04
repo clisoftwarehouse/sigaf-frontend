@@ -20,10 +20,7 @@ import { PageHeader } from '@/shared/ui/page-header';
 import { DataTable } from '@/app/components/data-table';
 
 import { LIQUIDATION_STATUS_COLOR } from '../../model/constants';
-import {
-  useLiquidationQuery,
-  useApproveLiquidationMutation,
-} from '../../api/consignments.queries';
+import { useLiquidationQuery, useApproveLiquidationMutation } from '../../api/consignments.queries';
 
 // ----------------------------------------------------------------------
 
@@ -99,17 +96,11 @@ export function LiquidationDetailView() {
   );
 
   return (
-    <Container maxWidth="lg">
+    <Container maxWidth="xl">
       <PageHeader
         title="Liquidación"
-        subtitle={
-          liquidation ? `${liquidation.periodStart} → ${liquidation.periodEnd}` : undefined
-        }
-        crumbs={[
-          { label: 'Consignaciones' },
-          { label: 'Liquidaciones' },
-          { label: 'Detalle' },
-        ]}
+        subtitle={liquidation ? `${liquidation.periodStart} → ${liquidation.periodEnd}` : undefined}
+        crumbs={[{ label: 'Consignaciones' }, { label: 'Liquidaciones' }, { label: 'Detalle' }]}
         action={
           isDraft && (
             <Button

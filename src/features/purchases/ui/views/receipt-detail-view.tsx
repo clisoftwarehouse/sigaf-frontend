@@ -181,7 +181,7 @@ export function ReceiptDetailView() {
   );
 
   return (
-    <Container maxWidth="lg" sx={{ pb: 6 }}>
+    <Container maxWidth="xl" sx={{ pb: 6 }}>
       <PageHeader
         title={receipt ? `Recepción ${receipt.receiptNumber}` : 'Recepción de mercancía'}
         subtitle={receipt ? new Date(receipt.createdAt).toLocaleString('es-VE') : undefined}
@@ -255,7 +255,7 @@ export function ReceiptDetailView() {
         </Alert>
       )}
 
-      <Dialog open={reapproveOpen} onClose={() => setReapproveOpen(false)} maxWidth="sm" fullWidth>
+      <Dialog open={reapproveOpen} onClose={() => setReapproveOpen(false)} maxWidth="xl" fullWidth>
         <DialogTitle>Reaprobar recepción</DialogTitle>
         <DialogContent dividers>
           <Stack spacing={2} sx={{ mt: 1 }}>
@@ -355,7 +355,11 @@ export function ReceiptDetailView() {
                     Factura en moneda original
                   </Typography>
                   <Typography variant="body1" sx={{ fontFamily: 'monospace' }}>
-                    Bs. {Number(receipt.nativeTotal ?? 0).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    Bs.{' '}
+                    {Number(receipt.nativeTotal ?? 0).toLocaleString('es-VE', {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
                   </Typography>
                   <Typography variant="caption" sx={{ color: 'text.disabled' }}>
                     Tasa BCV usada: {Number(receipt.exchangeRateUsed ?? 0).toFixed(4)} Bs./USD
@@ -367,14 +371,13 @@ export function ReceiptDetailView() {
                   Órdenes de compra
                 </Typography>
                 {linkedOrders.length > 0 ? (
-                  <Stack direction="row" spacing={0.75} sx={{ flexWrap: 'wrap', mt: 0.5, gap: 0.5 }}>
+                  <Stack
+                    direction="row"
+                    spacing={0.75}
+                    sx={{ flexWrap: 'wrap', mt: 0.5, gap: 0.5 }}
+                  >
                     {linkedOrders.map((o) => (
-                      <Stack
-                        key={o.id}
-                        direction="row"
-                        spacing={0.5}
-                        alignItems="center"
-                      >
+                      <Stack key={o.id} direction="row" spacing={0.5} alignItems="center">
                         <Button
                           size="small"
                           variant="outlined"

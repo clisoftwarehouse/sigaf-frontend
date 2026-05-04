@@ -29,7 +29,7 @@ export function ActiveIngredientCreateView() {
   };
 
   return (
-    <Container maxWidth="md">
+    <Container maxWidth="xl">
       <Box sx={{ mb: 4 }}>
         <Typography variant="h4">Nuevo principio activo</Typography>
       </Box>

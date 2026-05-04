@@ -38,9 +38,11 @@ type Props = {
  * El backend solo persiste `priceUsd` (valor final). Esta UI da al usuario
  * dos formas equivalentes de obtener ese valor:
  *   - **fixed**: el usuario escribe el precio directamente.
- *   - **margin**: el usuario provee costo + margen % y el precio se deriva
- *     como `cost * (1 + margin/100)`. El costo y el margen NO se envían al
- *     backend; se descartan tras calcular el precio final.
+ *   - **margin**: el usuario provee costo + margen % sobre precio de venta
+ *     y el precio se deriva como `cost / (1 - margin/100)`. Ej: cost=10,
+ *     margin=30% → 10 / 0.7 = 14.29 (ganancia 4.29 = 30% de 14.29). El
+ *     costo y el margen NO se envían al backend; se descartan tras calcular
+ *     el precio final.
  *
  * Crear un precio cierra automáticamente el anterior vigente del mismo
  * scope (producto + sucursal|null) — lógica del backend.
@@ -83,7 +85,8 @@ export function PriceFormDialog({ open, onClose, defaultProductId }: Props) {
     const c = Number(costUsd);
     const m = Number(marginPct);
     if (!Number.isFinite(c) || !Number.isFinite(m) || c <= 0) return null;
-    return +(c * (1 + m / 100)).toFixed(4);
+    if (m >= 100 || m < 0) return null;
+    return +(c / (1 - m / 100)).toFixed(4);
   }, [mode, fixedPrice, costUsd, marginPct]);
 
   const canSubmit = Boolean(productId) && calculatedPrice != null && calculatedPrice > 0;
@@ -112,7 +115,7 @@ export function PriceFormDialog({ open, onClose, defaultProductId }: Props) {
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+    <Dialog open={open} onClose={onClose} maxWidth="xl" fullWidth>
       <DialogTitle>Nuevo precio</DialogTitle>
       <DialogContent dividers>
         <Stack spacing={2.5} sx={{ mt: 0.5 }}>
@@ -155,7 +158,7 @@ export function PriceFormDialog({ open, onClose, defaultProductId }: Props) {
               sx={{ mt: 0.5 }}
             >
               <ToggleButton value="fixed">Precio fijo</ToggleButton>
-              <ToggleButton value="margin">Costo + margen %</ToggleButton>
+              <ToggleButton value="margin">Costo + margen % sobre venta</ToggleButton>
             </ToggleButtonGroup>
           </Box>
 
@@ -197,12 +200,13 @@ export function PriceFormDialog({ open, onClose, defaultProductId }: Props) {
                 required
                 value={marginPct}
                 onChange={(e) => setMarginPct(e.target.value)}
+                helperText="Margen sobre precio de venta. Ej: 30% → precio = costo / 0.7"
                 slotProps={{
                   inputLabel: { shrink: true },
                   input: {
                     endAdornment: <InputAdornment position="end">%</InputAdornment>,
                   },
-                  htmlInput: { step: 0.1 },
+                  htmlInput: { min: 0, max: 99.99, step: 0.1 },
                 }}
                 sx={{ flex: 1 }}
               />
