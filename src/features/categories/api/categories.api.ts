@@ -41,8 +41,17 @@ export async function updateCategory(
   return res.data;
 }
 
-export async function deleteCategory(id: string): Promise<void> {
-  await axios.delete(endpoints.categories.byId(id));
+export async function deleteCategory(id: string, options: { cascade?: boolean } = {}): Promise<void> {
+  await axios.delete(endpoints.categories.byId(id), {
+    params: options.cascade ? { cascade: 'true' } : undefined,
+  });
+}
+
+export async function fetchActiveDescendantsCount(id: string): Promise<number> {
+  const res = await axios.get<{ count: number }>(
+    `${endpoints.categories.byId(id)}/active-descendants-count`
+  );
+  return res.data.count;
 }
 
 export async function restoreCategory(id: string): Promise<Category> {

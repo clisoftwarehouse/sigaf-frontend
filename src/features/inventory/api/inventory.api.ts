@@ -100,3 +100,22 @@ export async function fetchKardex(
   });
   return res.data;
 }
+
+// ----------------------------------------------------------------------
+
+export type AverageCost = {
+  productId: string;
+  branchId: string | null;
+  averageCostUsd: number | null;
+  totalQuantityAvailable: number;
+  lotsConsidered: number;
+  lastReceivedCostUsd: number | null;
+  lastReceivedAt: string | null;
+};
+
+export async function fetchAverageCost(productId: string, branchId?: string): Promise<AverageCost> {
+  const params: Record<string, string> = {};
+  if (branchId) params.branchId = branchId;
+  const res = await axios.get<AverageCost>(endpoints.inventory.averageCost(productId), { params });
+  return res.data;
+}

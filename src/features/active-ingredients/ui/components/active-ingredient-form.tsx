@@ -16,8 +16,15 @@ import { useTherapeuticUseOptions } from '@/features/therapeutic-uses/api/therap
 // ----------------------------------------------------------------------
 
 export const ActiveIngredientSchema = z.object({
-  name: z.string().min(1, { message: 'El nombre es obligatorio' }).max(200),
+  name: z
+    .string()
+    .trim()
+    .min(1, { message: 'El nombre es obligatorio' })
+    .max(200, { message: 'Máximo 200 caracteres' }),
   therapeuticUseId: z.string().uuid().optional().or(z.literal('')),
+  // ATC e INN se mantienen en el modelo (datos maestros pre-cargados desde
+  // Vademecum) pero ya no se piden al crear manualmente. Quedan vacíos si el
+  // operador agrega un PA a mano; el job de scraping los rellena después.
   atcCode: z.string().max(20).optional().or(z.literal('')),
   innName: z.string().max(200).optional().or(z.literal('')),
 });
@@ -78,31 +85,13 @@ export function ActiveIngredientForm({ current, submitting, onSubmit, onCancel }
             slotProps={{ inputLabel: { shrink: true } }}
           />
 
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-            <Field.Text
-              name="atcCode"
-              label="Código ATC (opcional)"
-              placeholder="Ej. C09CA01"
-              helperText="Clasificación internacional ATC (WHO). Se puede autocompletar desde Vademecum."
-              slotProps={{ inputLabel: { shrink: true } }}
-              sx={{ flex: 1 }}
-            />
-            <Field.Text
-              name="innName"
-              label="Nombre INN (opcional)"
-              placeholder="Denominación Común Internacional"
-              slotProps={{ inputLabel: { shrink: true } }}
-              sx={{ flex: 1 }}
-            />
-          </Stack>
-
           <Field.IdAutocomplete
             name="therapeuticUseId"
-            label="Acción terapéutica (opcional)"
+            label="Acción terapéutica"
             placeholder="Buscar acción terapéutica…"
             options={therapeuticUseOptions}
             loading={loadingUses}
-            helperText="Determina cómo se filtra el producto que use este principio activo."
+            helperText="Determina cómo se filtra el producto que use este principio activo. Los datos ATC/INN se completan automáticamente desde Vademecum."
           />
         </Stack>
       </Card>

@@ -59,12 +59,8 @@ export function ProductEditView() {
           submitting={mutation.isPending}
           onSubmit={handleSubmit}
           onCancel={() => router.push(paths.dashboard.catalog.products.root)}
-          extraSections={
-            <>
-              <BarcodesManager product={product} />
-              <IngredientsManager product={product} />
-            </>
-          }
+          barcodesSlot={<BarcodesManager product={product} />}
+          ingredientsSlot={<IngredientsManager product={product} />}
         />
       )}
     </Container>

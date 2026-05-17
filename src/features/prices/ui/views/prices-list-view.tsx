@@ -25,7 +25,11 @@ import { useBranchOptions } from '@/features/branches/api/branches.options';
 import { useProductOptions } from '@/features/products/api/products.options';
 
 import { PriceFormDialog } from '../components/price-form-dialog';
-import { usePricesQuery, useExpirePriceMutation } from '../../api/prices.queries';
+import {
+  usePricesQuery,
+  useExpirePriceMutation,
+  useRevaluationFactorQuery,
+} from '../../api/prices.queries';
 
 // ----------------------------------------------------------------------
 
@@ -42,6 +46,10 @@ export function PricesListView() {
   });
 
   const expireMutation = useExpirePriceMutation();
+  const revaluationQuery = useRevaluationFactorQuery();
+  const revaluation = revaluationQuery.data;
+  const reposicionActive = revaluation?.active ?? false;
+  const revaluationFactor = revaluation?.factor ?? 1;
 
   const { data: productOpts = [] } = useProductOptions();
   const { data: branchOpts = [] } = useBranchOptions();
@@ -111,6 +119,60 @@ export function PricesListView() {
         ),
       },
       {
+        field: 'effectivePriceUsd',
+        headerName: 'Precio efectivo',
+        description: reposicionActive
+          ? `Precio cobrado al cliente: precio × ${revaluationFactor.toFixed(4)} (modo reposición ACTIVO).`
+          : 'Modo reposición inactivo: el precio efectivo coincide con el precio principal.',
+        flex: 1,
+        minWidth: 140,
+        align: 'right',
+        headerAlign: 'right',
+        sortable: false,
+        filterable: false,
+        renderCell: ({ row }) => {
+          if (row.effectiveTo) {
+            return (
+              <Typography variant="body2" sx={{ color: 'text.disabled' }}>
+                —
+              </Typography>
+            );
+          }
+          const principal = Number(row.priceUsd);
+          const effective = principal * revaluationFactor;
+          return (
+            <Tooltip
+              title={
+                reposicionActive
+                  ? `Principal $${principal.toFixed(2)} × ${revaluationFactor.toFixed(4)} = $${effective.toFixed(4)}`
+                  : 'Sin factor de reposición aplicado'
+              }
+            >
+              <Stack alignItems="flex-end" spacing={0.25}>
+                <Typography
+                  variant="subtitle2"
+                  sx={{
+                    fontVariantNumeric: 'tabular-nums',
+                    color: reposicionActive ? 'warning.dark' : 'text.primary',
+                  }}
+                >
+                  {effective.toFixed(2)} USD
+                </Typography>
+                {reposicionActive && (
+                  <Chip
+                    size="small"
+                    variant="outlined"
+                    color="warning"
+                    label={`×${revaluationFactor.toFixed(4)}`}
+                    sx={{ height: 18, fontSize: 10 }}
+                  />
+                )}
+              </Stack>
+            </Tooltip>
+          );
+        },
+      },
+      {
         field: 'effectiveFrom',
         headerName: 'Vigente desde',
         type: 'dateTime',
@@ -163,7 +225,7 @@ export function PricesListView() {
           ) : null,
       },
     ],
-    [productNameById, branchNameById]
+    [productNameById, branchNameById, reposicionActive, revaluationFactor]
   );
 
   return (
@@ -182,6 +244,19 @@ export function PricesListView() {
           </Button>
         }
       />
+
+      {reposicionActive && (
+        <Alert
+          severity="warning"
+          icon={<Iconify icon="solar:wad-of-money-bold" />}
+          sx={{ mb: 2 }}
+        >
+          <strong>Modo reposición activo</strong> · Factor{' '}
+          <strong>×{revaluationFactor.toFixed(4)}</strong> aplicado a todos los precios al cobrar
+          en el POS. Tasa BCV {revaluation?.bcvRate?.toFixed(2)} · Reposición{' '}
+          {revaluation?.reposicionRate?.toFixed(2)}.
+        </Alert>
+      )}
 
       <Card>
         <Stack

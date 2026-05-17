@@ -13,6 +13,7 @@ import { paths } from '@/app/routes/paths';
 import { useRouter } from '@/app/routes/hooks';
 
 import { TerminalForm } from '../components/terminal-form';
+import { TerminalPairingPanel } from '../components/terminal-pairing-panel';
 import { useTerminalQuery, useUpdateTerminalMutation } from '../../api/terminals.queries';
 
 // ----------------------------------------------------------------------
@@ -55,12 +56,18 @@ export function TerminalEditView() {
       {isError && <Alert severity="error">{(error as Error)?.message ?? 'Error'}</Alert>}
 
       {terminal && (
-        <TerminalForm
-          current={terminal}
-          submitting={mutation.isPending}
-          onSubmit={handleSubmit}
-          onCancel={() => router.push(paths.dashboard.organization.terminals.root)}
-        />
+        <>
+          <TerminalForm
+            current={terminal}
+            submitting={mutation.isPending}
+            onSubmit={handleSubmit}
+            onCancel={() => router.push(paths.dashboard.organization.terminals.root)}
+          />
+
+          <Box sx={{ mt: 4 }}>
+            <TerminalPairingPanel terminalId={terminal.id} />
+          </Box>
+        </>
       )}
     </Container>
   );

@@ -45,6 +45,10 @@ export function RHFTextField({
               : event.target.value;
 
             field.onChange(transformedValue);
+            // CRÍTICO: llamar field.onBlur() para que RHF marque el campo como
+            // "touched" y dispare las validaciones cuando el form usa
+            // mode: 'onBlur'. Sin esto, las validaciones solo corren al submit.
+            field.onBlur();
           }}
           type={isNumberType ? 'text' : type}
           error={!!error}

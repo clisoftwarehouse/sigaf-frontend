@@ -19,6 +19,7 @@ import {
   createReceipt,
   reapproveReceipt,
   fetchOrderApprovalStatus,
+  fetchUnpricedProductsByReceipt,
 } from './purchases.api';
 
 // ----------------------------------------------------------------------
@@ -124,5 +125,14 @@ export function useReapproveReceiptMutation() {
     mutationFn: ({ id, justification }: { id: string; justification: string }) =>
       reapproveReceipt(id, justification),
     onSuccess: () => qc.invalidateQueries({ queryKey: purchaseKeys.all }),
+  });
+}
+
+export function useUnpricedProductsByReceiptQuery(receiptId: string | null) {
+  return useQuery({
+    queryKey: [...purchaseKeys.all, 'unpriced-products', receiptId ?? ''] as const,
+    queryFn: () => fetchUnpricedProductsByReceipt(receiptId as string),
+    enabled: Boolean(receiptId),
+    staleTime: 0,
   });
 }

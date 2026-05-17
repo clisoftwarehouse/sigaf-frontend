@@ -19,8 +19,8 @@ import {
 export const exchangeRateKeys = {
   all: ['exchange-rates'] as const,
   list: (filters: ExchangeRateFilters) => [...exchangeRateKeys.all, 'list', filters] as const,
-  latest: (from?: string, to?: string) =>
-    [...exchangeRateKeys.all, 'latest', from ?? '', to ?? ''] as const,
+  latest: (from?: string, to?: string, source?: string) =>
+    [...exchangeRateKeys.all, 'latest', from ?? '', to ?? '', source ?? ''] as const,
 };
 
 export function useExchangeRatesQuery(filters: ExchangeRateFilters = {}) {
@@ -30,10 +30,14 @@ export function useExchangeRatesQuery(filters: ExchangeRateFilters = {}) {
   });
 }
 
-export function useLatestExchangeRateQuery(currencyFrom?: string, currencyTo?: string) {
+export function useLatestExchangeRateQuery(
+  currencyFrom?: string,
+  currencyTo?: string,
+  source?: string
+) {
   return useQuery({
-    queryKey: exchangeRateKeys.latest(currencyFrom, currencyTo),
-    queryFn: () => fetchLatestExchangeRate(currencyFrom, currencyTo),
+    queryKey: exchangeRateKeys.latest(currencyFrom, currencyTo, source),
+    queryFn: () => fetchLatestExchangeRate(currencyFrom, currencyTo, source),
     staleTime: 60_000,
   });
 }

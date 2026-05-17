@@ -64,6 +64,7 @@ export function ReturnCreateView() {
   const entries = useMemo(() => entriesData?.data ?? [], [entriesData]);
 
   const methods = useForm<FormValues>({
+    mode: 'onBlur',
     resolver: zodResolver(ReturnSchema),
     defaultValues: {
       consignmentEntryId: '',

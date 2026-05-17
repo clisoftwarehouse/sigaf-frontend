@@ -12,6 +12,7 @@ import Table from '@mui/material/Table';
 import Alert from '@mui/material/Alert';
 import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
+import Tooltip from '@mui/material/Tooltip';
 import TableRow from '@mui/material/TableRow';
 import Container from '@mui/material/Container';
 import TableBody from '@mui/material/TableBody';
@@ -137,10 +138,12 @@ export function ImportsView() {
               index={2}
               title="Selecciona tu archivo"
               description="Se aceptan .csv, .xls y .xlsx. El archivo debe tener los mismos headers que el template."
+              highlight={!file}
               action={
                 <Button
                   component="label"
-                  variant="outlined"
+                  variant={file ? 'outlined' : 'contained'}
+                  color={file ? 'inherit' : 'primary'}
                   startIcon={<Iconify icon="solar:file-text-bold" />}
                 >
                   {file ? 'Cambiar archivo' : 'Seleccionar archivo'}
@@ -170,17 +173,24 @@ export function ImportsView() {
               title="Valida tu archivo (dry-run)"
               description="Procesa cada fila sin persistir nada. Útil para revisar errores antes del commit."
               action={
-                <Button
-                  variant="outlined"
-                  color="warning"
-                  startIcon={<Iconify icon="solar:file-check-bold-duotone" />}
-                  onClick={() => runImport(true)}
-                  disabled={!file || isBusy}
+                <Tooltip
+                  title={!file ? 'Selecciona un archivo primero (paso 2)' : ''}
+                  disableHoverListener={!!file}
                 >
-                  {runMutation.isPending && runMutation.variables?.dryRun
-                    ? 'Validando…'
-                    : 'Validar sin persistir'}
-                </Button>
+                  <span>
+                    <Button
+                      variant="outlined"
+                      color="warning"
+                      startIcon={<Iconify icon="solar:file-check-bold-duotone" />}
+                      onClick={() => runImport(true)}
+                      disabled={!file || isBusy}
+                    >
+                      {runMutation.isPending && runMutation.variables?.dryRun
+                        ? 'Validando…'
+                        : 'Validar sin persistir'}
+                    </Button>
+                  </span>
+                </Tooltip>
               }
             />
 
@@ -189,17 +199,24 @@ export function ImportsView() {
               title="Confirmar importación"
               description="Persiste todas las filas válidas. Las filas con error se reportan pero no bloquean a las demás."
               action={
-                <Button
-                  variant="contained"
-                  color="primary"
-                  startIcon={<Iconify icon="solar:import-bold" />}
-                  onClick={() => runImport(false)}
-                  disabled={!file || isBusy}
+                <Tooltip
+                  title={!file ? 'Selecciona un archivo primero (paso 2)' : ''}
+                  disableHoverListener={!!file}
                 >
-                  {runMutation.isPending && !runMutation.variables?.dryRun
-                    ? 'Importando…'
-                    : 'Importar ahora'}
-                </Button>
+                  <span>
+                    <Button
+                      variant="contained"
+                      color="primary"
+                      startIcon={<Iconify icon="solar:import-bold" />}
+                      onClick={() => runImport(false)}
+                      disabled={!file || isBusy}
+                    >
+                      {runMutation.isPending && !runMutation.variables?.dryRun
+                        ? 'Importando…'
+                        : 'Importar ahora'}
+                    </Button>
+                  </span>
+                </Tooltip>
               }
             >
               {!canCommit && file != null && (
@@ -225,9 +242,10 @@ type StepCardProps = {
   description: string;
   action?: React.ReactNode;
   children?: React.ReactNode;
+  highlight?: boolean;
 };
 
-function StepCard({ index, title, description, action, children }: StepCardProps) {
+function StepCard({ index, title, description, action, children, highlight }: StepCardProps) {
   return (
     <Box
       sx={{
@@ -238,7 +256,10 @@ function StepCard({ index, title, description, action, children }: StepCardProps
         alignItems: { xs: 'flex-start', md: 'center' },
         justifyContent: 'space-between',
         flexDirection: { xs: 'column', md: 'row' },
-        bgcolor: (theme) => theme.palette.background.neutral,
+        bgcolor: (theme) =>
+          highlight ? theme.palette.primary.lighter : theme.palette.background.neutral,
+        border: (theme) =>
+          highlight ? `dashed 1px ${theme.palette.primary.main}` : 'none',
       }}
     >
       <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start' }}>

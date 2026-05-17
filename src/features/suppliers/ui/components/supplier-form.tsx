@@ -2,29 +2,37 @@ import type { Supplier, CreateSupplierPayload } from '../../model/types';
 
 import * as z from 'zod';
 import { useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 
+import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
 import Divider from '@mui/material/Divider';
 import MenuItem from '@mui/material/MenuItem';
 import Typography from '@mui/material/Typography';
+import InputAdornment from '@mui/material/InputAdornment';
 
 import { FormFooter } from '@/shared/ui/form-footer';
 import { Form, Field } from '@/app/components/hook-form';
 
 // ----------------------------------------------------------------------
 
-const RIF_REGEX = /^[VEJGP]-\d{7,9}-\d$/;
+// RIF venezolano:
+//   - Jurídico / Gobierno (J/G): 8 dígitos + 1 verificador (J-12345678-9)
+//   - Natural / Pasaporte (V/E/P): 8 dígitos sin verificador (V-12345678)
+const RIF_REGEX = /^(?:[JG]-\d{8}-\d|[VEP]-\d{8})$/;
 const PHONE_REGEX = /^\+58[24]\d{9}$/;
 
 export const SupplierSchema = z.object({
   rif: z
     .string()
     .min(1, { message: 'RIF obligatorio' })
-    .regex(RIF_REGEX, { message: 'Formato esperado: J-12345678-9 (V/E/J/G/P)' }),
+    .regex(RIF_REGEX, {
+      message:
+        'Formato: J-12345678-9 (jurídico, con DV) o V-12345678 (natural, sin DV)',
+    }),
   businessName: z.string().min(1, { message: 'Razón social obligatoria' }).max(200),
   tradeName: z.string().max(200).optional().or(z.literal('')),
   contactName: z.string().max(150).optional().or(z.literal('')),
@@ -54,6 +62,39 @@ export const SupplierSchema = z.object({
     .or(z.literal(''))
     .refine((v) => !v || /^\d+(\.\d+)?$/.test(v), { message: 'Debe ser un número' }),
   invoicesInCurrency: z.enum(['USD', 'VES']),
+  // Descuentos comerciales (BI): switch + porcentaje típico opcional.
+  hasHeaderDiscount: z.boolean(),
+  headerDiscountPct: z
+    .string()
+    .optional()
+    .or(z.literal(''))
+    .refine((v) => !v || (/^\d+(\.\d+)?$/.test(v) && Number(v) >= 0 && Number(v) <= 100), {
+      message: 'Entre 0 y 100',
+    }),
+  hasLinearDiscount: z.boolean(),
+  linearDiscountPct: z
+    .string()
+    .optional()
+    .or(z.literal(''))
+    .refine((v) => !v || (/^\d+(\.\d+)?$/.test(v) && Number(v) >= 0 && Number(v) <= 100), {
+      message: 'Entre 0 y 100',
+    }),
+  hasPromptPaymentDiscount: z.boolean(),
+  promptPaymentDiscountPct: z
+    .string()
+    .optional()
+    .or(z.literal(''))
+    .refine((v) => !v || (/^\d+(\.\d+)?$/.test(v) && Number(v) >= 0 && Number(v) <= 100), {
+      message: 'Entre 0 y 100',
+    }),
+  hasVolumeDiscount: z.boolean(),
+  volumeDiscountPct: z
+    .string()
+    .optional()
+    .or(z.literal(''))
+    .refine((v) => !v || (/^\d+(\.\d+)?$/.test(v) && Number(v) >= 0 && Number(v) <= 100), {
+      message: 'Entre 0 y 100',
+    }),
 });
 
 export type SupplierFormValues = z.infer<typeof SupplierSchema>;
@@ -66,6 +107,8 @@ type Props = {
 };
 
 function toFormValues(s?: Supplier): SupplierFormValues {
+  const pct = (v: number | string | null | undefined): string =>
+    v == null || v === '' ? '' : String(Number(v));
   return {
     rif: s?.rif ?? '',
     businessName: s?.businessName ?? '',
@@ -79,6 +122,14 @@ function toFormValues(s?: Supplier): SupplierFormValues {
     consignmentCommissionPct:
       s?.consignmentCommissionPct != null ? String(s.consignmentCommissionPct) : '',
     invoicesInCurrency: s?.invoicesInCurrency ?? 'USD',
+    hasHeaderDiscount: s?.hasHeaderDiscount ?? false,
+    headerDiscountPct: pct(s?.headerDiscountPct),
+    hasLinearDiscount: s?.hasLinearDiscount ?? false,
+    linearDiscountPct: pct(s?.linearDiscountPct),
+    hasPromptPaymentDiscount: s?.hasPromptPaymentDiscount ?? false,
+    promptPaymentDiscountPct: pct(s?.promptPaymentDiscountPct),
+    hasVolumeDiscount: s?.hasVolumeDiscount ?? false,
+    volumeDiscountPct: pct(s?.volumeDiscountPct),
   };
 }
 
@@ -89,13 +140,23 @@ export function SupplierForm({ current, submitting, onSubmit, onCancel }: Props)
     defaultValues: toFormValues(current),
   });
 
-  const { handleSubmit, reset } = methods;
+  const { handleSubmit, reset, control } = methods;
+
+  // Watch para mostrar el input % solo cuando el switch correspondiente está ON.
+  const hasHeader = useWatch({ control, name: 'hasHeaderDiscount' });
+  const hasLinear = useWatch({ control, name: 'hasLinearDiscount' });
+  const hasPrompt = useWatch({ control, name: 'hasPromptPaymentDiscount' });
+  const hasVolume = useWatch({ control, name: 'hasVolumeDiscount' });
 
   useEffect(() => {
     if (current) reset(toFormValues(current));
   }, [current, reset]);
 
   const submit = handleSubmit(async (values) => {
+    // Si el switch del descuento está OFF, no enviamos el % (queda NULL en BD)
+    // aunque el operador haya escrito un número y luego apagado el switch.
+    const pctIfOn = (on: boolean, raw: string): number | undefined =>
+      on && raw ? Number(raw) : undefined;
     await onSubmit({
       rif: values.rif.trim(),
       businessName: values.businessName.trim(),
@@ -110,6 +171,17 @@ export function SupplierForm({ current, submitting, onSubmit, onCancel }: Props)
         ? Number(values.consignmentCommissionPct)
         : undefined,
       invoicesInCurrency: values.invoicesInCurrency,
+      hasHeaderDiscount: values.hasHeaderDiscount,
+      headerDiscountPct: pctIfOn(values.hasHeaderDiscount, values.headerDiscountPct ?? ''),
+      hasLinearDiscount: values.hasLinearDiscount,
+      linearDiscountPct: pctIfOn(values.hasLinearDiscount, values.linearDiscountPct ?? ''),
+      hasPromptPaymentDiscount: values.hasPromptPaymentDiscount,
+      promptPaymentDiscountPct: pctIfOn(
+        values.hasPromptPaymentDiscount,
+        values.promptPaymentDiscountPct ?? ''
+      ),
+      hasVolumeDiscount: values.hasVolumeDiscount,
+      volumeDiscountPct: pctIfOn(values.hasVolumeDiscount, values.volumeDiscountPct ?? ''),
     });
   });
 
@@ -205,6 +277,53 @@ export function SupplierForm({ current, submitting, onSubmit, onCancel }: Props)
             <MenuItem value="VES">VES — Bolívares</MenuItem>
           </Field.Select>
 
+          <Divider sx={{ borderStyle: 'dashed' }} />
+
+          {/* ─── Descuentos comerciales (para análisis BI) ─── */}
+          <Box>
+            <Typography variant="subtitle2" sx={{ color: 'text.secondary' }}>
+              Descuentos comerciales
+            </Typography>
+            <Typography
+              variant="caption"
+              sx={{ color: 'text.disabled', display: 'block', mb: 1.5 }}
+            >
+              Marca los tipos de descuento que ofrece este proveedor. Si conoces el porcentaje
+              típico, agrégalo — BI lo usa para análisis comparativo.
+            </Typography>
+
+            <Stack spacing={1.5}>
+              <DiscountRow
+                switchName="hasHeaderDiscount"
+                pctName="headerDiscountPct"
+                label="Descuento de cabecera"
+                helperText="Aplicado al subtotal de la factura."
+                showPct={hasHeader}
+              />
+              <DiscountRow
+                switchName="hasLinearDiscount"
+                pctName="linearDiscountPct"
+                label="Descuento lineal"
+                helperText="Aplicado por línea de producto."
+                showPct={hasLinear}
+              />
+              <DiscountRow
+                switchName="hasPromptPaymentDiscount"
+                pctName="promptPaymentDiscountPct"
+                label="Descuento por pronto pago"
+                helperText="Si se paga antes del plazo acordado."
+                showPct={hasPrompt}
+              />
+              <DiscountRow
+                switchName="hasVolumeDiscount"
+                pctName="volumeDiscountPct"
+                label="Descuento por volumen"
+                helperText="A partir de cierta cantidad / monto comprado."
+                showPct={hasVolume}
+              />
+            </Stack>
+          </Box>
+
         </Stack>
       </Card>
 
@@ -219,5 +338,51 @@ export function SupplierForm({ current, submitting, onSubmit, onCancel }: Props)
         </Button>
       </FormFooter>
     </Form>
+  );
+}
+
+// ----------------------------------------------------------------------
+
+type DiscountRowProps = {
+  switchName: string;
+  pctName: string;
+  label: string;
+  helperText: string;
+  showPct: boolean;
+};
+
+/**
+ * Fila reutilizable para los 4 descuentos: switch a la izquierda + input %
+ * a la derecha que aparece solo cuando el switch está ON. Mantiene el
+ * helper text del switch siempre visible para que el operador entienda el
+ * tipo de descuento aunque no lo active.
+ */
+function DiscountRow({ switchName, pctName, label, helperText, showPct }: DiscountRowProps) {
+  return (
+    <Stack
+      direction={{ xs: 'column', sm: 'row' }}
+      spacing={2}
+      alignItems={{ xs: 'stretch', sm: 'center' }}
+      sx={{ minHeight: 56 }}
+    >
+      <Box sx={{ flex: 1 }}>
+        <Field.Switch name={switchName} label={label} helperText={helperText} />
+      </Box>
+      {showPct && (
+        <Field.Text
+          name={pctName}
+          label="% típico"
+          placeholder="Ej. 12.5"
+          slotProps={{
+            inputLabel: { shrink: true },
+            input: {
+              endAdornment: <InputAdornment position="end">%</InputAdornment>,
+              inputProps: { inputMode: 'decimal' },
+            },
+          }}
+          sx={{ width: { xs: '100%', sm: 160 }, flexShrink: 0 }}
+        />
+      )}
+    </Stack>
   );
 }

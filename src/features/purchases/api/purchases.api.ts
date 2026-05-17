@@ -115,10 +115,32 @@ export type CreateReceiptResponse = GoodsReceipt & {
   toleranceExceeded?: boolean;
   /** Lista legible de cuáles tolerancias se excedieron, para mostrar al usuario. */
   toleranceDetails?: string[];
+  /**
+   * Reclamo auto-generado cuando la recepción tiene líneas con discrepancias.
+   * `null` si no hubo discrepancias o si la recepción quedó bloqueada (en ese
+   * caso el reclamo se genera al reaprobar).
+   */
+  autoClaim?: { id: string; claimNumber: string } | null;
 };
 
 export async function createReceipt(payload: CreateGoodsReceiptPayload): Promise<CreateReceiptResponse> {
   const res = await axios.post<CreateReceiptResponse>(endpoints.purchases.receipts, payload);
+  return res.data;
+}
+
+export type UnpricedProduct = {
+  productId: string;
+  productName: string;
+  productSku: string | null;
+  branchId: string;
+  unitCostUsd: number;
+  receivedAt: string;
+};
+
+export async function fetchUnpricedProductsByReceipt(receiptId: string): Promise<UnpricedProduct[]> {
+  const res = await axios.get<UnpricedProduct[]>(
+    endpoints.purchases.receiptUnpricedProducts(receiptId)
+  );
   return res.data;
 }
 

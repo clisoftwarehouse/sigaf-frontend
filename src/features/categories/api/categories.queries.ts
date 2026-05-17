@@ -11,6 +11,7 @@ import {
   updateCategory,
   fetchCategories,
   restoreCategory,
+  fetchActiveDescendantsCount,
 } from './categories.api';
 
 // ----------------------------------------------------------------------
@@ -66,10 +67,20 @@ export function useUpdateCategoryMutation() {
 export function useDeleteCategoryMutation() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => deleteCategory(id),
+    mutationFn: ({ id, cascade }: { id: string; cascade?: boolean }) =>
+      deleteCategory(id, { cascade }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: categoryKeys.all });
     },
+  });
+}
+
+export function useActiveDescendantsCountQuery(id: string | null) {
+  return useQuery({
+    queryKey: [...categoryKeys.all, 'active-descendants-count', id ?? ''] as const,
+    queryFn: () => fetchActiveDescendantsCount(id as string),
+    enabled: Boolean(id),
+    staleTime: 0,
   });
 }
 

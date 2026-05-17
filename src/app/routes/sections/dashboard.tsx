@@ -21,14 +21,18 @@ import { suppliersRoutes } from '@/features/suppliers/routes';
 import { terminalsRoutes } from '@/features/terminals/routes';
 import { locationsRoutes } from '@/features/locations/routes';
 import { purchasesRoutes } from '@/features/purchases/routes';
+import { customersRoutes } from '@/features/customers/routes';
 import { configRoutes } from '@/features/config-global/routes';
 import { categoriesRoutes } from '@/features/categories/routes';
 import { promotionsRoutes } from '@/features/promotions/routes';
 import { LoadingScreen } from '@/app/components/loading-screen';
 import { permissionsRoutes } from '@/features/permissions/routes';
 import { consignmentsRoutes } from '@/features/consignments/routes';
+import { cashSessionsRoutes } from '@/features/cash-sessions/routes';
 import { branchGroupsRoutes } from '@/features/branch-groups/routes';
+import { prescriptionsRoutes } from '@/features/prescriptions/routes';
 import { exchangeRatesRoutes } from '@/features/exchange-rates/routes';
+import { paymentsReportRoutes } from '@/features/payments-report/routes';
 import { activeIngredientsRoutes } from '@/features/active-ingredients/routes';
 
 import { usePathname } from '../hooks';
@@ -115,6 +119,19 @@ export const dashboardRoutes: RouteObject[] = [
           ...terminalsRoutes,
           ...locationsRoutes,
           ...branchGroupsRoutes,
+        ],
+      },
+      {
+        path: 'pos',
+        children: [
+          {
+            index: true,
+            element: <Navigate to={paths.dashboard.pos.customers.root} replace />,
+          },
+          ...customersRoutes,
+          ...prescriptionsRoutes,
+          ...cashSessionsRoutes,
+          ...paymentsReportRoutes,
         ],
       },
       {

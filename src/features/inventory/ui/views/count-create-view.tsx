@@ -46,6 +46,7 @@ export function CountCreateView() {
   const { data: categoryOpts = [] } = useCategoryOptions();
 
   const methods = useForm<FormValues>({
+    mode: 'onBlur',
     resolver: zodResolver(CountSchema),
     defaultValues: {
       branchId: '',

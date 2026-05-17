@@ -52,6 +52,44 @@ function applyAlignmentDefaults(columns: readonly GridColDef[]): GridColDef[] {
   });
 }
 
+/**
+ * MUI X DataGrid: cuando la celda no está enfocada el primer click sólo enfoca la
+ * celda y se "come" el click sobre el IconButton, obligando al usuario a hacer
+ * doble click. Auto-patcheamos las columnas de acciones (field === 'actions' o
+ * type === 'actions' con renderCell) envolviendo el render en un contenedor que
+ * detiene la propagación del mousedown cuando el target es un botón. Así el
+ * IconButton recibe el click directamente sin pelear con el focus de celda.
+ */
+function patchActionColumns(columns: readonly GridColDef[]): GridColDef[] {
+  return columns.map((col) => {
+    const isActionsCol =
+      col.field === 'actions' || col.type === 'actions';
+    if (!isActionsCol || !col.renderCell) return col;
+    const originalRender = col.renderCell;
+    return {
+      ...col,
+      renderCell: (params) => (
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: col.align === 'right' ? 'flex-end' : 'flex-start',
+            width: '100%',
+            height: '100%',
+          }}
+          onMouseDown={(e) => {
+            if ((e.target as HTMLElement).closest('button, a')) {
+              e.stopPropagation();
+            }
+          }}
+        >
+          {originalRender(params)}
+        </Box>
+      ),
+    };
+  });
+}
+
 const DataTable = forwardRef<HTMLDivElement, DataGridProps>((props, ref) => {
   const [filterModel, setFilterModel] = useState<GridFilterModel>({
     items: [],
@@ -59,7 +97,7 @@ const DataTable = forwardRef<HTMLDivElement, DataGridProps>((props, ref) => {
   });
 
   const normalizedColumns = useMemo(
-    () => applyAlignmentDefaults(props.columns ?? []),
+    () => patchActionColumns(applyAlignmentDefaults(props.columns ?? [])),
     [props.columns]
   );
 
@@ -81,6 +119,25 @@ const DataTable = forwardRef<HTMLDivElement, DataGridProps>((props, ref) => {
       },
       '& .MuiDataGrid-columnHeader--alignRight .MuiDataGrid-columnHeaderTitleContainer': {
         flexDirection: 'row-reverse',
+      },
+      // Quita el outline rojo/azul de focus de celda en toda la app.
+      '& .MuiDataGrid-cell:focus, & .MuiDataGrid-cell:focus-within': {
+        outline: 'none',
+      },
+      '& .MuiDataGrid-columnHeader:focus, & .MuiDataGrid-columnHeader:focus-within': {
+        outline: 'none',
+      },
+      // Asegura que el scrollbar horizontal del viewport sea funcional.
+      // En DataGrid v7+ con getRowHeight: 'auto' a veces el virtualScroller
+      // queda con overflow incorrecto y el scrollbar se ve pero no arrastra.
+      '& .MuiDataGrid-virtualScroller': {
+        overflowX: 'auto',
+        overflowY: 'auto',
+      },
+      // Permite que el contenedor crezca para acomodar todas las columnas y
+      // que el browser maneje el scroll horizontal del viewport.
+      '& .MuiDataGrid-main': {
+        overflow: 'hidden',
       },
     },
   };

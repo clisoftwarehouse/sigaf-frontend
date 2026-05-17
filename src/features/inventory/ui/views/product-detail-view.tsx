@@ -32,7 +32,7 @@ import { useCategoriesQuery } from '@/features/categories/api/categories.queries
 import { AdjustmentDialog } from '../components/adjustment-dialog';
 import { QuarantineDialog } from '../components/quarantine-dialog';
 import { ExpirySignalChip } from '../components/expiry-signal-chip';
-import { useFefoQuery, useStockQuery } from '../../api/inventory.queries';
+import { useFefoQuery, useStockQuery, useAverageCostQuery } from '../../api/inventory.queries';
 
 // ----------------------------------------------------------------------
 
@@ -55,6 +55,7 @@ export function InventoryProductDetailView() {
   const { data: fefoLots = [], isLoading: loadingLots } = useFefoQuery(id || undefined, undefined);
   const { data: stockData } = useStockQuery({ productId: id || undefined });
   const { data: currentPrice, isError: priceError } = useCurrentPriceQuery({ productId: id });
+  const { data: avgCost } = useAverageCostQuery(id);
 
   const { flat: categories } = useCategoriesQuery();
   const { data: brands = [] } = useBrandsQuery();
@@ -327,6 +328,27 @@ export function InventoryProductDetailView() {
                     sx={{ color: priceError ? 'warning.main' : 'text.disabled' }}
                   >
                     {priceError ? 'Sin precio publicado' : '—'}
+                  </Typography>
+                )}
+              </Box>
+              <Box>
+                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                  Costo promedio ponderado
+                </Typography>
+                {avgCost && avgCost.averageCostUsd != null ? (
+                  <>
+                    <Typography variant="h5" sx={{ fontFamily: 'monospace' }}>
+                      ${avgCost.averageCostUsd.toFixed(2)}
+                    </Typography>
+                    <Typography variant="caption" sx={{ color: 'text.disabled' }}>
+                      {avgCost.lotsConsidered} lote(s) · stock {avgCost.totalQuantityAvailable}
+                      {avgCost.lastReceivedCostUsd != null &&
+                        ` · último costo $${avgCost.lastReceivedCostUsd.toFixed(2)}`}
+                    </Typography>
+                  </>
+                ) : (
+                  <Typography variant="body2" sx={{ color: 'text.disabled' }}>
+                    Sin lotes disponibles
                   </Typography>
                 )}
               </Box>

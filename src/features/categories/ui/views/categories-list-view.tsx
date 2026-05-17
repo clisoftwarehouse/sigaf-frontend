@@ -28,6 +28,7 @@ import {
   useCategoriesQuery,
   useDeleteCategoryMutation,
   useRestoreCategoryMutation,
+  useActiveDescendantsCountQuery,
 } from '../../api/categories.queries';
 
 // ----------------------------------------------------------------------
@@ -37,9 +38,13 @@ type ActiveFilter = 'active' | 'inactive';
 export function CategoriesListView() {
   const router = useRouter();
   const [filter, setFilter] = useState<ActiveFilter>('active');
-  const { flat, data, tree, isLoading, isError, error, refetch } = useCategoriesQuery({
+  const { flat, tree, isLoading, isError, error, refetch } = useCategoriesQuery({
     isActive: filter === 'active',
   });
+  // Cargamos también el listado SIN filtro de isActive solo para resolver
+  // nombres de padre: una hija activa puede tener un padre inactivo y sin
+  // este mapa global la columna "Padre" mostraría el UUID en bruto.
+  const { data: allCategories } = useCategoriesQuery();
   const deactivateMutation = useDeleteCategoryMutation();
   const restoreMutation = useRestoreCategoryMutation();
   const [toDeactivate, setToDeactivate] = useState<{ id: string; name: string } | null>(null);
@@ -48,15 +53,24 @@ export function CategoriesListView() {
 
   const parentNameById = useMemo(() => {
     const map = new Map<string, string>();
-    (data ?? []).forEach((c) => map.set(c.id, c.name));
+    (allCategories ?? []).forEach((c) => map.set(c.id, c.name));
     return map;
-  }, [data]);
+  }, [allCategories]);
 
-  const confirmDeactivate = async () => {
+  // Cuenta de hijas activas: si la categoría a inactivar tiene >0, el dialog
+  // pide confirmación explícita antes de hacer cascada (en vez de bloquear).
+  const descendantsQuery = useActiveDescendantsCountQuery(toDeactivate?.id ?? null);
+  const activeDescendants = descendantsQuery.data ?? 0;
+
+  const confirmDeactivate = async (options: { cascade?: boolean } = {}) => {
     if (!toDeactivate) return;
     try {
-      await deactivateMutation.mutateAsync(toDeactivate.id);
-      toast.success(`Categoría "${toDeactivate.name}" inactivada`);
+      await deactivateMutation.mutateAsync({ id: toDeactivate.id, cascade: options.cascade });
+      toast.success(
+        options.cascade && activeDescendants > 0
+          ? `Categoría "${toDeactivate.name}" y ${activeDescendants} subcategoría(s) inactivadas`
+          : `Categoría "${toDeactivate.name}" inactivada`
+      );
       setToDeactivate(null);
     } catch (err) {
       toast.error((err as Error).message);
@@ -238,15 +252,29 @@ export function CategoriesListView() {
         title="Inactivar categoría"
         description={
           toDeactivate ? (
-            <>
-              ¿Inactivar la categoría <strong>{toDeactivate.name}</strong>? Si tiene
-              subcategorías o productos activos, la operación será rechazada.
-            </>
+            activeDescendants > 0 ? (
+              <>
+                La categoría <strong>{toDeactivate.name}</strong> tiene{' '}
+                <strong>{activeDescendants}</strong> subcategoría(s) activa(s).
+                <br />
+                Al confirmar se inactivarán también todas las descendientes.
+                <br />
+                <br />
+                Los productos vinculados a cualquiera de esas categorías
+                <strong> bloquearán</strong> la operación; reasígnalos primero.
+              </>
+            ) : (
+              <>
+                ¿Inactivar la categoría <strong>{toDeactivate.name}</strong>? Si tiene productos
+                activos, la operación será rechazada.
+              </>
+            )
           ) : null
         }
-        confirmLabel="Inactivar"
+        confirmLabel={activeDescendants > 0 ? 'Inactivar en cascada' : 'Inactivar'}
+        confirmColor={activeDescendants > 0 ? 'warning' : 'primary'}
         loading={deactivateMutation.isPending}
-        onConfirm={confirmDeactivate}
+        onConfirm={() => confirmDeactivate({ cascade: activeDescendants > 0 })}
         onClose={() => setToDeactivate(null)}
       />
 

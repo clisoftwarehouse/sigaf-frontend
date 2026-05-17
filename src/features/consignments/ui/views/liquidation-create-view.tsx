@@ -46,6 +46,7 @@ export function LiquidationCreateView() {
   const { data: suppliers = [] } = useSuppliersQuery({ isActive: true });
 
   const methods = useForm<FormValues>({
+    mode: 'onBlur',
     resolver: zodResolver(LiquidationSchema),
     defaultValues: {
       branchId: '',

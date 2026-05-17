@@ -51,3 +51,31 @@ export async function fetchCurrentPrice(params: {
   const res = await axios.get<ResolvedPrice>(endpoints.prices.current, { params });
   return res.data;
 }
+
+export type EffectivePrice = ResolvedPrice & {
+  revaluationFactor: number;
+  effectivePriceUsd: number;
+  exchangeRateBcv: number | null;
+  effectivePriceBs: number | null;
+};
+
+export type RevaluationFactor = {
+  factor: number;
+  active: boolean;
+  bcvRate: number | null;
+  reposicionRate: number | null;
+};
+
+export async function fetchEffectivePrice(params: {
+  productId: string;
+  branchId?: string;
+  at?: string;
+}): Promise<EffectivePrice> {
+  const res = await axios.get<EffectivePrice>(endpoints.prices.effective, { params });
+  return res.data;
+}
+
+export async function fetchRevaluationFactor(): Promise<RevaluationFactor> {
+  const res = await axios.get<RevaluationFactor>(endpoints.prices.revaluationFactor);
+  return res.data;
+}

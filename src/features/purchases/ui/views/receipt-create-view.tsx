@@ -2,10 +2,10 @@ import type { CreateGoodsReceiptPayload } from '../../model/types';
 
 import * as z from 'zod';
 import { toast } from 'sonner';
-import { useRef, useMemo, useEffect } from 'react';
 import { useQueries } from '@tanstack/react-query';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm, useFieldArray } from 'react-hook-form';
+import { useRef, useMemo, useState, useEffect } from 'react';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
@@ -33,7 +33,7 @@ import { useLatestExchangeRateQuery } from '@/features/exchange-rates/api/exchan
 
 import { fetchOrder } from '../../api/purchases.api';
 import { RECEIPT_TYPE_OPTIONS } from '../../model/constants';
-import { ReceiptPricingHelper } from '../components/receipt-pricing-helper';
+import { UnpricedProductsDialog } from '../components/unpriced-products-dialog';
 import { purchaseKeys, useOrdersQuery, useCreateReceiptMutation } from '../../api/purchases.queries';
 
 // ----------------------------------------------------------------------
@@ -85,19 +85,14 @@ const ItemSchema = z
       .min(1, { message: 'Obligatorio' })
       .refine((v) => /^\d+(\.\d+)?$/.test(v) && Number(v) >= 0, { message: '≥ 0' }),
     discountPct: pctString,
-    salePrice: z
-      .string()
-      .optional()
-      .or(z.literal(''))
-      .refine((v) => !v || (/^\d+(\.\d+)?$/.test(v) && Number(v) >= 0), { message: '≥ 0' }),
     locationId: z.string().optional().or(z.literal('')),
     discrepancies: z.array(DiscrepancySchema).optional(),
   })
   // Lote y vencimiento son obligatorios cuando efectivamente se está recibiendo
   // el producto (quantity > 0). Si la cantidad es 0, es un ítem "no recibido" —
   // se ignora al guardar y no necesita esos datos.
-  // Fase E: salePrice ya NO es obligatorio. Si se omite el lote queda sin precio
-  // publicado y la fijación queda al módulo de Precios.
+  // El precio de venta NO se fija en la recepción: lo gestiona el módulo de
+  // Precios. La recepción sólo registra costo, cantidades y lote.
   .superRefine((data, ctx) => {
     if (Number(data.quantity) > 0) {
       if (!data.lotNumber?.trim()) {
@@ -167,7 +162,6 @@ const emptyItem: FormValues['items'][number] = {
   invoicedQuantity: '',
   unitCostUsd: '',
   discountPct: '',
-  salePrice: '',
   locationId: '',
   discrepancies: [],
 };
@@ -177,6 +171,10 @@ const emptyItem: FormValues['items'][number] = {
 export function ReceiptCreateView() {
   const router = useRouter();
   const mutation = useCreateReceiptMutation();
+
+  // ID del último receipt creado, para abrir el modal de productos sin precio.
+  // Cuando el modal cierra, redirigimos al listado.
+  const [postReceiptId, setPostReceiptId] = useState<string | null>(null);
 
   const { data: branches = [] } = useBranchesQuery();
   const { data: suppliers = [] } = useSuppliersQuery({ isActive: true });
@@ -199,6 +197,7 @@ export function ReceiptCreateView() {
   const igtfDefault = globalConfig?.igtf_pct ?? '';
 
   const methods = useForm<FormValues>({
+    mode: 'onBlur',
     resolver: zodResolver(ReceiptSchema),
     defaultValues: {
       branchId: '',
@@ -342,7 +341,6 @@ export function ReceiptCreateView() {
           invoicedQuantity: suggestedQty,
           unitCostUsd: String(Number(it.unitCostUsd)),
           discountPct: it.discountPct ? String(Number(it.discountPct)) : '',
-          salePrice: '',
           locationId: '',
           discrepancies: [],
         };
@@ -362,14 +360,22 @@ export function ReceiptCreateView() {
 
   const submit = methods.handleSubmit(async (values) => {
     // Items con quantity=0 representan productos solicitados que NO llegaron en
-    // esta entrega (parcialmente recibidos vs faltantes). Los excluimos del
-    // payload: el backend no creará lote ni movimiento de inventario para ellos.
-    // La OC asociada quedará en estado `partial` en vez de `complete`, lo cual
-    // refleja correctamente la realidad para futuras entregas.
-    const receivedItems = values.items.filter((i) => Number(i.quantity) > 0);
+    // esta entrega. Los enviamos al backend SOLO si tienen al menos una
+    // discrepancia reportada (p.ej. "todo lo que ordené llegó dañado") — en
+    // ese caso el backend no crea lote pero sí genera el reclamo auto.
+    // Items sin quantity y sin discrepancias se descartan: son ruido del form.
+    const itemsToSend = values.items.filter((i) => {
+      const qty = Number(i.quantity);
+      const hasDiscrepancy = (i.discrepancies ?? []).some(
+        (d) => Number(d.quantity) > 0
+      );
+      return qty > 0 || hasDiscrepancy;
+    });
 
-    if (receivedItems.length === 0) {
-      toast.error('Debes recibir al menos un producto con cantidad mayor a cero.');
+    if (itemsToSend.length === 0) {
+      toast.error(
+        'Debes recibir al menos un producto con cantidad mayor a cero, o reportar una discrepancia.'
+      );
       return;
     }
 
@@ -392,7 +398,7 @@ export function ReceiptCreateView() {
         values.nativeCurrency === 'VES' && values.exchangeRateUsed
           ? Number(values.exchangeRateUsed)
           : undefined,
-      items: receivedItems.map((i) => ({
+      items: itemsToSend.map((i) => ({
         purchaseOrderId: i.purchaseOrderId || undefined,
         productId: i.productId,
         lotNumber: (i.lotNumber ?? '').trim(),
@@ -404,9 +410,8 @@ export function ReceiptCreateView() {
             : undefined,
         unitCostUsd: Number(i.unitCostUsd),
         discountPct: i.discountPct ? Number(i.discountPct) : undefined,
-        // Fase E: salePrice opcional. Si el operador no llenó nada, no enviamos
-        // el campo — el lote queda sin precio publicado.
-        salePrice: i.salePrice && i.salePrice.trim() !== '' ? Number(i.salePrice) : undefined,
+        // El precio de venta NO se fija desde la recepción: lo gestiona el
+        // módulo de Precios. El backend acepta el campo undefined.
         locationId: i.locationId || undefined,
         discrepancies: (i.discrepancies ?? []).map((d) => ({
           reason: d.reason,
@@ -438,18 +443,50 @@ export function ReceiptCreateView() {
             `Los lotes se crearán al reaprobar desde el detalle.`,
           { duration: 12000 },
         );
+        // En este caso los lotes aún no existen → no abrimos el dialog de
+        // productos sin precio (no aplica todavía). Vamos directo al listado.
+        router.push(paths.dashboard.purchases.receipts.root);
       } else {
         toast.success(
           summary
             ? `Recepción ${result.receiptNumber} registrada. ${summary}.`
             : `Recepción ${result.receiptNumber} registrada (sin OC asociada). Se crearon los lotes correspondientes.`,
         );
+        // Si hubo discrepancias, el backend ya generó un reclamo automático.
+        // Lo mostramos al operador con link directo al detalle.
+        if (result.autoClaim) {
+          toast.warning(
+            `Reclamo ${result.autoClaim.claimNumber} generado por discrepancias. Revísalo en el módulo de Reclamos.`,
+            {
+              duration: 10000,
+              action: {
+                label: 'Ver reclamo',
+                onClick: () =>
+                  router.push(paths.dashboard.claims.detail(result.autoClaim!.id)),
+              },
+            },
+          );
+        }
+        // Solo abrimos el modal de "productos sin precio" si efectivamente
+        // entró stock físico en esta recepción. Si todo quedó como discrepancia
+        // (ej. 1 ampolla pedida, 1 dañada → 0 recibido), no hay productos a
+        // los que fijar precio; vamos directo al listado.
+        const hasPhysicallyReceived = itemsToSend.some((i) => Number(i.quantity) > 0);
+        if (hasPhysicallyReceived) {
+          setPostReceiptId(result.id);
+        } else {
+          router.push(paths.dashboard.purchases.receipts.root);
+        }
       }
-      router.push(paths.dashboard.purchases.receipts.root);
     } catch (err) {
       toast.error((err as Error).message);
     }
   });
+
+  const handleClosePostReceipt = () => {
+    setPostReceiptId(null);
+    router.push(paths.dashboard.purchases.receipts.root);
+  };
 
   const watchedItems = watch('items');
   const watchedTaxPct = watch('taxPct');
@@ -569,14 +606,14 @@ export function ReceiptCreateView() {
             <Stack
               key={dIdx}
               direction={{ xs: 'column', sm: 'row' }}
-              spacing={1}
-              alignItems={{ xs: 'stretch', sm: 'center' }}
+              spacing={1.5}
+              alignItems={{ xs: 'stretch', sm: 'flex-start' }}
             >
               <Field.Select
                 name={`items.${idx}.discrepancies.${dIdx}.reason`}
                 label="Razón"
                 slotProps={{ inputLabel: { shrink: true } }}
-                sx={{ flex: 1.5, minWidth: 200 }}
+                sx={{ flex: 1.5, minWidth: 220 }}
               >
                 <MenuItem value="expired">Vencido / próximo a vencer</MenuItem>
                 <MenuItem value="defective">Defectuoso de fábrica</MenuItem>
@@ -591,8 +628,11 @@ export function ReceiptCreateView() {
               <Field.Text
                 name={`items.${idx}.discrepancies.${dIdx}.quantity`}
                 label="Cantidad"
-                slotProps={{ inputLabel: { shrink: true } }}
-                sx={{ width: { xs: '100%', sm: 110 }, flexShrink: 0 }}
+                slotProps={{
+                  inputLabel: { shrink: true },
+                  htmlInput: { inputMode: 'decimal' },
+                }}
+                sx={{ width: { xs: '100%', sm: 140 }, flexShrink: 0 }}
               />
               <Field.Text
                 name={`items.${idx}.discrepancies.${dIdx}.notes`}
@@ -602,6 +642,7 @@ export function ReceiptCreateView() {
               />
               <IconButton
                 color="error"
+                sx={{ mt: { sm: 0.5 }, flexShrink: 0 }}
                 onClick={() => {
                   const next = (watchedItems?.[idx]?.discrepancies ?? []).filter(
                     (_d, i) => i !== dIdx,
@@ -636,7 +677,16 @@ export function ReceiptCreateView() {
     const productId = watchedItems?.[idx]?.productId;
     const product = productId ? productById.get(productId) : undefined;
     const qty = Number(watchedItems?.[idx]?.quantity ?? 0);
-    const isNotReceived = fromOrder && qty === 0;
+    const invoicedQty = Number(watchedItems?.[idx]?.invoicedQuantity ?? qty);
+    const hasDiscrepancies =
+      (watchedItems?.[idx]?.discrepancies ?? []).some((d) => Number(d.quantity) > 0);
+    const hasDiff = Math.abs(invoicedQty - qty) > 0.001;
+    // "No recibido" = de la OC, sin stock físico, sin diferencia respecto a la
+    // factura y sin discrepancias. En ese caso el operador simplemente no recibió
+    // este producto en esta entrega — atenuamos la línea para señalar "siguiente
+    // entrega". Si hay diff o discrepancias, la línea está ACTIVA (hay que
+    // justificar) y NO la atenuamos para no parecer bloqueada.
+    const isNotReceived = fromOrder && qty === 0 && !hasDiff && !hasDiscrepancies;
 
     return (
       <Box sx={{ opacity: isNotReceived ? 0.55 : 1, transition: 'opacity 0.15s' }}>
@@ -653,19 +703,17 @@ export function ReceiptCreateView() {
         <Stack direction="row" alignItems="flex-start" spacing={1}>
           <Box sx={{ flex: 1 }}>
             <Stack spacing={2}>
-              <Field.Select
+              <Field.IdAutocomplete
                 name={`items.${idx}.productId`}
                 label="Producto"
+                placeholder="Buscar producto…"
                 disabled={fromOrder}
-                slotProps={{ inputLabel: { shrink: true } }}
-              >
-                <MenuItem value="">— Selecciona —</MenuItem>
-                {products.map((p) => (
-                  <MenuItem key={p.id} value={p.id}>
-                    {p.shortName ?? p.description}
-                  </MenuItem>
-                ))}
-              </Field.Select>
+                options={products.map((p) => ({
+                  id: p.id,
+                  label: p.shortName ?? p.description,
+                  secondaryLabel: p.internalCode ?? null,
+                }))}
+              />
 
               {product && (
                 <Typography variant="caption" sx={{ color: 'text.secondary', pl: 0.5 }}>
@@ -722,31 +770,13 @@ export function ReceiptCreateView() {
                   slotProps={{ inputLabel: { shrink: true } }}
                   sx={{ width: { xs: '100%', sm: 110 }, flexShrink: 0 }}
                 />
-                <Field.Text
-                  name={`items.${idx}.salePrice`}
-                  label="Precio venta (opcional)"
-                  disabled={isNotReceived}
-                  helperText="Vacío = lo fija el módulo de Precios"
-                  slotProps={{ inputLabel: { shrink: true } }}
-                  sx={{ flex: 1 }}
-                />
               </Stack>
 
-              {!isNotReceived && watchedItems?.[idx]?.productId && (
-                <ReceiptPricingHelper
-                  itemIndex={idx}
-                  productId={watchedItems[idx].productId}
-                  branchId={selectedBranchId}
-                  costUsd={Number(watchedItems[idx].unitCostUsd) || 0}
-                  currentSalePrice={
-                    watchedItems[idx].salePrice && watchedItems[idx].salePrice.trim() !== ''
-                      ? Number(watchedItems[idx].salePrice)
-                      : null
-                  }
-                />
-              )}
-
-              {!isNotReceived && renderDiscrepancyPanel(idx)}
+              {/* El panel se muestra siempre que haya diferencia entre lo
+                 facturado y lo recibido (incluso cuando Recibida=0): es el
+                 único lugar donde el operador puede justificar QUÉ pasó
+                 (vencido, dañado, etc.) y disparar el reclamo automático. */}
+              <Box sx={{ opacity: 1 }}>{renderDiscrepancyPanel(idx)}</Box>
               <Field.Select
                 name={`items.${idx}.locationId`}
                 label="Ubicación (opcional)"
@@ -1015,8 +1045,9 @@ export function ReceiptCreateView() {
                   Productos solicitados en la(s) orden(es) ({orderFieldEntries.length})
                 </Typography>
                 <Typography variant="caption" sx={{ color: 'text.disabled', display: 'block', mt: 0.5 }}>
-                  Producto y costo vienen de la OC. Solo ajusta cantidad, lote, vencimiento y
-                  precio de venta. Si un producto no llegó, marca cantidad 0.
+                  Producto y costo vienen de la OC. Solo ajusta cantidad, lote y vencimiento. El
+                  precio de venta se fija desde el módulo de Precios. Si un producto no llegó,
+                  marca cantidad 0.
                 </Typography>
               </Box>
               {orderFieldEntries.map(({ field, idx }, i) => {
@@ -1153,6 +1184,11 @@ export function ReceiptCreateView() {
           </Button>
         </Box>
       </Form>
+
+      <UnpricedProductsDialog
+        receiptId={postReceiptId}
+        onClose={handleClosePostReceipt}
+      />
     </Container>
   );
 }

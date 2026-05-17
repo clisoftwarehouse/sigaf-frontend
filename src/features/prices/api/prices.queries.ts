@@ -9,6 +9,8 @@ import {
   expirePrice,
   fetchPrices,
   fetchCurrentPrice,
+  fetchEffectivePrice,
+  fetchRevaluationFactor,
 } from './prices.api';
 
 // ----------------------------------------------------------------------
@@ -19,6 +21,9 @@ export const priceKeys = {
   detail: (id: string) => [...priceKeys.all, 'detail', id] as const,
   current: (productId: string, branchId?: string) =>
     [...priceKeys.all, 'current', productId, branchId ?? ''] as const,
+  effective: (productId: string, branchId?: string) =>
+    [...priceKeys.all, 'effective', productId, branchId ?? ''] as const,
+  revaluationFactor: () => [...priceKeys.all, 'revaluation-factor'] as const,
 };
 
 export function usePricesQuery(filters: PriceFilters = {}) {
@@ -72,5 +77,25 @@ export function useExpirePriceMutation() {
   return useMutation({
     mutationFn: (id: string) => expirePrice(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: priceKeys.all }),
+  });
+}
+
+export function useEffectivePriceQuery(params: {
+  productId: string | undefined;
+  branchId?: string;
+}) {
+  return useQuery({
+    queryKey: priceKeys.effective(params.productId ?? '', params.branchId),
+    queryFn: () =>
+      fetchEffectivePrice({ productId: params.productId as string, branchId: params.branchId }),
+    enabled: Boolean(params.productId),
+  });
+}
+
+export function useRevaluationFactorQuery() {
+  return useQuery({
+    queryKey: priceKeys.revaluationFactor(),
+    queryFn: () => fetchRevaluationFactor(),
+    staleTime: 60_000,
   });
 }

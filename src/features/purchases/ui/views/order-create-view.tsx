@@ -87,6 +87,7 @@ export function OrderCreateView() {
   const productById = useMemo(() => new Map(products.map((p) => [p.id, p] as const)), [products]);
 
   const methods = useForm<FormValues>({
+    mode: 'onBlur',
     resolver: zodResolver(OrderSchema),
     defaultValues: {
       branchId: '',

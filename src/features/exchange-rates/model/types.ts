@@ -1,3 +1,12 @@
+export const RATE_SOURCES = ['BCV', 'REPOSICION', 'manual'] as const;
+export type RateSource = (typeof RATE_SOURCES)[number];
+
+export const RATE_SOURCE_LABEL: Record<RateSource, string> = {
+  BCV: 'BCV',
+  REPOSICION: 'Reposición',
+  manual: 'Manual',
+};
+
 export type ExchangeRate = {
   id: string;
   currencyFrom: string;
@@ -13,7 +22,7 @@ export type CreateExchangeRatePayload = {
   currencyFrom?: string;
   currencyTo?: string;
   rate: number;
-  source?: string;
+  source?: RateSource;
   /** ISO date string, e.g. `2026-04-11`. */
   effectiveDate: string;
 };
@@ -29,5 +38,6 @@ export type OverrideRatePayload = {
 export type ExchangeRateFilters = {
   currencyFrom?: string;
   currencyTo?: string;
+  source?: RateSource;
   limit?: number;
 };

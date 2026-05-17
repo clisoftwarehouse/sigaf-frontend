@@ -36,7 +36,8 @@ const jsonField = z
 
 export const TerminalSchema = z.object({
   branchId: z.string().uuid({ message: 'Selecciona una sucursal' }),
-  code: z.string().min(1, { message: 'Código obligatorio' }).max(20),
+  // .trim() antes de min(1) para rechazar entradas que solo tienen espacios.
+  code: z.string().trim().min(1, { message: 'Código obligatorio' }).max(20),
   name: z.string().max(100).optional().or(z.literal('')),
   fiscalPrinterConfig: jsonField,
   scaleConfig: jsonField,

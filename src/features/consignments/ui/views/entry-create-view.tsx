@@ -74,6 +74,7 @@ export function EntryCreateView() {
   const products = useMemo(() => productsData?.data ?? [], [productsData]);
 
   const methods = useForm<FormValues>({
+    mode: 'onBlur',
     resolver: zodResolver(EntrySchema),
     defaultValues: {
       branchId: '',
@@ -212,18 +213,16 @@ export function EntryCreateView() {
                 <Stack direction="row" alignItems="flex-start" spacing={1}>
                   <Box sx={{ flex: 1 }}>
                     <Stack spacing={2}>
-                      <Field.Select
+                      <Field.IdAutocomplete
                         name={`items.${idx}.productId`}
                         label="Producto"
-                        slotProps={{ inputLabel: { shrink: true } }}
-                      >
-                        <MenuItem value="">— Selecciona —</MenuItem>
-                        {products.map((p) => (
-                          <MenuItem key={p.id} value={p.id}>
-                            {p.shortName ?? p.description}
-                          </MenuItem>
-                        ))}
-                      </Field.Select>
+                        placeholder="Buscar producto…"
+                        options={products.map((p) => ({
+                          id: p.id,
+                          label: p.shortName ?? p.description,
+                          secondaryLabel: p.internalCode ?? null,
+                        }))}
+                      />
                       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
                         <Field.Text
                           name={`items.${idx}.lotNumber`}

@@ -16,10 +16,16 @@ import { Form, Field } from '@/app/components/hook-form';
 // ----------------------------------------------------------------------
 
 export const BrandSchema = z.object({
+  // .trim() antes de min(1) rechaza "   " o "  -  " que pasarían sin trim.
+  // Además exigimos al menos un caracter alfanumérico (no solo símbolos).
   name: z
     .string()
+    .trim()
     .min(1, { message: 'El nombre es obligatorio' })
-    .max(100, { message: 'Máximo 100 caracteres' }),
+    .max(100, { message: 'Máximo 100 caracteres' })
+    .refine((v) => /[a-zA-Z0-9]/.test(v), {
+      message: 'El nombre debe incluir al menos una letra o número',
+    }),
   isLaboratory: z.boolean(),
   isActive: z.boolean(),
 });
@@ -40,6 +46,7 @@ const defaults = (current?: Brand): BrandFormValues => ({
 });
 
 export function BrandForm({ current, submitting, onSubmit, onCancel }: Props) {
+  const isEdit = Boolean(current);
   const methods = useForm<BrandFormValues>({
     mode: 'onBlur',
     resolver: zodResolver(BrandSchema),
@@ -76,10 +83,13 @@ export function BrandForm({ current, submitting, onSubmit, onCancel }: Props) {
             slotProps={{ inputLabel: { shrink: true } }}
           />
 
-          <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
-            <Field.Switch name="isLaboratory" label="Es laboratorio" />
-            <Field.Switch name="isActive" label="Activa" />
-          </Stack>
+          <Field.Switch
+            name="isLaboratory"
+            label="Es laboratorio fabricante"
+            helperText="Marca esta opción si esta entrada representa un laboratorio (Pfizer, Bayer, Genven) y no una marca comercial específica (Atamel, Tachipirin). Sirve para filtrar correctamente en el formulario de productos genéricos vs comerciales."
+          />
+          {/* "Activa" solo aparece en edit: al crear, siempre nace activa. */}
+          {isEdit && <Field.Switch name="isActive" label="Activa" />}
         </Stack>
       </Card>
 

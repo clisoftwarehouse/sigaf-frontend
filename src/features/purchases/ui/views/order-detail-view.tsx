@@ -111,6 +111,26 @@ export function OrderDetailView() {
         valueGetter: (value: number | string) => Number(value) || 0,
       },
       {
+        field: 'progress',
+        headerName: '% recibido',
+        type: 'number',
+        flex: 1,
+        minWidth: 110,
+        sortable: false,
+        filterable: false,
+        valueGetter: (_v, row) => {
+          const qty = Number(row.quantity) || 0;
+          const received = Number(row.quantityReceived) || 0;
+          if (qty <= 0) return 0;
+          return +(Math.min(100, (received / qty) * 100)).toFixed(1);
+        },
+        renderCell: ({ value }) => {
+          const pct = Number(value);
+          const color = pct >= 100 ? 'success' : pct > 0 ? 'warning' : 'default';
+          return <Chip size="small" color={color} variant="outlined" label={`${pct}%`} />;
+        },
+      },
+      {
         field: 'unitCostUsd',
         headerName: 'Costo',
         type: 'number',
@@ -286,6 +306,28 @@ export function OrderDetailView() {
               </Typography>
             )}
           </Card>
+
+          {(order.status === 'sent' || order.status === 'partial' || order.status === 'complete') && (
+            <Alert
+              severity={order.status === 'complete' ? 'success' : 'info'}
+              icon={<Iconify icon="solar:info-circle-bold" />}
+              sx={{ mb: 3 }}
+            >
+              <strong>Reglas de auto-actualización del estado:</strong>
+              <Box component="ul" sx={{ pl: 2.5, my: 0.5, '& li': { mt: 0.25 } }}>
+                <li>
+                  <strong>Enviada → Parcial:</strong> cuando se recibe al menos un ítem de la OC.
+                </li>
+                <li>
+                  <strong>Parcial → Completa:</strong> cuando la cantidad recibida iguala a la
+                  cantidad ordenada en todos los ítems.
+                </li>
+                <li>
+                  Una OC en estado <em>Completa</em> ya no admite más recepciones contra ella.
+                </li>
+              </Box>
+            </Alert>
+          )}
 
           <Card sx={{ mb: 3 }}>
             <Typography variant="subtitle2" sx={{ p: 2.5, color: 'text.secondary' }}>

@@ -14,16 +14,18 @@ import { Form, Field } from '@/app/components/hook-form';
 
 // ----------------------------------------------------------------------
 
-const RIF_REGEX = /^[VEJGP]-\d{7,9}-\d$/;
+// Las sucursales son siempre personas jurídicas: solo se acepta prefijo J.
+// RIF venezolano: J + 8 dígitos + 1 verificador.
+const RIF_REGEX = /^J-\d{8}-\d$/;
 const PHONE_REGEX = /^\+58[24]\d{9}$/;
 
 export const BranchSchema = z.object({
-  name: z.string().min(1, { message: 'Nombre obligatorio' }).max(100),
+  name: z.string().trim().min(1, { message: 'Nombre obligatorio' }).max(100),
   rif: z
     .string()
     .min(1, { message: 'RIF obligatorio' })
-    .regex(RIF_REGEX, { message: 'Formato esperado: J-12345678-9 (V/E/J/G/P)' }),
-  address: z.string().min(1, { message: 'Dirección obligatoria' }),
+    .regex(RIF_REGEX, { message: 'Formato esperado: J-12345678-9 (8 dígitos + verificador)' }),
+  address: z.string().trim().min(1, { message: 'Dirección obligatoria' }),
   phone: z
     .string()
     .optional()
@@ -94,7 +96,12 @@ export function BranchForm({ current, submitting, onSubmit, onCancel }: Props) {
             slotProps={{ inputLabel: { shrink: true } }}
           />
 
-          <Field.Identification name="rif" kind="rif" label="RIF" />
+          <Field.Identification
+            name="rif"
+            kind="rif"
+            label="RIF"
+            allowedPrefixes={['J']}
+          />
 
           <Field.Text
             name="address"

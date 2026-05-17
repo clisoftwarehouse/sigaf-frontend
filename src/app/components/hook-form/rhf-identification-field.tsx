@@ -15,6 +15,11 @@ export type IdentificationKind = 'cedula' | 'rif';
 export type RHFIdentificationFieldProps = Omit<TextFieldProps, 'value' | 'onChange'> & {
   name: string;
   kind: IdentificationKind;
+  /**
+   * Subset de prefijos a permitir. Si se omite, se usan los defaults del kind.
+   * Útil para restringir según contexto (ej. sucursales solo pueden ser "J").
+   */
+  allowedPrefixes?: string[];
 };
 
 const PREFIXES: Record<IdentificationKind, string[]> = {
@@ -22,9 +27,15 @@ const PREFIXES: Record<IdentificationKind, string[]> = {
   rif: ['V', 'E', 'J', 'G', 'P'],
 };
 
+// RIF venezolano oficial: 8 dígitos + 1 verificador. Cédula: hasta 8 dígitos.
+const DIGITS_MAX: Record<IdentificationKind, number> = {
+  cedula: 8,
+  rif: 8,
+};
+
 const HINTS: Record<IdentificationKind, string> = {
   cedula: 'Formato: V-12345678 (V venezolano, E extranjero)',
-  rif: 'Formato: J-12345678-9 (V/E/J/G/P)',
+  rif: 'Formato: J-12345678-9',
 };
 
 const DEFAULT_PREFIX: Record<IdentificationKind, string> = {
@@ -47,15 +58,27 @@ function parseValue(value: unknown, kind: IdentificationKind): Parsed {
   return fallback;
 }
 
+/**
+ * Compone el string canónico del documento. Para RIF, el DV se incluye solo
+ * cuando el prefijo es J o G (personas jurídicas). Personas naturales con RIF
+ * (V/E/P) usan formato sin DV.
+ */
 function compose(prefix: string, digits: string, check: string, kind: IdentificationKind): string {
   if (!digits && !check) return '';
   if (kind === 'cedula') return `${prefix}-${digits}`;
+  const requiresCheck = prefix === 'J' || prefix === 'G';
+  if (!requiresCheck) return `${prefix}-${digits}`;
   return `${prefix}-${digits}-${check}`;
 }
 
 // ----------------------------------------------------------------------
 
-export function RHFIdentificationField({ name, kind, ...other }: RHFIdentificationFieldProps) {
+export function RHFIdentificationField({
+  name,
+  kind,
+  allowedPrefixes,
+  ...other
+}: RHFIdentificationFieldProps) {
   const { control } = useFormContext();
 
   return (
@@ -63,7 +86,13 @@ export function RHFIdentificationField({ name, kind, ...other }: RHFIdentificati
       name={name}
       control={control}
       render={({ field, fieldState }) => (
-        <IdField field={field} fieldState={fieldState} kind={kind} {...other} />
+        <IdField
+          field={field}
+          fieldState={fieldState}
+          kind={kind}
+          allowedPrefixes={allowedPrefixes}
+          {...other}
+        />
       )}
     />
   );
@@ -76,19 +105,40 @@ type InnerProps = Omit<RHFIdentificationFieldProps, 'name'> & {
   fieldState: ControllerFieldState;
 };
 
-function IdField({ field, fieldState, kind, label, helperText, ...other }: InnerProps) {
+function IdField({
+  field,
+  fieldState,
+  kind,
+  label,
+  helperText,
+  allowedPrefixes,
+  ...other
+}: InnerProps) {
   const { error } = fieldState;
   const parsed = parseValue(field.value, kind);
 
+  const availablePrefixes =
+    allowedPrefixes && allowedPrefixes.length > 0
+      ? PREFIXES[kind].filter((p) => allowedPrefixes.includes(p))
+      : PREFIXES[kind];
+  const effectiveDefault =
+    availablePrefixes.includes(DEFAULT_PREFIX[kind])
+      ? DEFAULT_PREFIX[kind]
+      : availablePrefixes[0] ?? DEFAULT_PREFIX[kind];
+
   // Local state for prefix so it persists even when there are no digits
   // (compose returns '' for empty input, which would otherwise reset prefix on re-render).
-  const [prefix, setPrefix] = useState(parsed.prefix);
+  const [prefix, setPrefix] = useState(
+    availablePrefixes.includes(parsed.prefix) ? parsed.prefix : effectiveDefault,
+  );
 
   // Sync prefix from external value changes (e.g. form reset, parent set).
   useEffect(() => {
     const next = parseValue(field.value, kind);
-    if (next.digits || next.check) setPrefix(next.prefix);
-  }, [field.value, kind]);
+    if (next.digits || next.check) {
+      setPrefix(availablePrefixes.includes(next.prefix) ? next.prefix : effectiveDefault);
+    }
+  }, [field.value, kind, availablePrefixes, effectiveDefault]);
 
   const digits = parsed.digits;
   const check = parsed.check;
@@ -99,7 +149,7 @@ function IdField({ field, fieldState, kind, label, helperText, ...other }: Inner
   };
 
   const handleDigits = (next: string) => {
-    const cleaned = next.replace(/\D/g, '').slice(0, 9);
+    const cleaned = next.replace(/\D/g, '').slice(0, DIGITS_MAX[kind]);
     field.onChange(compose(prefix, cleaned, check, kind));
   };
 
@@ -107,6 +157,10 @@ function IdField({ field, fieldState, kind, label, helperText, ...other }: Inner
     const cleaned = next.replace(/\D/g, '').slice(0, 1);
     field.onChange(compose(prefix, digits, cleaned, kind));
   };
+
+  // Cuando solo hay un prefijo permitido, deshabilitamos el select para que se
+  // vea claro que es fijo (ej. sucursales siempre J).
+  const prefixDisabled = availablePrefixes.length === 1;
 
   return (
     <Box>
@@ -121,8 +175,9 @@ function IdField({ field, fieldState, kind, label, helperText, ...other }: Inner
           slotProps={{ inputLabel: { shrink: true } }}
           sx={{ width: 90 }}
           error={!!error}
+          disabled={prefixDisabled}
         >
-          {PREFIXES[kind].map((p) => (
+          {availablePrefixes.map((p) => (
             <MenuItem key={p} value={p}>
               {p}
             </MenuItem>
@@ -145,7 +200,10 @@ function IdField({ field, fieldState, kind, label, helperText, ...other }: Inner
           {...other}
         />
 
-        {kind === 'rif' && (
+        {kind === 'rif' && (prefix === 'J' || prefix === 'G') && (
+          // El dígito verificador solo aplica a RIF de personas jurídicas
+          // (J = jurídico, G = gobierno). Para V/E/P (personas naturales con
+          // RIF) no se solicita — el formato es <prefix>-<8 dígitos>.
           <TextField
             size={other.size}
             label="DV"

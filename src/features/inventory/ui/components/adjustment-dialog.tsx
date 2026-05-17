@@ -46,6 +46,7 @@ export function AdjustmentDialog({ lot, onClose }: Props) {
   const mutation = useCreateAdjustmentMutation();
 
   const methods = useForm<AdjustmentFormValues>({
+    mode: 'onBlur',
     resolver: zodResolver(AdjustmentSchema),
     defaultValues: {
       adjustmentType: 'damage',

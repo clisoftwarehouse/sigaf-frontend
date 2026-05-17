@@ -15,6 +15,7 @@ export async function fetchExchangeRates(
   const params: Record<string, string> = {};
   if (filters.currencyFrom) params.currencyFrom = filters.currencyFrom;
   if (filters.currencyTo) params.currencyTo = filters.currencyTo;
+  if (filters.source) params.source = filters.source;
   if (filters.limit !== undefined) params.limit = String(filters.limit);
   const res = await axios.get<ExchangeRate[]>(endpoints.exchangeRates.root, { params });
   return res.data;
@@ -22,11 +23,13 @@ export async function fetchExchangeRates(
 
 export async function fetchLatestExchangeRate(
   currencyFrom?: string,
-  currencyTo?: string
+  currencyTo?: string,
+  source?: string
 ): Promise<ExchangeRate | null> {
   const params: Record<string, string> = {};
   if (currencyFrom) params.currencyFrom = currencyFrom;
   if (currencyTo) params.currencyTo = currencyTo;
+  if (source) params.source = source;
   const res = await axios.get<ExchangeRate | null>(endpoints.exchangeRates.latest, { params });
   return res.data;
 }

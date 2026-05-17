@@ -72,6 +72,10 @@ export type Product = {
   stockMax: number | string | null;
   reorderPoint: number | string | null;
   leadTimeDays: number | null;
+  // Campos del layout unificado (QA 2026-05)
+  dosageForm: string | null;
+  commercialLine: string | null;
+  commercialVariant: string | null;
   isActive: boolean;
   inventoryBlocked: boolean;
   createdAt: string;
@@ -119,6 +123,10 @@ export type CreateProductPayload = {
   stockMax?: number;
   reorderPoint?: number;
   leadTimeDays?: number;
+  // Campos del layout unificado (QA 2026-05)
+  dosageForm?: string;
+  commercialLine?: string;
+  commercialVariant?: string;
   barcodes?: CreateBarcodePayload[];
   activeIngredients?: CreateProductIngredientPayload[];
 };

@@ -14,6 +14,7 @@ const claims = `${ROOTS.DASHBOARD}/claims`;
 const consignments = `${ROOTS.DASHBOARD}/consignments`;
 const org = `${ROOTS.DASHBOARD}/organization`;
 const admin = `${ROOTS.DASHBOARD}/admin`;
+const pos = `${ROOTS.DASHBOARD}/pos`;
 
 const crud = (base: string) => ({
   root: base,
@@ -75,6 +76,21 @@ export const paths = {
       terminals: crud(`${org}/terminals`),
       locations: crud(`${org}/locations`),
       branchGroups: crud(`${org}/branch-groups`),
+    },
+    pos: {
+      root: pos,
+      customers: crud(`${pos}/customers`),
+      prescriptions: {
+        root: `${pos}/prescriptions`,
+        new: `${pos}/prescriptions/new`,
+        detail: (id: string) => `${pos}/prescriptions/${id}`,
+      },
+      cashSessions: {
+        root: `${pos}/cash-sessions`,
+        detail: (id: string) => `${pos}/cash-sessions/${id}`,
+      },
+      paymentsReport: `${pos}/payments-report`,
+      terminalPairing: (id: string) => `${pos}/terminals/${id}/pairing`,
     },
     admin: {
       root: admin,

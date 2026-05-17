@@ -92,6 +92,10 @@ const HeaderRoot = styled(AppBar, {
     content: '""',
     visibility: 'hidden',
     position: 'absolute',
+    // Sin pointer-events, los pseudo-elementos ::before (blur) y ::after
+    // (sombra) interceptan clicks sobre el header al hacer scroll, aunque
+    // tengan z-index negativo. El usuario ve los botones pero no responden.
+    pointerEvents: 'none',
     transition: theme.transitions.create(['opacity', 'visibility'], {
       easing: theme.transitions.easing.easeInOut,
       duration: theme.transitions.duration.shorter,

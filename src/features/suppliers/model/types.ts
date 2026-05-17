@@ -14,6 +14,15 @@ export type Supplier = {
   paymentTermsDays: number | null;
   consignmentCommissionPct: number | null;
   invoicesInCurrency: SupplierInvoiceCurrency;
+  // Descuentos comerciales (BI). Cada switch + porcentaje típico opcional.
+  hasHeaderDiscount: boolean;
+  headerDiscountPct: number | string | null;
+  hasLinearDiscount: boolean;
+  linearDiscountPct: number | string | null;
+  hasPromptPaymentDiscount: boolean;
+  promptPaymentDiscountPct: number | string | null;
+  hasVolumeDiscount: boolean;
+  volumeDiscountPct: number | string | null;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -31,6 +40,14 @@ export type CreateSupplierPayload = {
   paymentTermsDays?: number;
   consignmentCommissionPct?: number;
   invoicesInCurrency?: SupplierInvoiceCurrency;
+  hasHeaderDiscount?: boolean;
+  headerDiscountPct?: number;
+  hasLinearDiscount?: boolean;
+  linearDiscountPct?: number;
+  hasPromptPaymentDiscount?: boolean;
+  promptPaymentDiscountPct?: number;
+  hasVolumeDiscount?: boolean;
+  volumeDiscountPct?: number;
 };
 
 export type UpdateSupplierPayload = Partial<CreateSupplierPayload>;

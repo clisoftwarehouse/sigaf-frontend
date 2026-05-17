@@ -41,6 +41,11 @@ const ICONS = {
   permissions: <Iconify icon="solar:lock-password-outline" width={22} />,
   config: <Iconify icon="solar:settings-bold-duotone" width={22} />,
   imports: <Iconify icon="solar:import-bold" width={22} />,
+  pos: <Iconify icon="solar:cart-3-bold" width={22} />,
+  customers: <Iconify icon="solar:users-group-rounded-bold-duotone" width={22} />,
+  prescriptions: <Iconify icon="solar:notes-bold-duotone" width={22} />,
+  cashSessions: <Iconify icon="solar:wad-of-money-bold" width={22} />,
+  paymentsReport: <Iconify icon="solar:chart-square-outline" width={22} />,
 };
 
 // ----------------------------------------------------------------------
@@ -190,6 +195,44 @@ export const navData: NavSectionProps['data'] = [
             title: 'Liquidaciones',
             path: paths.dashboard.consignments.liquidations.root,
             icon: ICONS.liquidations,
+          },
+        ],
+      },
+    ],
+  },
+  {
+    subheader: 'Punto de venta',
+    items: [
+      {
+        title: 'POS',
+        path: paths.dashboard.pos.customers.root,
+        icon: ICONS.pos,
+        extraMatchPaths: [
+          paths.dashboard.pos.customers.root,
+          paths.dashboard.pos.prescriptions.root,
+          paths.dashboard.pos.cashSessions.root,
+          paths.dashboard.pos.paymentsReport,
+        ],
+        children: [
+          {
+            title: 'Clientes',
+            path: paths.dashboard.pos.customers.root,
+            icon: ICONS.customers,
+          },
+          {
+            title: 'Récipes',
+            path: paths.dashboard.pos.prescriptions.root,
+            icon: ICONS.prescriptions,
+          },
+          {
+            title: 'Sesiones de caja',
+            path: paths.dashboard.pos.cashSessions.root,
+            icon: ICONS.cashSessions,
+          },
+          {
+            title: 'Reporte de pagos',
+            path: paths.dashboard.pos.paymentsReport,
+            icon: ICONS.paymentsReport,
           },
         ],
       },

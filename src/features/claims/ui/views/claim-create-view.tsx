@@ -59,6 +59,7 @@ export function ClaimCreateView() {
   const { data: prefillReceipt } = useReceiptQuery(prefillReceiptId);
 
   const methods = useForm<FormValues>({
+    mode: 'onBlur',
     resolver: zodResolver(ClaimSchema),
     defaultValues: {
       supplierId: '',

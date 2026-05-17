@@ -52,6 +52,33 @@ function findAncestors(
   return null;
 }
 
+/**
+ * Extrae solo la rama que contiene a `targetId`: desde la raíz baja un único
+ * camino visitando solo el ancestro relevante en cada nivel y muestra todas
+ * las hijas del nodo target. Las ramas hermanas se ocultan para que el
+ * operador vea exactamente la jerarquía de su categoría sin ruido visual.
+ */
+function extractBranch(
+  nodes: TreeItemPayload[],
+  targetId: string
+): TreeItemPayload[] | null {
+  for (const node of nodes) {
+    if (node.id === targetId) {
+      // Encontramos el nodo target: lo retornamos con TODAS sus hijas.
+      return [node];
+    }
+    if (node.children) {
+      const subBranch = extractBranch(node.children, targetId);
+      if (subBranch) {
+        // El target está bajo este nodo: devolvemos este nodo con solo el
+        // sub-árbol que llega al target (sin las hermanas de la rama target).
+        return [{ ...node, children: subBranch }];
+      }
+    }
+  }
+  return null;
+}
+
 function flattenItems(nodes: TreeItemPayload[]): TreeItemPayload[] {
   return nodes.flatMap((n) => [n, ...(n.children ? flattenItems(n.children) : [])]);
 }
@@ -66,7 +93,14 @@ interface Props {
 }
 
 export function CategoryTreeDialog({ open, onClose, tree, focusId }: Props) {
-  const items = useMemo(() => toTreeItems(tree), [tree]);
+  const allItems = useMemo(() => toTreeItems(tree), [tree]);
+  // Si hay focusId, mostramos solo la rama que llega a esa categoría
+  // (raíz → ... → focused → hijas). Las hermanas se ocultan para que el
+  // operador vea exactamente la jerarquía relevante sin ruido.
+  const items = useMemo(() => {
+    if (!focusId) return allItems;
+    return extractBranch(allItems, focusId) ?? allItems;
+  }, [allItems, focusId]);
   const flat = useMemo(() => flattenItems(items), [items]);
   const expandedIds = useMemo(() => {
     if (!focusId) return [];
@@ -75,8 +109,8 @@ export function CategoryTreeDialog({ open, onClose, tree, focusId }: Props) {
   }, [items, focusId]);
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="xl" fullWidth>
-      <DialogTitle>Árbol de categorías</DialogTitle>
+    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+      <DialogTitle>{focusId ? 'Rama de la categoría' : 'Árbol de categorías'}</DialogTitle>
       <DialogContent dividers sx={{ maxHeight: 500 }}>
         {items.length === 0 ? (
           <Typography variant="body2" sx={{ color: 'text.secondary' }}>
@@ -138,7 +172,15 @@ export function CategoryTreeDialog({ open, onClose, tree, focusId }: Props) {
           alignItems="center"
           sx={{ width: '100%', justifyContent: 'space-between' }}
         >
-          <Chip size="small" variant="outlined" label={`${flat.length} categorías en total`} />
+          <Chip
+            size="small"
+            variant="outlined"
+            label={
+              focusId
+                ? `${flat.length} categorías en esta rama`
+                : `${flat.length} categorías en total`
+            }
+          />
           <Button onClick={onClose}>Cerrar</Button>
         </Stack>
       </DialogActions>
