@@ -44,13 +44,14 @@ export function BranchGroupsListView() {
   const [createOpen, setCreateOpen] = useState(false);
   const [createName, setCreateName] = useState('');
   const [createDescription, setCreateDescription] = useState('');
+  const [nameTouched, setNameTouched] = useState(false);
   const [toDelete, setToDelete] = useState<BranchGroup | null>(null);
 
+  const nameError = nameTouched && !createName.trim() ? 'El nombre del grupo es obligatorio' : '';
+
   const handleCreate = async () => {
-    if (!createName.trim()) {
-      toast.error('El nombre del grupo es obligatorio');
-      return;
-    }
+    setNameTouched(true);
+    if (!createName.trim()) return;
     try {
       const created = await createMutation.mutateAsync({
         name: createName.trim(),
@@ -60,6 +61,7 @@ export function BranchGroupsListView() {
       setCreateOpen(false);
       setCreateName('');
       setCreateDescription('');
+      setNameTouched(false);
       router.push(paths.dashboard.organization.branchGroups.edit(created.id));
     } catch (err) {
       toast.error((err as Error).message);
@@ -236,7 +238,7 @@ export function BranchGroupsListView() {
         </Box>
       </Card>
 
-      <Dialog open={createOpen} onClose={() => setCreateOpen(false)} maxWidth="xl" fullWidth>
+      <Dialog open={createOpen} onClose={() => { setCreateOpen(false); setNameTouched(false); }} maxWidth="xl" fullWidth>
         <DialogTitle>Nuevo grupo</DialogTitle>
         <DialogContent dividers>
           <Stack spacing={2.5} sx={{ mt: 1 }}>
@@ -246,6 +248,9 @@ export function BranchGroupsListView() {
               placeholder="Ej. Caracas premium"
               value={createName}
               onChange={(e) => setCreateName(e.target.value)}
+              onBlur={() => setNameTouched(true)}
+              error={!!nameError}
+              helperText={nameError}
               slotProps={{ inputLabel: { shrink: true } }}
               fullWidth
             />
@@ -265,7 +270,7 @@ export function BranchGroupsListView() {
           </Stack>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setCreateOpen(false)}>Cancelar</Button>
+          <Button onClick={() => { setCreateOpen(false); setNameTouched(false); }}>Cancelar</Button>
           <Button variant="contained" loading={createMutation.isPending} onClick={handleCreate}>
             Crear y configurar
           </Button>

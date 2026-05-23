@@ -43,8 +43,10 @@ export function CategoriesListView() {
   });
   // Cargamos también el listado SIN filtro de isActive solo para resolver
   // nombres de padre: una hija activa puede tener un padre inactivo y sin
-  // este mapa global la columna "Padre" mostraría el UUID en bruto.
-  const { data: allCategories } = useCategoriesQuery();
+  // este mapa global la columna "Padre" mostraría el UUID en bruto. Usamos
+  // `flat` (no `data`) porque el backend devuelve un árbol y `data` solo
+  // expone los roots — las hijas profundas no quedaban en el mapa.
+  const { flat: allCategoriesFlat } = useCategoriesQuery();
   const deactivateMutation = useDeleteCategoryMutation();
   const restoreMutation = useRestoreCategoryMutation();
   const [toDeactivate, setToDeactivate] = useState<{ id: string; name: string } | null>(null);
@@ -53,9 +55,9 @@ export function CategoriesListView() {
 
   const parentNameById = useMemo(() => {
     const map = new Map<string, string>();
-    (allCategories ?? []).forEach((c) => map.set(c.id, c.name));
+    allCategoriesFlat.forEach((c) => map.set(c.id, c.name));
     return map;
-  }, [allCategories]);
+  }, [allCategoriesFlat]);
 
   // Cuenta de hijas activas: si la categoría a inactivar tiene >0, el dialog
   // pide confirmación explícita antes de hacer cascada (en vez de bloquear).

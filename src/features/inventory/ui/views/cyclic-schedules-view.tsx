@@ -78,14 +78,18 @@ export function CyclicSchedulesView() {
   const [editing, setEditing] = useState<CyclicSchedule | null>(null);
   const [creating, setCreating] = useState(false);
   const [draft, setDraft] = useState<Draft>(emptyDraft());
+  const [nameTouched, setNameTouched] = useState(false);
+  const nameError = nameTouched && !draft.name.trim() ? 'El nombre es obligatorio' : '';
 
   const openCreate = () => {
     setDraft(emptyDraft());
+    setNameTouched(false);
     setCreating(true);
   };
 
   const openEdit = (s: CyclicSchedule) => {
     setEditing(s);
+    setNameTouched(false);
     setDraft({
       branchId: s.branchId,
       name: s.name,
@@ -101,17 +105,16 @@ export function CyclicSchedulesView() {
   const close = () => {
     setCreating(false);
     setEditing(null);
+    setNameTouched(false);
   };
 
   const save = async () => {
+    setNameTouched(true);
     if (!draft.branchId) {
       toast.error('Selecciona una sucursal');
       return;
     }
-    if (!draft.name.trim()) {
-      toast.error('El nombre es obligatorio');
-      return;
-    }
+    if (!draft.name.trim()) return;
     if (draft.abcClasses.length === 0) {
       toast.error('Debe incluir al menos una clase ABC');
       return;
@@ -313,6 +316,9 @@ export function CyclicSchedulesView() {
               label="Nombre"
               value={draft.name}
               onChange={(e) => setDraft({ ...draft, name: e.target.value })}
+              onBlur={() => setNameTouched(true)}
+              error={!!nameError}
+              helperText={nameError}
               placeholder="Conteo cíclico clase A semanal"
               slotProps={{ inputLabel: { shrink: true } }}
             />

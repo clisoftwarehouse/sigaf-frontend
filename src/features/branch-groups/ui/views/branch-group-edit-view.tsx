@@ -343,7 +343,7 @@ export function BranchGroupEditView() {
           {/* ─── Sucursales asignadas ─────────────────────────────────────── */}
           <Box>
             <Typography variant="subtitle1" sx={{ mb: 0.5 }}>
-              Sucursales asignadas
+              Sucursales asignadas a <Box component="span" sx={{ color: 'primary.main' }}>{group.name}</Box>
             </Typography>
             <Typography
               variant="caption"
@@ -404,7 +404,10 @@ export function BranchGroupEditView() {
               alignItems="center"
               sx={{ mb: 0.5 }}
             >
-              <Typography variant="subtitle1">Matriz de aprobación por monto</Typography>
+              <Typography variant="subtitle1">
+                Matriz de aprobación por monto ·{' '}
+                <Box component="span" sx={{ color: 'primary.main' }}>{group.name}</Box>
+              </Typography>
               <Button
                 size="small"
                 variant="outlined"
@@ -522,7 +525,8 @@ export function BranchGroupEditView() {
           {/* ─── Matriz por categoría ─────────────────────────────────────── */}
           <Box>
             <Typography variant="subtitle1" sx={{ mb: 0.5 }}>
-              Aprobador especial por categoría sensible
+              Aprobador especial por categoría sensible ·{' '}
+              <Box component="span" sx={{ color: 'primary.main' }}>{group.name}</Box>
             </Typography>
             <Typography
               variant="caption"

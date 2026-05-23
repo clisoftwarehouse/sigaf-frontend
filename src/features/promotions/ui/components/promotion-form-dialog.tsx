@@ -58,6 +58,7 @@ const todayISO = () => new Date().toISOString().slice(0, 10);
  */
 export function PromotionFormDialog({ open, onClose }: Props) {
   const [name, setName] = useState('');
+  const [nameTouched, setNameTouched] = useState(false);
   const [description, setDescription] = useState('');
   const [type, setType] = useState<PromotionType>('percentage');
   const [value, setValue] = useState('');
@@ -83,6 +84,7 @@ export function PromotionFormDialog({ open, onClose }: Props) {
   useEffect(() => {
     if (open) {
       setName('');
+      setNameTouched(false);
       setDescription('');
       setType('percentage');
       setValue('');
@@ -180,6 +182,9 @@ export function PromotionFormDialog({ open, onClose }: Props) {
             required
             value={name}
             onChange={(e) => setName(e.target.value)}
+            onBlur={() => setNameTouched(true)}
+            error={nameTouched && !name.trim()}
+            helperText={nameTouched && !name.trim() ? 'El nombre de la promoción es obligatorio' : ''}
             slotProps={{ inputLabel: { shrink: true }, htmlInput: { maxLength: 200 } }}
             placeholder="Ej. Descuento 20% en analgésicos"
           />
