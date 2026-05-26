@@ -86,56 +86,34 @@ export const PRODUCT_NATURE_OPTIONS = [
 
 export type ProductNature = (typeof PRODUCT_NATURE_OPTIONS)[number]['value'];
 
-/**
- * Forma farmacéutica (solo para naturaleza genérico/comercial). Códigos
- * cortos del estándar farmacéutico que se concatenan al nombre.
- */
-export const DOSAGE_FORM_OPTIONS = [
-  { value: 'TAB', label: 'Tabletas / Comprimidos' },
-  { value: 'CAP', label: 'Cápsulas' },
-  { value: 'SUSP', label: 'Suspensión' },
-  { value: 'JBE', label: 'Jarabe' },
-  { value: 'CRM', label: 'Crema' },
-  { value: 'POM', label: 'Pomada' },
-  { value: 'GEL', label: 'Gel' },
-  { value: 'GTAS', label: 'Gotas' },
-  { value: 'INY', label: 'Inyectable' },
-  { value: 'AER', label: 'Aerosol / Spray' },
-  { value: 'INH', label: 'Inhalador' },
-  { value: 'SUP', label: 'Supositorio' },
-  { value: 'PRC', label: 'Parche' },
-  { value: 'POL', label: 'Polvo' },
-] as const;
+// Catálogos amplios (formas farmacéuticas y presentaciones) viven en
+// archivos separados — se sincronizan desde el Excel del cliente
+// (`src/database/seeds/assets/Estandarización de Datos.xlsx`).
+export { DOSAGE_FORM_OPTIONS } from './dosage-forms';
+export { PACKAGING_TYPE_OPTIONS } from './packaging-types';
 
 /**
- * Tipo de empaque (estructura física). Códigos cortos para el string
- * compuesto de presentación: "CJA X30", "TUB X75ML", "FCO X120ML".
- */
-export const PACKAGING_TYPE_OPTIONS = [
-  { value: 'CJA', label: 'Caja' },
-  { value: 'FCO', label: 'Frasco' },
-  { value: 'BLS', label: 'Blíster' },
-  { value: 'TUB', label: 'Tubo' },
-  { value: 'BOT', label: 'Botella' },
-  { value: 'PQT', label: 'Paquete' },
-  { value: 'AMP', label: 'Ampolla' },
-  { value: 'VIL', label: 'Vial' },
-  { value: 'SBR', label: 'Sobre' },
-  { value: 'BSA', label: 'Bolsa' },
-] as const;
-
-/**
- * Unidad del contenido del empaque. Vacío = unidades. Otros = volumen/peso
- * por unidad (ej. "TUB X75ML" para tubo de 75 mililitros, "AMP X500MG"
- * para ampolla de 500 miligramos).
+ * Unidad del contenido del empaque (catálogo UMB del Excel del cliente,
+ * QA #99a). Ej: "TUB X75ml" = tubo con 75 mililitros, "AMP X500mg" =
+ * ampolla con 500 miligramos. La opción vacía representa "unidades sueltas".
  */
 export const PACKAGING_UNIT_OPTIONS = [
   { value: '', label: 'Unds' },
-  { value: 'MG', label: 'mg' },
-  { value: 'G', label: 'g' },
-  { value: 'KG', label: 'kg' },
-  { value: 'ML', label: 'ml' },
-  { value: 'L', label: 'L' },
+  { value: 'Und', label: 'Unidad' },
+  { value: 'Dosis', label: 'Dosis' },
+  { value: 'Sobre', label: 'Sobre' },
+  { value: 'Kit', label: 'Kit / Estuche' },
+  { value: 'Aplic.', label: 'Aplicación' },
+  { value: 'ml', label: 'Mililitro' },
+  { value: 'L', label: 'Litro' },
+  { value: 'oz', label: 'Onza' },
+  { value: 'g', label: 'Gramo' },
+  { value: 'mg', label: 'Miligramo' },
+  { value: 'kg', label: 'Kilogramo' },
+  { value: 'mcg', label: 'Microgramo' },
+  { value: 'UI', label: 'Unidad Internacional' },
+  { value: 'mEq', label: 'Miliequivalente' },
+  { value: 'UFC', label: 'Unidad Formadora de Colonias' },
 ] as const;
 
 /**

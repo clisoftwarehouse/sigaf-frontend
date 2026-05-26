@@ -23,6 +23,7 @@ import TextField from '@mui/material/TextField';
 import Accordion from '@mui/material/Accordion';
 import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
+import Autocomplete from '@mui/material/Autocomplete';
 import AccordionDetails from '@mui/material/AccordionDetails';
 import AccordionSummary from '@mui/material/AccordionSummary';
 import FormControlLabel from '@mui/material/FormControlLabel';
@@ -60,7 +61,21 @@ const BarcodeItemSchema = z.object({
   isPrimary: z.boolean(),
 });
 
-const CONCENTRATION_UNITS = ['mg', 'g', 'mcg', 'kg', 'mL', 'L', 'UI', '%', 'mEq'] as const;
+// Unidades de concentración del catálogo estándar (Excel del cliente, QA #99a).
+const CONCENTRATION_UNITS = [
+  'mg',
+  'g',
+  'mcg',
+  'kg',
+  'ml',
+  'L',
+  'UI',
+  'mEq',
+  'UFC',
+  '%',
+  'mmol',
+  'U',
+] as const;
 
 const IngredientItemSchema = z.object({
   activeIngredientId: z.string().uuid({ message: 'Selecciona un principio activo' }),
@@ -982,19 +997,31 @@ export function ProductForm({
                   >
                     FORMA FARMACÉUTICA
                   </Typography>
-                  <Field.Select
+                  {/* Autocomplete (en lugar de Select): el catálogo tiene
+                     269 formas farmacéuticas — un dropdown plano sería
+                     inmanejable. El usuario tipea y filtra. */}
+                  <Controller
                     name="dosageForm"
-                    label="Selecciona la forma"
-                    slotProps={{ inputLabel: { shrink: true } }}
-                    fullWidth
-                  >
-                    <MenuItem value="">— Selecciona —</MenuItem>
-                    {DOSAGE_FORM_OPTIONS.map((o) => (
-                      <MenuItem key={o.value} value={o.value}>
-                        {o.label}
-                      </MenuItem>
-                    ))}
-                  </Field.Select>
+                    control={control}
+                    render={({ field }) => (
+                      <Autocomplete
+                        fullWidth
+                        options={DOSAGE_FORM_OPTIONS.map((o) => o.value)}
+                        value={field.value || null}
+                        onChange={(_e, next) => field.onChange(next ?? '')}
+                        getOptionLabel={(opt) => opt}
+                        isOptionEqualToValue={(a, b) => a === b}
+                        renderInput={(params) => (
+                          <TextField
+                            {...params}
+                            label="Selecciona la forma"
+                            placeholder="Buscar forma farmacéutica…"
+                            slotProps={{ inputLabel: { shrink: true } }}
+                          />
+                        )}
+                      />
+                    )}
+                  />
                 </Box>
               )}
               <Box sx={{ flex: 1, width: '100%' }}>
@@ -1015,19 +1042,28 @@ export function ProductForm({
                   spacing={1.5}
                   alignItems={{ xs: 'stretch', sm: 'flex-start' }}
                 >
-                  <Field.Select
+                  <Controller
                     name="packagingType"
-                    label="Tipo"
-                    slotProps={{ inputLabel: { shrink: true } }}
-                    sx={{ flex: 1, minWidth: 160 }}
-                  >
-                    <MenuItem value="">— Selecciona tipo —</MenuItem>
-                    {PACKAGING_TYPE_OPTIONS.map((o) => (
-                      <MenuItem key={o.value} value={o.value}>
-                        {o.label}
-                      </MenuItem>
-                    ))}
-                  </Field.Select>
+                    control={control}
+                    render={({ field }) => (
+                      <Autocomplete
+                        options={PACKAGING_TYPE_OPTIONS.map((o) => o.value)}
+                        value={field.value || null}
+                        onChange={(_e, next) => field.onChange(next ?? '')}
+                        getOptionLabel={(opt) => opt}
+                        isOptionEqualToValue={(a, b) => a === b}
+                        sx={{ flex: 1, minWidth: 160 }}
+                        renderInput={(params) => (
+                          <TextField
+                            {...params}
+                            label="Tipo"
+                            placeholder="Buscar tipo…"
+                            slotProps={{ inputLabel: { shrink: true } }}
+                          />
+                        )}
+                      />
+                    )}
+                  />
                   <Field.Text
                     name="packagingQuantity"
                     label="Cantidad"

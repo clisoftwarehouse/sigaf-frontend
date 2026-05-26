@@ -3,9 +3,12 @@ import type { TherapeuticUse } from '@/features/therapeutic-uses/model/types';
 export type ActiveIngredient = {
   id: string;
   name: string;
+  /** @deprecated Usar `therapeuticUses` (M2M). Se mantiene para compat. */
   therapeuticUseId: string | null;
-  /** Eager-loaded relation when listing/finding (backend joins therapeuticUse). */
+  /** @deprecated Usar `therapeuticUses` (M2M). Se mantiene para compat. */
   therapeuticUse?: TherapeuticUse | null;
+  /** Acciones terapéuticas asociadas (M2M). Un PA puede tener varias. */
+  therapeuticUses?: TherapeuticUse[];
   atcCode: string | null;
   innName: string | null;
   createdAt: string;
@@ -13,7 +16,10 @@ export type ActiveIngredient = {
 
 export type CreateActiveIngredientPayload = {
   name: string;
+  /** @deprecated Usar `therapeuticUseIds`. Se mantiene para compat. */
   therapeuticUseId?: string;
+  /** IDs de acciones terapéuticas asociadas (M2M). */
+  therapeuticUseIds?: string[];
   atcCode?: string;
   innName?: string;
 };

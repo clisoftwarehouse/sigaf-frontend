@@ -2,12 +2,15 @@ import type { ActiveIngredient, CreateActiveIngredientPayload } from '../../mode
 
 import * as z from 'zod';
 import { useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 
+import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
+import TextField from '@mui/material/TextField';
+import Autocomplete from '@mui/material/Autocomplete';
 
 import { FormFooter } from '@/shared/ui/form-footer';
 import { Form, Field } from '@/app/components/hook-form';
@@ -21,7 +24,8 @@ export const ActiveIngredientSchema = z.object({
     .trim()
     .min(1, { message: 'El nombre es obligatorio' })
     .max(200, { message: 'Máximo 200 caracteres' }),
-  therapeuticUseId: z.string().uuid().optional().or(z.literal('')),
+  // QA #100: un PA puede tener varias acciones terapéuticas (M2M).
+  therapeuticUseIds: z.array(z.string().uuid()),
   // ATC e INN se mantienen en el modelo (datos maestros pre-cargados desde
   // Vademecum) pero ya no se piden al crear manualmente. Quedan vacíos si el
   // operador agrega un PA a mano; el job de scraping los rellena después.
@@ -38,6 +42,18 @@ type Props = {
   onCancel?: () => void;
 };
 
+/**
+ * Deriva los IDs iniciales de acciones terapéuticas a partir de la relación
+ * M2M (`therapeuticUses`); si no viene poblada, hace fallback al ID legacy
+ * (`therapeuticUseId`) — útil para PAs creados antes del refactor M2M.
+ */
+function initialTherapeuticUseIds(current?: ActiveIngredient): string[] {
+  if (current?.therapeuticUses?.length) {
+    return current.therapeuticUses.map((t) => t.id);
+  }
+  return current?.therapeuticUseId ? [current.therapeuticUseId] : [];
+}
+
 export function ActiveIngredientForm({ current, submitting, onSubmit, onCancel }: Props) {
   const { data: therapeuticUseOptions = [], isLoading: loadingUses } = useTherapeuticUseOptions();
 
@@ -46,19 +62,19 @@ export function ActiveIngredientForm({ current, submitting, onSubmit, onCancel }
     resolver: zodResolver(ActiveIngredientSchema),
     defaultValues: {
       name: current?.name ?? '',
-      therapeuticUseId: current?.therapeuticUseId ?? '',
+      therapeuticUseIds: initialTherapeuticUseIds(current),
       atcCode: current?.atcCode ?? '',
       innName: current?.innName ?? '',
     },
   });
 
-  const { handleSubmit, reset } = methods;
+  const { control, handleSubmit, reset } = methods;
 
   useEffect(() => {
     if (current) {
       reset({
         name: current.name,
-        therapeuticUseId: current.therapeuticUseId ?? '',
+        therapeuticUseIds: initialTherapeuticUseIds(current),
         atcCode: current.atcCode ?? '',
         innName: current.innName ?? '',
       });
@@ -68,7 +84,7 @@ export function ActiveIngredientForm({ current, submitting, onSubmit, onCancel }
   const submit = handleSubmit(async (values) => {
     await onSubmit({
       name: values.name.trim(),
-      therapeuticUseId: values.therapeuticUseId ? values.therapeuticUseId : undefined,
+      therapeuticUseIds: values.therapeuticUseIds.length ? values.therapeuticUseIds : undefined,
       atcCode: values.atcCode ? values.atcCode.trim().toUpperCase() : undefined,
       innName: values.innName ? values.innName.trim() : undefined,
     });
@@ -85,13 +101,45 @@ export function ActiveIngredientForm({ current, submitting, onSubmit, onCancel }
             slotProps={{ inputLabel: { shrink: true } }}
           />
 
-          <Field.IdAutocomplete
-            name="therapeuticUseId"
-            label="Acción terapéutica"
-            placeholder="Buscar acción terapéutica…"
-            options={therapeuticUseOptions}
-            loading={loadingUses}
-            helperText="Determina cómo se filtra el producto que use este principio activo. Los datos ATC/INN se completan automáticamente desde Vademecum."
+          {/* Multi-select de acciones terapéuticas. Ej. AAS = analgésico +
+             antiinflamatorio + antiplaquetario. Los datos ATC/INN se
+             completan automáticamente desde Vademecum. */}
+          <Controller
+            name="therapeuticUseIds"
+            control={control}
+            render={({ field, fieldState }) => {
+              const selected = therapeuticUseOptions.filter((o) => field.value?.includes(o.id));
+              return (
+                <Autocomplete
+                  multiple
+                  options={therapeuticUseOptions}
+                  value={selected}
+                  onChange={(_e, next) => field.onChange(next.map((o) => o.id))}
+                  loading={loadingUses}
+                  getOptionLabel={(o) => o.label ?? ''}
+                  isOptionEqualToValue={(a, b) => a.id === b.id}
+                  filterSelectedOptions
+                  renderOption={(props, option) => (
+                    <li {...props} key={option.id}>
+                      <Box>{option.label}</Box>
+                    </li>
+                  )}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="Acciones terapéuticas"
+                      placeholder="Selecciona una o varias…"
+                      error={!!fieldState.error}
+                      helperText={
+                        fieldState.error?.message ??
+                        'Un principio activo puede tener varias acciones (analgésico, antiinflamatorio, etc.).'
+                      }
+                      slotProps={{ inputLabel: { shrink: true } }}
+                    />
+                  )}
+                />
+              );
+            }}
           />
         </Stack>
       </Card>
