@@ -254,23 +254,40 @@ export function ReceiptCreateView() {
     setValue('nativeCurrency', selectedSupplier.invoicesInCurrency, { shouldValidate: true });
   }, [selectedSupplier, setValue]);
 
-  // QA #104: cuando el operador elige proveedor, autopoblar los % sugeridos
-  // del maestro. El operador puede sobreescribir cada uno para reflejar lo
-  // que dice la factura específica (la queja del QA era justamente que
-  // había que ir al maestro para cambiarlos). Pronto pago se excluye —
-  // pertenece al módulo de pagos. Volumen no se pre-llena fijo: se
-  // auto-calcula según threshold (ver useEffect siguiente).
+  // QA #104: cuando el operador elige proveedor (o lo cambia), autopoblar
+  // los % sugeridos del maestro. Si CAMBIA el supplier respecto al anterior,
+  // forzamos la sobrescritura para no dejar valores fantasma del proveedor
+  // previo (bug reportado por usuario). Si es el mismo supplier, respetamos
+  // ediciones manuales del operador (no pisamos lo que ya tiene).
+  const lastAutoPopulatedSupplierRef = useRef<string | null>(null);
   useEffect(() => {
-    if (!selectedSupplier) return;
-    if (
-      selectedSupplier.hasHeaderDiscount &&
-      !methods.getValues('headerDiscountPct') &&
-      selectedSupplier.headerDiscountPct != null
-    ) {
-      setValue('headerDiscountPct', String(Number(selectedSupplier.headerDiscountPct)), {
-        shouldValidate: false,
-      });
+    const supplierChanged = selectedSupplier?.id !== lastAutoPopulatedSupplierRef.current;
+
+    if (!selectedSupplier) {
+      // Sin proveedor: limpiar para no dejar valores zombies.
+      if (lastAutoPopulatedSupplierRef.current !== null) {
+        setValue('headerDiscountPct', '', { shouldValidate: false });
+        setValue('volumeDiscountPct', '', { shouldValidate: false });
+        lastAutoPopulatedSupplierRef.current = null;
+      }
+      return;
     }
+
+    const writeHeader = (value: string) =>
+      setValue('headerDiscountPct', value, { shouldValidate: false });
+
+    if (selectedSupplier.hasHeaderDiscount && selectedSupplier.headerDiscountPct != null) {
+      // Sobrescribir siempre que cambie el proveedor; respetar edit manual
+      // sólo cuando es el mismo proveedor que ya pobló antes.
+      if (supplierChanged || !methods.getValues('headerDiscountPct')) {
+        writeHeader(String(Number(selectedSupplier.headerDiscountPct)));
+      }
+    } else if (supplierChanged) {
+      // El nuevo proveedor NO ofrece este descuento → limpiar valor del anterior.
+      writeHeader('');
+    }
+
+    lastAutoPopulatedSupplierRef.current = selectedSupplier.id;
   }, [selectedSupplier, methods, setValue]);
 
   // (Los effects de auto-volumen y auto-lineal viven más abajo, después de
@@ -522,13 +539,30 @@ export function ReceiptCreateView() {
   const watchedItems = useWatch({ control, name: 'items' });
 
   // QA #104: auto-aplicar descuento por volumen según umbral del proveedor.
-  // Si el supplier tiene threshold + tipo definidos, comparamos contra el
-  // total de la factura (cantidad o monto) y aplicamos el % sugerido si se
-  // supera; si no, queda en 0. Si no hay threshold, no se toca el campo.
+  // Si el supplier no ofrece volumen (o cambió a uno que no ofrece), limpiamos
+  // el campo para no dejar valores zombies del anterior.
+  const lastVolumeSupplierRef = useRef<string | null>(null);
   useEffect(() => {
-    if (!selectedSupplier?.hasVolumeDiscount) return;
-    if (!selectedSupplier.volumeDiscountThreshold || !selectedSupplier.volumeDiscountThresholdType)
+    const supplierChanged = selectedSupplier?.id !== lastVolumeSupplierRef.current;
+
+    if (!selectedSupplier?.hasVolumeDiscount) {
+      if (supplierChanged && methods.getValues('volumeDiscountPct')) {
+        setValue('volumeDiscountPct', '', { shouldValidate: false });
+      }
+      lastVolumeSupplierRef.current = selectedSupplier?.id ?? null;
       return;
+    }
+
+    // Tiene volumen pero sin threshold: lo dejamos editable manual (no
+    // sobrescribimos lo que haya). En cambio de proveedor, sí limpiamos.
+    if (!selectedSupplier.volumeDiscountThreshold || !selectedSupplier.volumeDiscountThresholdType) {
+      if (supplierChanged) {
+        setValue('volumeDiscountPct', '', { shouldValidate: false });
+      }
+      lastVolumeSupplierRef.current = selectedSupplier.id;
+      return;
+    }
+
     const threshold = Number(selectedSupplier.volumeDiscountThreshold);
     const sugPct =
       selectedSupplier.volumeDiscountPct != null ? Number(selectedSupplier.volumeDiscountPct) : 0;
@@ -552,22 +586,39 @@ export function ReceiptCreateView() {
     if (methods.getValues('volumeDiscountPct') !== next) {
       setValue('volumeDiscountPct', next, { shouldValidate: false });
     }
+    lastVolumeSupplierRef.current = selectedSupplier.id;
   }, [selectedSupplier, watchedItems, methods, setValue]);
 
   // Auto-poblar el descuento lineal sugerido por el proveedor en cada
-  // ítem nuevo que tenga el campo vacío. No pisa ediciones manuales.
+  // ítem. Cuando cambia el proveedor, sobrescribe todas las líneas con el
+  // nuevo % sugerido (no preserva valores del proveedor anterior). Cuando
+  // es el mismo proveedor, solo pre-llena las líneas vacías (respeta edits).
+  const lastLinearSupplierRef = useRef<string | null>(null);
   useEffect(() => {
-    if (!selectedSupplier?.hasLinearDiscount) return;
+    const supplierChanged = selectedSupplier?.id !== lastLinearSupplierRef.current;
+
+    if (!selectedSupplier?.hasLinearDiscount) {
+      if (supplierChanged) {
+        // Limpiar lineal de todas las líneas si el nuevo proveedor no lo ofrece.
+        (watchedItems ?? []).forEach((_, idx) => {
+          setValue(`items.${idx}.discountPct`, '', { shouldValidate: false });
+        });
+      }
+      lastLinearSupplierRef.current = selectedSupplier?.id ?? null;
+      return;
+    }
+
     const linearPct = selectedSupplier.linearDiscountPct;
-    if (linearPct == null) return;
-    const value = String(Number(linearPct));
+    const value = linearPct != null ? String(Number(linearPct)) : '';
     (watchedItems ?? []).forEach((it, idx) => {
       if (!it?.productId) return;
       const current = methods.getValues(`items.${idx}.discountPct`);
-      if (!current) {
+      // Si cambió el proveedor → forzar; si no, respetar edits manuales.
+      if (supplierChanged || !current) {
         setValue(`items.${idx}.discountPct`, value, { shouldValidate: false });
       }
     });
+    lastLinearSupplierRef.current = selectedSupplier.id;
   }, [selectedSupplier, watchedItems, methods, setValue]);
   const watchedIgtfPct = useWatch({ control, name: 'igtfPct' });
   const watchedNativeCurrency = useWatch({ control, name: 'nativeCurrency' });
