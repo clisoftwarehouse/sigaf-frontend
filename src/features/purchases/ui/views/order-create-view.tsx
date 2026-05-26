@@ -32,23 +32,14 @@ import { useCreateOrderMutation } from '../../api/purchases.queries';
 
 // ----------------------------------------------------------------------
 
+// QA: la OC solo solicita unidades. Costo y descuento se capturan en la
+// recepción cuando el proveedor emite factura — el schema acá ya no los pide.
 const ItemSchema = z.object({
   productId: z.string().uuid({ message: 'Selecciona un producto' }),
   quantity: z
     .string()
     .min(1, { message: 'Obligatoria' })
     .refine((v) => /^\d+(\.\d+)?$/.test(v) && Number(v) > 0, { message: '> 0' }),
-  unitCostUsd: z
-    .string()
-    .min(1, { message: 'Obligatorio' })
-    .refine((v) => /^\d+(\.\d+)?$/.test(v) && Number(v) >= 0, { message: '≥ 0' }),
-  discountPct: z
-    .string()
-    .optional()
-    .or(z.literal(''))
-    .refine((v) => !v || (/^\d+(\.\d+)?$/.test(v) && Number(v) >= 0 && Number(v) <= 100), {
-      message: '0-100',
-    }),
 });
 
 const OrderSchema = z.object({
@@ -61,18 +52,6 @@ const OrderSchema = z.object({
 });
 
 type FormValues = z.infer<typeof OrderSchema>;
-type ItemValues = FormValues['items'][number];
-
-// ----------------------------------------------------------------------
-
-const calcItemSubtotal = (item: ItemValues): number => {
-  const qty = Number(item.quantity) || 0;
-  const cost = Number(item.unitCostUsd) || 0;
-  const disc = Number(item.discountPct) || 0;
-  return qty * cost * (1 - disc / 100);
-};
-
-const fmt = (n: number) => `$${n.toFixed(2)}`;
 
 // ----------------------------------------------------------------------
 
@@ -95,7 +74,7 @@ export function OrderCreateView() {
       orderType: 'purchase',
       expectedDate: '',
       notes: '',
-      items: [{ productId: '', quantity: '', unitCostUsd: '', discountPct: '' }],
+      items: [{ productId: '', quantity: '' }],
     },
   });
 
@@ -103,7 +82,6 @@ export function OrderCreateView() {
   const { fields, append, remove } = useFieldArray({ control, name: 'items' });
 
   const watchedItems = useWatch({ control, name: 'items' }) ?? [];
-  const documentTotal = watchedItems.reduce((sum, it) => sum + calcItemSubtotal(it), 0);
 
   const submit = methods.handleSubmit(async (values) => {
     const payload: CreatePurchaseOrderPayload = {
@@ -115,8 +93,6 @@ export function OrderCreateView() {
       items: values.items.map((i) => ({
         productId: i.productId,
         quantity: Number(i.quantity),
-        unitCostUsd: Number(i.unitCostUsd),
-        discountPct: i.discountPct ? Number(i.discountPct) : undefined,
       })),
     };
     try {
@@ -157,19 +133,18 @@ export function OrderCreateView() {
                   </MenuItem>
                 ))}
               </Field.Select>
-              <Field.Select
-                name="supplierId"
-                label="Proveedor"
-                slotProps={{ inputLabel: { shrink: true } }}
-                sx={{ flex: 1 }}
-              >
-                <MenuItem value="">— Selecciona —</MenuItem>
-                {suppliers.map((s) => (
-                  <MenuItem key={s.id} value={s.id}>
-                    {s.businessName}
-                  </MenuItem>
-                ))}
-              </Field.Select>
+              <Box sx={{ flex: 1 }}>
+                <Field.IdAutocomplete
+                  name="supplierId"
+                  label="Proveedor"
+                  placeholder="Buscar proveedor por nombre o RIF…"
+                  options={suppliers.map((s) => ({
+                    id: s.id,
+                    label: s.businessName,
+                    secondaryLabel: s.rif ?? null,
+                  }))}
+                />
+              </Box>
             </Stack>
 
             <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
@@ -204,28 +179,14 @@ export function OrderCreateView() {
 
         <Card sx={{ p: 3, mb: 3 }}>
           <Stack spacing={2}>
-            <Stack direction="row" alignItems="center" justifyContent="space-between">
-              <Typography variant="subtitle2" sx={{ color: 'text.secondary' }}>
-                Ítems ({fields.length})
-              </Typography>
-              <Button
-                size="small"
-                variant="outlined"
-                startIcon={<Iconify icon="solar:add-circle-bold" />}
-                onClick={() =>
-                  append({ productId: '', quantity: '', unitCostUsd: '', discountPct: '' })
-                }
-              >
-                Agregar ítem
-              </Button>
-            </Stack>
+            <Typography variant="subtitle2" sx={{ color: 'text.secondary' }}>
+              Ítems ({fields.length})
+            </Typography>
 
             {fields.map((field, idx) => {
               const current = watchedItems[idx];
               const product = current?.productId ? productById.get(current.productId) : undefined;
               const stock = product?.totalStock != null ? Number(product.totalStock) : null;
-              const unit = product?.unitOfMeasure ?? '';
-              const subtotal = current ? calcItemSubtotal(current) : 0;
               return (
                 <Box key={field.id}>
                   <Stack direction="row" alignItems="flex-start" spacing={1}>
@@ -270,7 +231,7 @@ export function OrderCreateView() {
                                       >
                                         {option.internalCode ?? '—'}
                                         {option.totalStock != null &&
-                                          ` · stock: ${Number(option.totalStock)} ${option.unitOfMeasure ?? ''}`}
+                                          ` · stock: ${Number(option.totalStock)}`}
                                       </Typography>
                                     </Box>
                                   </li>
@@ -308,7 +269,7 @@ export function OrderCreateView() {
                                           : 'success.main',
                                 }}
                               >
-                                {stock == null ? '—' : `${stock} ${unit}`}
+                                {stock == null ? '—' : stock}
                               </Box>
                             </Typography>
                             {product.internalCode && (
@@ -322,42 +283,16 @@ export function OrderCreateView() {
                           </Stack>
                         )}
 
+                        {/* QA: una OC sólo solicita unidades. El costo unitario
+                            y el descuento comercial se capturan en la recepción
+                            (cuando llega la factura del proveedor). */}
                         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
                           <Field.Text
                             name={`items.${idx}.quantity`}
                             label="Cantidad"
                             slotProps={{ inputLabel: { shrink: true } }}
-                            sx={{ flex: 1 }}
+                            sx={{ flex: 1, maxWidth: 240 }}
                           />
-                          <Field.Text
-                            name={`items.${idx}.unitCostUsd`}
-                            label="Costo USD"
-                            slotProps={{ inputLabel: { shrink: true } }}
-                            sx={{ flex: 1 }}
-                          />
-                          <Field.Text
-                            name={`items.${idx}.discountPct`}
-                            label="Descuento %"
-                            slotProps={{ inputLabel: { shrink: true } }}
-                            sx={{ flex: 1 }}
-                          />
-                          <Box
-                            sx={{
-                              flex: 1,
-                              display: 'flex',
-                              flexDirection: 'column',
-                              justifyContent: 'center',
-                              alignItems: 'flex-end',
-                              pr: 0.5,
-                            }}
-                          >
-                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                              Subtotal
-                            </Typography>
-                            <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-                              {fmt(subtotal)}
-                            </Typography>
-                          </Box>
                         </Stack>
                       </Stack>
                     </Box>
@@ -376,15 +311,17 @@ export function OrderCreateView() {
 
             <Divider />
 
-            <Stack direction="row" justifyContent="flex-end" spacing={4} sx={{ pr: 6 }}>
-              <Box sx={{ textAlign: 'right' }}>
-                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                  Total del documento
-                </Typography>
-                <Typography variant="h5" sx={{ fontWeight: 700 }}>
-                  {fmt(documentTotal)}
-                </Typography>
-              </Box>
+            {/* QA: botón Agregar al fondo, no arriba. Permite extender la lista
+                sin tener que scrollear de vuelta al header. */}
+            <Stack direction="row" justifyContent="flex-start">
+              <Button
+                size="small"
+                variant="outlined"
+                startIcon={<Iconify icon="solar:add-circle-bold" />}
+                onClick={() => append({ productId: '', quantity: '' })}
+              >
+                Agregar ítem
+              </Button>
             </Stack>
           </Stack>
         </Card>

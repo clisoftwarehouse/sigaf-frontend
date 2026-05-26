@@ -126,17 +126,6 @@ export function OrdersListView() {
         valueGetter: (value: string | null) => (value ? new Date(value) : null),
       },
       {
-        field: 'totalUsd',
-        headerName: 'Total',
-        type: 'number',
-        flex: 1,
-        minWidth: 130,
-        align: 'right',
-        headerAlign: 'right',
-        valueGetter: (value: number | string) => Number(value) || 0,
-        valueFormatter: (value: number) => `$${value.toFixed(2)}`,
-      },
-      {
         field: 'status',
         headerName: 'Estado',
         type: 'singleSelect',

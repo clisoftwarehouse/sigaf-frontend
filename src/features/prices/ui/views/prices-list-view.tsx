@@ -185,14 +185,28 @@ export function PricesListView() {
         headerName: 'Estado',
         flex: 1,
         minWidth: 150,
-        renderCell: ({ row }) =>
-          row.effectiveTo ? (
-            <Tooltip title={`Expirado el ${new Date(row.effectiveTo).toLocaleString()}`}>
-              <Chip size="small" color="default" variant="outlined" label="Expirado" />
-            </Tooltip>
-          ) : (
-            <Chip size="small" color="success" variant="soft" label="Vigente" />
-          ),
+        renderCell: ({ row }) => {
+          const now = Date.now();
+          // 1) Expirado: la vigencia ya cerró.
+          if (row.effectiveTo && new Date(row.effectiveTo).getTime() <= now) {
+            return (
+              <Tooltip title={`Expirado el ${new Date(row.effectiveTo).toLocaleString()}`}>
+                <Chip size="small" color="default" variant="outlined" label="Expirado" />
+              </Tooltip>
+            );
+          }
+          // 2) Programado: effective_from cae en el futuro — aún no aplica.
+          const from = new Date(row.effectiveFrom).getTime();
+          if (from > now) {
+            return (
+              <Tooltip title={`Se activará el ${new Date(row.effectiveFrom).toLocaleString()}`}>
+                <Chip size="small" color="info" variant="soft" label="Programado" />
+              </Tooltip>
+            );
+          }
+          // 3) Vigente: entre effective_from y effective_to (o sin tope).
+          return <Chip size="small" color="success" variant="soft" label="Vigente" />;
+        },
       },
       {
         field: 'notes',

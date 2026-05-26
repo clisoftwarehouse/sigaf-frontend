@@ -13,6 +13,7 @@ import {
   fetchOrders,
   createOrder,
   updateOrder,
+  deleteOrder,
   approveOrder,
   fetchReceipt,
   fetchReceipts,
@@ -76,6 +77,14 @@ export function useUpdateOrderMutation() {
       qc.invalidateQueries({ queryKey: purchaseKeys.all });
       qc.invalidateQueries({ queryKey: purchaseKeys.order(id) });
     },
+  });
+}
+
+export function useDeleteOrderMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => deleteOrder(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: purchaseKeys.all }),
   });
 }
 

@@ -19,7 +19,7 @@ export const PRODUCT_TYPE_OPTIONS: { value: ProductType; label: string }[] = [
 ];
 
 export const TAX_TYPE_OPTIONS: { value: TaxType; label: string }[] = [
-  { value: 'exempt', label: 'Exento (medicamentos)' },
+  { value: 'exempt', label: 'Exento (0%)' },
   { value: 'general', label: 'General (IVA 16%)' },
   { value: 'reduced', label: 'Reducido (8%)' },
 ];

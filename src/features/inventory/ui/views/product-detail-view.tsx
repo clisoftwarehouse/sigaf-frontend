@@ -290,7 +290,7 @@ export function InventoryProductDetailView() {
                 </Typography>
                 <Typography variant="h4">{Number(product.totalStock) || 0}</Typography>
                 <Typography variant="caption" sx={{ color: 'text.disabled' }}>
-                  Unidad: {product.unitOfMeasure}
+                  unidades
                 </Typography>
               </Box>
               <Box>
@@ -319,7 +319,9 @@ export function InventoryProductDetailView() {
                     <Typography variant="caption" sx={{ color: 'text.disabled' }}>
                       {currentPrice.source === 'branch_override'
                         ? 'Override de sucursal'
-                        : 'Precio global'}
+                        : currentPrice.source === 'global'
+                          ? 'Precio global'
+                          : 'PMVP (sin precio publicado en módulo de precios)'}
                     </Typography>
                   </>
                 ) : (

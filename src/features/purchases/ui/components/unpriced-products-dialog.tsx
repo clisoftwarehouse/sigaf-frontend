@@ -119,8 +119,13 @@ export function UnpricedProductsDialog({ receiptId, onClose }: Props) {
       return;
     }
     try {
+      // Heredamos el branchId del receipt para que el precio quede asociado
+      // a la sucursal específica que recibió el producto, no como precio
+      // global. Si el operador necesita un precio global, lo edita después
+      // desde el módulo de Precios.
       await createPriceMutation.mutateAsync({
         productId: item.productId,
+        branchId: item.branchId,
         priceUsd,
         notes: `Fijado tras recepción ${new Date(item.receivedAt).toLocaleDateString('es-VE')}`,
       });

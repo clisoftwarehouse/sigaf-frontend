@@ -13,11 +13,15 @@ export const terminalPairingKeys = {
   apiKeys: (terminalId: string) => [...terminalPairingKeys.all, 'api-keys', terminalId] as const,
 };
 
-export function useTerminalApiKeysQuery(terminalId: string | undefined) {
+export function useTerminalApiKeysQuery(
+  terminalId: string | undefined,
+  options?: { refetchInterval?: number | false },
+) {
   return useQuery({
     queryKey: terminalPairingKeys.apiKeys(terminalId ?? ''),
     queryFn: () => fetchTerminalApiKeys(terminalId as string),
     enabled: Boolean(terminalId),
+    refetchInterval: options?.refetchInterval,
   });
 }
 

@@ -61,12 +61,14 @@ export interface PaginatedResponse<T> {
  * `source` indica de dónde viene el precio resuelto por la prelación:
  *   - `branch_override`: precio específico de sucursal
  *   - `global`: precio global del producto
+ *   - `pmvp_fallback`: sin row en `prices`, cae al PMVP del producto (mismo
+ *     comportamiento del catálogo `/v1/products` que enriquece con pmvp)
  */
 export interface ResolvedPrice {
   productId: string;
   branchId: string | null;
   priceUsd: number;
-  source: 'branch_override' | 'global';
+  source: 'branch_override' | 'global' | 'pmvp_fallback';
   effectiveFrom: string | null;
   effectiveTo: string | null;
 }

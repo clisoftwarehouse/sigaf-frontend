@@ -53,7 +53,11 @@ export function LotPickerDialog({
   );
 
   const lots = enabled ? (data?.data ?? []) : [];
-  const active = lots.filter((l) => l.status === 'available' && Number(l.quantityAvailable) > 0);
+  // Mostramos TODOS los lotes activos del producto, incluyendo los agotados:
+  // un ajuste POSITIVO debe poder reingresar stock a un lote existente que
+  // quedó en 0. El sentido del ajuste se decide después en AdjustmentDialog;
+  // si es negativo y el lote está agotado, el backend rechaza ahí.
+  const active = lots.filter((l) => l.status === 'available');
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="xl" fullWidth>
@@ -80,37 +84,43 @@ export function LotPickerDialog({
 
         {!isLoading && !isError && active.length === 0 && (
           <Alert severity="info">
-            No hay lotes activos con disponibilidad para este producto en la sucursal.
+            No hay lotes registrados para este producto en esta sucursal. Para ingresar stock
+            por primera vez crea una recepción en el módulo de Compras.
           </Alert>
         )}
 
         {active.length > 0 && (
           <List disablePadding>
-            {active.map((lot) => (
-              <ListItem key={lot.id} disablePadding>
-                <ListItemButton onClick={() => onPick(lot)}>
-                  <ListItemText
-                    primary={
-                      <Stack direction="row" spacing={1} alignItems="center">
-                        <Typography variant="subtitle2" sx={{ fontFamily: 'monospace' }}>
-                          {lot.lotNumber}
-                        </Typography>
-                        <Chip
-                          size="small"
-                          variant="outlined"
-                          label={`Disp. ${Number(lot.quantityAvailable) || 0}`}
-                        />
-                      </Stack>
-                    }
-                    secondary={
-                      lot.expirationDate
-                        ? `Vence: ${lot.expirationDate}`
-                        : 'Sin fecha de vencimiento'
-                    }
-                  />
-                </ListItemButton>
-              </ListItem>
-            ))}
+            {active.map((lot) => {
+              const qty = Number(lot.quantityAvailable) || 0;
+              const empty = qty === 0;
+              return (
+                <ListItem key={lot.id} disablePadding>
+                  <ListItemButton onClick={() => onPick(lot)}>
+                    <ListItemText
+                      primary={
+                        <Stack direction="row" spacing={1} alignItems="center">
+                          <Typography variant="subtitle2" sx={{ fontFamily: 'monospace' }}>
+                            {lot.lotNumber}
+                          </Typography>
+                          <Chip
+                            size="small"
+                            color={empty ? 'warning' : 'default'}
+                            variant={empty ? 'soft' : 'outlined'}
+                            label={empty ? 'Agotado' : `Disp. ${qty}`}
+                          />
+                        </Stack>
+                      }
+                      secondary={
+                        lot.expirationDate
+                          ? `Vence: ${lot.expirationDate}`
+                          : 'Sin fecha de vencimiento'
+                      }
+                    />
+                  </ListItemButton>
+                </ListItem>
+              );
+            })}
           </List>
         )}
       </DialogContent>

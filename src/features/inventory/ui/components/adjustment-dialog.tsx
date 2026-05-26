@@ -137,8 +137,13 @@ export function AdjustmentDialog({ lot, onClose }: Props) {
               name="quantity"
               label="Cantidad"
               placeholder="Ej. 5"
-              type="number"
-              slotProps={{ inputLabel: { shrink: true }, htmlInput: { min: 0, step: 0.001 } }}
+              slotProps={{
+                inputLabel: { shrink: true },
+                // `inputMode="decimal"` evita la coerción a number del browser
+                // (que rompe el schema zod string) pero mantiene el teclado
+                // numérico en móvil.
+                htmlInput: { inputMode: 'decimal' },
+              }}
             />
 
             <Field.Text

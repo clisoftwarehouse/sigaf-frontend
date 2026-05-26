@@ -1,11 +1,13 @@
 import type { IconButtonProps } from '@mui/material/IconButton';
 
+import { useState } from 'react';
 import { useBoolean } from 'minimal-shared/hooks';
 
 import Box from '@mui/material/Box';
 import Link from '@mui/material/Link';
 import Avatar from '@mui/material/Avatar';
 import Drawer from '@mui/material/Drawer';
+import Button from '@mui/material/Button';
 import MenuList from '@mui/material/MenuList';
 import MenuItem from '@mui/material/MenuItem';
 import Typography from '@mui/material/Typography';
@@ -17,6 +19,7 @@ import { RouterLink } from '@/app/routes/components';
 import { Scrollbar } from '@/app/components/scrollbar';
 import { AnimateBorder } from '@/app/components/animate';
 import { useAuthContext } from '@/features/auth/ui/hooks';
+import { SupervisorPinDialog } from '@/features/auth/ui/components/supervisor-pin-dialog';
 
 import { AccountButton } from './account-button';
 import { SignOutButton } from './sign-out-button';
@@ -36,6 +39,7 @@ export function AccountDrawer({ data = [], sx, ...other }: AccountDrawerProps) {
   const { user } = useAuthContext();
 
   const { value: open, onFalse: onClose, onTrue: onOpen } = useBoolean();
+  const [pinDialogOpen, setPinDialogOpen] = useState(false);
 
   const renderAvatar = () => (
     <AnimateBorder
@@ -151,10 +155,24 @@ export function AccountDrawer({ data = [], sx, ...other }: AccountDrawerProps) {
           {renderList()}
         </Scrollbar>
 
-        <Box sx={{ p: 2.5 }}>
+        <Box sx={{ p: 2.5, display: 'flex', flexDirection: 'column', gap: 1.25 }}>
+          <Button
+            fullWidth
+            variant="outlined"
+            color="inherit"
+            startIcon={<Iconify icon="solar:shield-check-bold" />}
+            onClick={() => {
+              setPinDialogOpen(true);
+              onClose();
+            }}
+          >
+            PIN de supervisor
+          </Button>
           <SignOutButton onClose={onClose} />
         </Box>
       </Drawer>
+
+      <SupervisorPinDialog open={pinDialogOpen} onClose={() => setPinDialogOpen(false)} />
     </>
   );
 }

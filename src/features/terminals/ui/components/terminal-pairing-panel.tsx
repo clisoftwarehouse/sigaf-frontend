@@ -1,5 +1,5 @@
 import { toast } from 'sonner';
-import { useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
@@ -32,12 +32,19 @@ type Props = {
 };
 
 export function TerminalPairingPanel({ terminalId }: Props) {
-  const apiKeysQuery = useTerminalApiKeysQuery(terminalId);
-  const issueMutation = useIssuePairingCodeMutation(terminalId);
-  const revokeMutation = useRevokeApiKeyMutation(terminalId);
-
   const [issued, setIssued] = useState<{ code: string; expiresAt: string } | null>(null);
   const [toRevoke, setToRevoke] = useState<{ id: string; prefix: string } | null>(null);
+
+  // Cuando hay un código emitido sin redimir, polleamos cada 3s para
+  // detectar el momento en que el cajero ejecute el pairing en el POS.
+  // En ese momento aparece una nueva apiKey y el admin ve la transición
+  // sin tener que refrescar la página.
+  const pollWhilePending = issued ? 3_000 : false;
+  const apiKeysQuery = useTerminalApiKeysQuery(terminalId, {
+    refetchInterval: pollWhilePending,
+  });
+  const issueMutation = useIssuePairingCodeMutation(terminalId);
+  const revokeMutation = useRevokeApiKeyMutation(terminalId);
 
   const handleIssue = async () => {
     try {
@@ -62,6 +69,26 @@ export function TerminalPairingPanel({ terminalId }: Props) {
 
   const apiKeys = apiKeysQuery.data ?? [];
   const activeCount = apiKeys.filter((k) => !k.revokedAt).length;
+
+  // Detecta el momento del emparejamiento: si tenemos un código emitido y
+  // el activeCount sube de su baseline, asumimos que el PC redimió.
+  // Limpiamos el alert del código y avisamos al admin.
+  const baselineActiveRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (!issued) {
+      baselineActiveRef.current = null;
+      return;
+    }
+    if (baselineActiveRef.current === null) {
+      baselineActiveRef.current = activeCount;
+      return;
+    }
+    if (activeCount > baselineActiveRef.current) {
+      toast.success('Equipo emparejado correctamente.');
+      setIssued(null);
+      baselineActiveRef.current = null;
+    }
+  }, [issued, activeCount]);
 
   return (
     <Card sx={{ p: 3 }}>

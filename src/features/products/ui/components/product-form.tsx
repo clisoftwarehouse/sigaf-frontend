@@ -18,6 +18,7 @@ import Button from '@mui/material/Button';
 import Tooltip from '@mui/material/Tooltip';
 import Divider from '@mui/material/Divider';
 import MenuItem from '@mui/material/MenuItem';
+import Checkbox from '@mui/material/Checkbox';
 import TextField from '@mui/material/TextField';
 import Accordion from '@mui/material/Accordion';
 import Typography from '@mui/material/Typography';
@@ -95,6 +96,7 @@ export const ProductSchema = z.object({
   isAntibiotic: z.boolean(),
   isImported: z.boolean(),
   requiresRecipe: z.boolean(),
+  tracksExpiration: z.boolean(),
   isWeighable: z.boolean(),
   unitOfMeasure: z.enum(['UND', 'KG', 'G', 'L', 'ML']),
   decimalPlaces: optionalNumber,
@@ -179,6 +181,7 @@ function toFormValues(p?: Product): ProductFormValues {
     isAntibiotic: p?.isAntibiotic ?? false,
     isImported: p?.isImported ?? false,
     requiresRecipe: p?.requiresRecipe ?? false,
+    tracksExpiration: p?.tracksExpiration ?? true,
     isWeighable: p?.isWeighable ?? false,
     unitOfMeasure: (p?.unitOfMeasure as UnitOfMeasure) ?? 'UND',
     decimalPlaces: p?.decimalPlaces != null ? String(p.decimalPlaces) : '0',
@@ -419,17 +422,12 @@ export function ProductForm({
     });
 
     /**
-     * Derivamos la unidad de venta (`unitOfMeasure`) automáticamente desde la
-     * unidad del empaque, eliminando la duplicación que tenía el form viejo.
-     * Mapeo: KG/G → KG ó G (peso), L/ML → L ó ML (volumen), resto → UND.
-     * Para productos sin empaque definido, default UND.
+     * Stock siempre se cuenta en UNIDADES. La unidad del empaque (50G, 100ML)
+     * vive en `presentation` y es solo informativa (contenido por unidad).
+     * Antes derivábamos unitOfMeasure desde el packagingUnit, lo que producía
+     * stock confuso ("0 G" en Voltaren cuando realmente es "0 tubos").
      */
-    const derivedUnitOfMeasure: UnitOfMeasure = (() => {
-      const pkgUnit = (values.packagingUnit || '').toUpperCase();
-      if (pkgUnit === 'KG' || pkgUnit === 'G') return pkgUnit as UnitOfMeasure;
-      if (pkgUnit === 'L' || pkgUnit === 'ML') return pkgUnit as UnitOfMeasure;
-      return 'UND';
-    })();
+    const derivedUnitOfMeasure: UnitOfMeasure = 'UND';
 
     await onSubmit({
       description: values.description.trim(),
@@ -444,6 +442,7 @@ export function ProductForm({
       isAntibiotic: values.isAntibiotic,
       isImported: values.isImported,
       requiresRecipe: values.requiresRecipe,
+      tracksExpiration: values.tracksExpiration,
       isWeighable: values.isWeighable,
       unitOfMeasure: derivedUnitOfMeasure,
       decimalPlaces: values.decimalPlaces ? Number(values.decimalPlaces) : undefined,
@@ -509,6 +508,12 @@ export function ProductForm({
                       <Box
                         key={opt.value}
                         onClick={() => {
+                          // QA: en edición NO se puede cambiar la naturaleza del
+                          // producto (medicina ↔ miscelaneo). Permitirlo dejaría
+                          // tickets/lotes/precios viejos huérfanos con un
+                          // taxType incoherente. Si se necesita cambiar, hay que
+                          // dar de baja el producto y crearlo de nuevo.
+                          if (isEdit) return;
                           field.onChange(opt.value);
                           // Mapeo automático a productType para mantener compat con backend.
                           if (opt.value === 'consumer') {
@@ -528,8 +533,9 @@ export function ProductForm({
                           py: 1,
                           px: 1.5,
                           borderRadius: 1,
-                          cursor: 'pointer',
+                          cursor: isEdit && !selected ? 'not-allowed' : 'pointer',
                           fontSize: 13,
+                          opacity: isEdit && !selected ? 0.4 : 1,
                           border: (theme) =>
                             `1px solid ${
                               selected
@@ -550,7 +556,9 @@ export function ProductForm({
                             bgcolor: (theme) =>
                               selected
                                 ? theme.vars.palette[opt.accent].lighter
-                                : theme.vars.palette.action.hover,
+                                : isEdit
+                                  ? theme.vars.palette.background.paper
+                                  : theme.vars.palette.action.hover,
                           },
                         }}
                       >
@@ -649,6 +657,34 @@ export function ProductForm({
                 disabled={isEdit}
                 slotProps={{ inputLabel: { shrink: true } }}
               />
+
+              {/* QA: el nombre del producto siempre visible — pero bloqueado
+                 mientras está en modo auto-generado. Click en el candado pasa
+                 a edición manual; click en el lápiz vuelve a auto-generar. */}
+              <Stack direction="row" spacing={1} alignItems="flex-start">
+                <Field.Text
+                  name="description"
+                  label={autoName ? 'Nombre (auto-generado)' : 'Nombre (edición manual)'}
+                  disabled={autoName}
+                  helperText={
+                    autoName
+                      ? 'Se construye automáticamente desde marca, principios activos y empaque. Click en el candado para editar manualmente.'
+                      : 'Edición manual. Click en el lápiz para volver a auto-generar.'
+                  }
+                  slotProps={{ inputLabel: { shrink: true } }}
+                />
+                <Tooltip title={autoName ? 'Editar manualmente' : 'Volver a auto-generar'}>
+                  <IconButton
+                    color={autoName ? 'default' : 'primary'}
+                    sx={{ mt: 0.5 }}
+                    onClick={() => setAutoName((v) => !v)}
+                  >
+                    <Iconify
+                      icon={autoName ? 'solar:lock-password-outline' : 'solar:pen-bold'}
+                    />
+                  </IconButton>
+                </Tooltip>
+              </Stack>
             </Stack>
           </Box>
 
@@ -803,13 +839,16 @@ export function ProductForm({
           )}
 
           {/* ──────────────── Bloque condicional: Masivo ──────────────── */}
+          {/* Visual unificado con el bloque médico: mismo borde primary, mismo
+             padding y misma tipografía del subtítulo. Solo cambia el texto
+             del subtítulo según la naturaleza del producto. */}
           {watchedNature === 'consumer' && (
             <Box
               sx={{
                 p: 2,
                 borderRadius: 1,
                 bgcolor: 'background.neutral',
-                borderLeft: (theme) => `3px solid ${theme.vars.palette.success.main}`,
+                borderLeft: (theme) => `3px solid ${theme.vars.palette.primary.main}`,
               }}
             >
               <Stack spacing={2}>
@@ -851,6 +890,26 @@ export function ProductForm({
                     </MenuItem>
                   ))}
                 </Field.Select>
+
+                {/* QA: productos de consumo masivo (jabón, papel, peines, etc.)
+                   no tienen fecha de vencimiento. Marcando esta opción la
+                   recepción no exige `expirationDate` y los lotes se crean
+                   con vencimiento NULL. */}
+                <Controller
+                  name="tracksExpiration"
+                  control={control}
+                  render={({ field }) => (
+                    <FormControlLabel
+                      control={
+                        <Checkbox
+                          checked={!field.value}
+                          onChange={(e) => field.onChange(!e.target.checked)}
+                        />
+                      }
+                      label="Sin fecha de vencimiento (consumo masivo)"
+                    />
+                  )}
+                />
               </Stack>
             </Box>
           )}
@@ -959,17 +1018,6 @@ export function ProductForm({
               </Box>
             </Stack>
           </Box>
-
-          {/* Toggle compacto: vista preview vs edición manual.
-             El nombre se muestra en el sticky preview del FormFooter abajo. */}
-          {!autoName && (
-            <Field.Text
-              name="description"
-              label="Descripción (edición manual)"
-              helperText="Click en el candado del preview inferior para volver a auto-generar."
-              slotProps={{ inputLabel: { shrink: true } }}
-            />
-          )}
 
           {/* ──────────────── Configuración avanzada (colapsable) ──────────────── */}
           <Accordion
@@ -1183,12 +1231,7 @@ export function ProductForm({
               py: 1.5,
               bgcolor: 'common.black',
               color: 'common.white',
-              borderLeft: (theme) =>
-                `4px solid ${
-                  watchedNature === 'consumer'
-                    ? theme.vars.palette.success.main
-                    : theme.vars.palette.primary.main
-                }`,
+              borderLeft: (theme) => `4px solid ${theme.vars.palette.primary.main}`,
             }}
           >
             <Stack

@@ -119,13 +119,20 @@ export function PriceFormDialog({ open, onClose, defaultProductId, editingPrice 
   const originalPrice = editingPrice ? Number(editingPrice.priceUsd) : null;
   const priceChanged =
     isEdit && calculatedPrice != null && originalPrice != null && calculatedPrice !== originalPrice;
+  const notesChanged = isEdit && notes.trim() !== (editingPrice?.notes ?? '');
   const justificationValid = justification.trim().length >= MIN_JUSTIFICATION;
 
+  // El botón habilita cuando hay un cambio real que guardar:
+  // - En creación: producto + precio válido.
+  // - En edición: producto + (cambió precio con justificación, O cambió solo
+  //   notas). El bug previo exigía siempre `calculatedPrice > 0` aunque el
+  //   usuario sólo quisiera editar notas — si vaciaba el input de precio el
+  //   botón se trababa sin razón aparente.
   const canSubmit = isEdit
     ? Boolean(productId) &&
-      calculatedPrice != null &&
-      calculatedPrice > 0 &&
-      (!priceChanged || justificationValid)
+      (priceChanged
+        ? calculatedPrice != null && calculatedPrice > 0 && justificationValid
+        : notesChanged)
     : Boolean(productId) && calculatedPrice != null && calculatedPrice > 0;
 
   const isPending = createMutation.isPending || updateMutation.isPending;

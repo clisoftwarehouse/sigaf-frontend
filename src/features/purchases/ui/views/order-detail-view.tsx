@@ -11,7 +11,6 @@ import Chip from '@mui/material/Chip';
 import Stack from '@mui/material/Stack';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
-import Divider from '@mui/material/Divider';
 import Container from '@mui/material/Container';
 import Typography from '@mui/material/Typography';
 import CircularProgress from '@mui/material/CircularProgress';
@@ -28,6 +27,7 @@ import { useSupplierOptions } from '@/features/suppliers/api/suppliers.options';
 import { ORDER_TYPE_LABEL, ORDER_STATUS_LABEL, ORDER_STATUS_COLOR } from '../../model/constants';
 import {
   useOrderQuery,
+  useDeleteOrderMutation,
   useApproveOrderMutation,
   useOrderApprovalStatusQuery,
 } from '../../api/purchases.queries';
@@ -45,6 +45,7 @@ export function OrderDetailView() {
     order?.status === 'draft' ? id : undefined
   );
   const approveMutation = useApproveOrderMutation();
+  const deleteMutation = useDeleteOrderMutation();
 
   const { data: productOpts = [] } = useProductOptions();
   const productNameById = useMemo(
@@ -67,6 +68,22 @@ export function OrderDetailView() {
     try {
       await approveMutation.mutateAsync(id);
       toast.success('Orden aprobada');
+    } catch (err) {
+      toast.error((err as Error).message);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!id) return;
+    // Confirmación nativa para no agregar dependencia de Dialog. Si más adelante
+    // unificamos modales, basta cambiar este window.confirm por un MUI Dialog.
+    if (!window.confirm('¿Eliminar esta orden en borrador? Esta acción no se puede deshacer.')) {
+      return;
+    }
+    try {
+      await deleteMutation.mutateAsync(id);
+      toast.success('Orden eliminada');
+      router.push(paths.dashboard.purchases.orders.root);
     } catch (err) {
       toast.error((err as Error).message);
     }
@@ -130,40 +147,6 @@ export function OrderDetailView() {
           return <Chip size="small" color={color} variant="outlined" label={`${pct}%`} />;
         },
       },
-      {
-        field: 'unitCostUsd',
-        headerName: 'Costo',
-        type: 'number',
-        flex: 1,
-        minWidth: 110,
-        valueGetter: (value: number | string) => Number(value) || 0,
-        valueFormatter: (value: number) => `$${value.toFixed(2)}`,
-      },
-      {
-        field: 'discountPct',
-        headerName: 'Descuento',
-        type: 'number',
-        flex: 1,
-        minWidth: 120,
-        valueGetter: (value: number | string | null) => (value == null ? null : Number(value)),
-        valueFormatter: (value: number | null) => (value == null ? '—' : `${value.toFixed(2)}%`),
-      },
-      {
-        field: 'subtotalUsd',
-        headerName: 'Subtotal',
-        type: 'number',
-        flex: 1,
-        minWidth: 130,
-        valueGetter: (_v, row) => {
-          if (row.subtotalUsd != null) return Number(row.subtotalUsd) || 0;
-          const qty = Number(row.quantity) || 0;
-          const cost = Number(row.unitCostUsd) || 0;
-          const disc = row.discountPct != null ? Number(row.discountPct) : 0;
-          return qty * cost * (1 - disc / 100);
-        },
-        valueFormatter: (value: number) => `$${value.toFixed(2)}`,
-        cellClassName: 'subtotal-cell',
-      },
     ],
     [productNameById]
   );
@@ -189,6 +172,17 @@ export function OrderDetailView() {
             >
               Volver a órdenes
             </Button>
+            {order?.status === 'draft' && (
+              <Button
+                variant="outlined"
+                color="error"
+                startIcon={<Iconify icon="solar:trash-bin-trash-bold" />}
+                loading={deleteMutation.isPending}
+                onClick={handleDelete}
+              >
+                Eliminar
+              </Button>
+            )}
             {canApprove && (
               <Button
                 variant="contained"
@@ -333,12 +327,7 @@ export function OrderDetailView() {
             <Typography variant="subtitle2" sx={{ p: 2.5, color: 'text.secondary' }}>
               Ítems ({order.items?.length ?? 0})
             </Typography>
-            <Box
-              sx={{
-                width: '100%',
-                '& .subtotal-cell': { fontWeight: 600 },
-              }}
-            >
+            <Box sx={{ width: '100%' }}>
               <DataTable
                 columns={itemColumns}
                 rows={order.items ?? []}
@@ -346,39 +335,6 @@ export function OrderDetailView() {
                 autoHeight
               />
             </Box>
-
-            <Divider />
-
-            <Stack direction="row" justifyContent="flex-end" spacing={6} sx={{ p: 3 }}>
-              <Stack spacing={0.5} sx={{ textAlign: 'right', minWidth: 220 }}>
-                <Stack direction="row" justifyContent="space-between">
-                  <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                    Subtotal
-                  </Typography>
-                  <Typography variant="body2">
-                    ${(Number(order.subtotalUsd) || 0).toFixed(2)}
-                  </Typography>
-                </Stack>
-                <Stack direction="row" justifyContent="space-between">
-                  <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                    Impuesto
-                  </Typography>
-                  <Typography variant="body2">${(Number(order.taxUsd) || 0).toFixed(2)}</Typography>
-                </Stack>
-                <Stack
-                  direction="row"
-                  justifyContent="space-between"
-                  sx={{ pt: 0.5, borderTop: 1, borderColor: 'divider' }}
-                >
-                  <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-                    Total
-                  </Typography>
-                  <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                    ${(Number(order.totalUsd) || 0).toFixed(2)}
-                  </Typography>
-                </Stack>
-              </Stack>
-            </Stack>
           </Card>
         </>
       )}

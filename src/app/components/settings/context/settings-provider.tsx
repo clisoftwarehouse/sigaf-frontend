@@ -1,6 +1,6 @@
 import type { SettingsProviderProps } from '../types';
 
-import { useEffect, useMemo, useState, useCallback } from 'react';
+import { useMemo, useState, useEffect, useCallback } from 'react';
 
 import { SettingsContext } from './settings-context';
 import { SETTINGS_STORAGE_KEY } from '../settings-config';

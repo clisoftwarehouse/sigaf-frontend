@@ -1,11 +1,11 @@
-import type { CreateGoodsReceiptPayload } from '../../model/types';
+import type { DiscrepancyReason, CreateGoodsReceiptPayload } from '../../model/types';
 
 import * as z from 'zod';
 import { toast } from 'sonner';
 import { useQueries } from '@tanstack/react-query';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm, useFieldArray } from 'react-hook-form';
 import { useRef, useMemo, useState, useEffect } from 'react';
+import { useForm, useWatch, useFieldArray } from 'react-hook-form';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
@@ -32,9 +32,13 @@ import { useLocationsQuery } from '@/features/locations/api/locations.queries';
 import { useLatestExchangeRateQuery } from '@/features/exchange-rates/api/exchange-rates.queries';
 
 import { fetchOrder } from '../../api/purchases.api';
-import { RECEIPT_TYPE_OPTIONS } from '../../model/constants';
 import { UnpricedProductsDialog } from '../components/unpriced-products-dialog';
-import { purchaseKeys, useOrdersQuery, useCreateReceiptMutation } from '../../api/purchases.queries';
+import { ORDER_STATUS_LABEL, RECEIPT_TYPE_OPTIONS } from '../../model/constants';
+import {
+  purchaseKeys,
+  useOrdersQuery,
+  useCreateReceiptMutation,
+} from '../../api/purchases.queries';
 
 // ----------------------------------------------------------------------
 
@@ -56,6 +60,9 @@ const DiscrepancySchema = z.object({
     'missing',
     'excess',
     'quality_failure',
+    'sample',
+    'substitute',
+    'commercial_gift',
     'other',
   ]),
   quantity: z
@@ -88,11 +95,11 @@ const ItemSchema = z
     locationId: z.string().optional().or(z.literal('')),
     discrepancies: z.array(DiscrepancySchema).optional(),
   })
-  // Lote y vencimiento son obligatorios cuando efectivamente se está recibiendo
-  // el producto (quantity > 0). Si la cantidad es 0, es un ítem "no recibido" —
-  // se ignora al guardar y no necesita esos datos.
-  // El precio de venta NO se fija en la recepción: lo gestiona el módulo de
-  // Precios. La recepción sólo registra costo, cantidades y lote.
+  // Lote es obligatorio cuando se recibe stock (quantity > 0). La validación
+  // de fecha de vencimiento la hace el backend con conocimiento del producto
+  // (`tracksExpiration`): consumo masivo sin caducidad no exige fecha. La UX
+  // ya oculta el input para productos sin tracking; solo dejamos que el
+  // backend rechace si por alguna razón llega vacío cuando debería venir.
   .superRefine((data, ctx) => {
     if (Number(data.quantity) > 0) {
       if (!data.lotNumber?.trim()) {
@@ -100,13 +107,6 @@ const ItemSchema = z
           code: z.ZodIssueCode.custom,
           message: 'Obligatorio',
           path: ['lotNumber'],
-        });
-      }
-      if (!data.expirationDate) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: 'Obligatoria',
-          path: ['expirationDate'],
         });
       }
     }
@@ -130,7 +130,11 @@ const ReceiptSchema = z
   })
   .superRefine((data, ctx) => {
     if (data.nativeCurrency === 'VES') {
-      if (!data.nativeTotal || !/^\d+(\.\d+)?$/.test(data.nativeTotal) || Number(data.nativeTotal) <= 0) {
+      if (
+        !data.nativeTotal ||
+        !/^\d+(\.\d+)?$/.test(data.nativeTotal) ||
+        Number(data.nativeTotal) <= 0
+      ) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           path: ['nativeTotal'],
@@ -180,10 +184,7 @@ export function ReceiptCreateView() {
   const { data: suppliers = [] } = useSuppliersQuery({ isActive: true });
   const { data: productsData } = useProductsQuery({ limit: 1000, isActive: true });
   const products = useMemo(() => productsData?.data ?? [], [productsData]);
-  const productById = useMemo(
-    () => new Map(products.map((p) => [p.id, p] as const)),
-    [products]
-  );
+  const productById = useMemo(() => new Map(products.map((p) => [p.id, p] as const)), [products]);
 
   // Órdenes activas (sent/partial) para seleccionar como base de la recepción.
   const { data: ordersData } = useOrdersQuery({ page: 1, limit: 1000 });
@@ -193,7 +194,6 @@ export function ReceiptCreateView() {
   // no debe ingresarlos a mano; los aplicamos automáticamente y los mostramos
   // en read-only para que el usuario sepa con qué tasa se está calculando.
   const { data: globalConfig } = useConfigQuery();
-  const ivaDefault = globalConfig?.iva_general_pct ?? '';
   const igtfDefault = globalConfig?.igtf_pct ?? '';
 
   const methods = useForm<FormValues>({
@@ -224,16 +224,16 @@ export function ReceiptCreateView() {
   const selectedSupplierId = watch('supplierId');
   const selectedOrderIds = watch('purchaseOrderIds');
 
-  // Cuando llega la config global, llenamos IVA e IGTF (si aún están vacíos —
-  // respetamos cualquier override que el usuario haya hecho a mano).
+  // Cuando llega la config global, llenamos IGTF (si aún está vacío —
+  // respetamos override manual). IVA NO se setea aquí: se calcula como
+  // promedio ponderado de las alícuotas por línea (ver totals abajo) y se
+  // sincroniza al campo taxPct para que el backend reciba el promedio que
+  // el operador ve en pantalla.
   useEffect(() => {
-    if (ivaDefault && !methods.getValues('taxPct')) {
-      setValue('taxPct', ivaDefault);
-    }
     if (igtfDefault && !methods.getValues('igtfPct')) {
       setValue('igtfPct', igtfDefault);
     }
-  }, [ivaDefault, igtfDefault, methods, setValue]);
+  }, [igtfDefault, methods, setValue]);
 
   // Pre-selecciona la moneda según el proveedor (Fase D). Solo cuando el
   // operador no ha tocado aún el switch — no pisamos elecciones manuales.
@@ -306,7 +306,10 @@ export function ReceiptCreateView() {
       return;
     }
     if (loadedOrders.length !== (selectedOrderIds ?? []).length) return;
-    const loadedKey = loadedOrders.map((o) => o.id).sort().join(',');
+    const loadedKey = loadedOrders
+      .map((o) => o.id)
+      .sort()
+      .join(',');
     if (loadedKey !== ids) return;
     if (lastAppliedKeyRef.current === ids) return;
 
@@ -325,10 +328,7 @@ export function ReceiptCreateView() {
 
     const aggregated = loadedOrders.flatMap((order) =>
       (order.items ?? []).map((it) => {
-        const remaining = Math.max(
-          0,
-          Number(it.quantity) - Number(it.quantityReceived ?? 0)
-        );
+        const remaining = Math.max(0, Number(it.quantity) - Number(it.quantityReceived ?? 0));
         const suggestedQty = remaining > 0 ? String(remaining) : String(Number(it.quantity));
         return {
           purchaseOrderId: order.id,
@@ -366,9 +366,7 @@ export function ReceiptCreateView() {
     // Items sin quantity y sin discrepancias se descartan: son ruido del form.
     const itemsToSend = values.items.filter((i) => {
       const qty = Number(i.quantity);
-      const hasDiscrepancy = (i.discrepancies ?? []).some(
-        (d) => Number(d.quantity) > 0
-      );
+      const hasDiscrepancy = (i.discrepancies ?? []).some((d) => Number(d.quantity) > 0);
       return qty > 0 || hasDiscrepancy;
     });
 
@@ -441,7 +439,7 @@ export function ReceiptCreateView() {
           `Recepción ${result.receiptNumber} guardada en estado “Pendiente reaprobación”. ` +
             `Excedió tolerancia: ${(result.toleranceDetails ?? []).join(' · ')}. ` +
             `Los lotes se crearán al reaprobar desde el detalle.`,
-          { duration: 12000 },
+          { duration: 12000 }
         );
         // En este caso los lotes aún no existen → no abrimos el dialog de
         // productos sin precio (no aplica todavía). Vamos directo al listado.
@@ -450,7 +448,7 @@ export function ReceiptCreateView() {
         toast.success(
           summary
             ? `Recepción ${result.receiptNumber} registrada. ${summary}.`
-            : `Recepción ${result.receiptNumber} registrada (sin OC asociada). Se crearon los lotes correspondientes.`,
+            : `Recepción ${result.receiptNumber} registrada (sin OC asociada). Se crearon los lotes correspondientes.`
         );
         // Si hubo discrepancias, el backend ya generó un reclamo automático.
         // Lo mostramos al operador con link directo al detalle.
@@ -461,10 +459,9 @@ export function ReceiptCreateView() {
               duration: 10000,
               action: {
                 label: 'Ver reclamo',
-                onClick: () =>
-                  router.push(paths.dashboard.claims.detail(result.autoClaim!.id)),
+                onClick: () => router.push(paths.dashboard.claims.detail(result.autoClaim!.id)),
               },
-            },
+            }
           );
         }
         // Solo abrimos el modal de "productos sin precio" si efectivamente
@@ -488,28 +485,67 @@ export function ReceiptCreateView() {
     router.push(paths.dashboard.purchases.receipts.root);
   };
 
-  const watchedItems = watch('items');
-  const watchedTaxPct = watch('taxPct');
-  const watchedIgtfPct = watch('igtfPct');
+  // useWatch (vs watch) reacciona a cambios anidados dentro del fieldArray
+  // en cada keystroke; con watch('items') el resumen no se recomputaba al
+  // editar costo/descuento de una línea.
+  const watchedItems = useWatch({ control, name: 'items' });
+  const watchedIgtfPct = useWatch({ control, name: 'igtfPct' });
+  const watchedNativeCurrency = useWatch({ control, name: 'nativeCurrency' });
+
+  // IVA por línea según taxType del producto (exempt=0, reduced=alícuota
+  // reducida configurada, general=alícuota general). El campo IVA del recibo
+  // pasa a ser informativo (promedio ponderado), no editable.
+  const ivaGeneralPct = Number(globalConfig?.iva_general_pct) || 0;
+  const ivaReducedPct = Number(globalConfig?.iva_reduced_pct) || 0;
+
   const totals = useMemo(() => {
+    const resolveLineTaxPct = (taxType?: string) => {
+      if (!taxType || taxType === 'exempt') return 0;
+      if (taxType === 'reduced') return ivaReducedPct;
+      return ivaGeneralPct;
+    };
     let subtotal = 0;
     let totalDiscount = 0;
+    let tax = 0;
     for (const it of watchedItems ?? []) {
-      const q = Number(it.quantity) || 0;
+      // Subtotal usa la cantidad FACTURADA (lo que cobra el proveedor),
+      // no la recibida. La diferencia se documenta como discrepancia y se
+      // reclama por nota de crédito; pero la factura original cobra lo
+      // facturado.
+      const invoiced = Number(it.invoicedQuantity);
+      const q = Number.isFinite(invoiced) && invoiced > 0 ? invoiced : Number(it.quantity) || 0;
       const u = Number(it.unitCostUsd) || 0;
       const d = Number(it.discountPct) || 0;
       const gross = q * u;
       const discountAmount = gross * (d / 100);
-      subtotal += gross - discountAmount;
+      const lineSubtotal = gross - discountAmount;
+      subtotal += lineSubtotal;
       totalDiscount += discountAmount;
+      // IVA por producto: medicamentos exentos no pagan IVA; misceláneos
+      // pagan general; algunos productos especiales pagan reducido.
+      const product = productById.get(it.productId);
+      tax += lineSubtotal * (resolveLineTaxPct(product?.taxType) / 100);
     }
-    const taxPctNum = Number(watchedTaxPct) || 0;
-    const igtfPctNum = Number(watchedIgtfPct) || 0;
-    const tax = subtotal * (taxPctNum / 100);
+    // IGTF (3% Venezuela) sólo aplica a pagos en divisas. Si la factura es
+    // en Bs., el IGTF es cero — sin importar lo configurado globalmente.
+    const igtfPctNum = watchedNativeCurrency === 'VES' ? 0 : Number(watchedIgtfPct) || 0;
     const igtf = (subtotal + tax) * (igtfPctNum / 100);
     const total = subtotal + tax + igtf;
-    return { subtotal, totalDiscount, tax, igtf, total };
-  }, [watchedItems, watchedTaxPct, watchedIgtfPct]);
+    // Promedio ponderado de IVA para mostrar en el campo "IVA %" del recibo.
+    const avgTaxPct = subtotal > 0 ? (tax / subtotal) * 100 : 0;
+    return { subtotal, totalDiscount, tax, igtf, total, avgTaxPct };
+  }, [watchedItems, watchedIgtfPct, watchedNativeCurrency, productById, ivaGeneralPct, ivaReducedPct]);
+
+  // Sincronizamos el promedio calculado al campo taxPct del recibo para que
+  // el operador vea el % efectivo y para que el backend reciba el mismo valor
+  // que el resumen. El backend, además, recalcula por línea (autoridad), pero
+  // mantenemos taxPct como registro del promedio.
+  useEffect(() => {
+    const next = totals.avgTaxPct ? totals.avgTaxPct.toFixed(2) : '';
+    if (methods.getValues('taxPct') !== next) {
+      setValue('taxPct', next);
+    }
+  }, [totals.avgTaxPct, methods, setValue]);
 
   const orderById = useMemo(
     () => new Map(eligibleOrders.map((o) => [o.id, o] as const)),
@@ -527,10 +563,10 @@ export function ReceiptCreateView() {
   // inputs `name="items.${idx}.X"` necesitan apuntar al array completo).
   const indexedFields = fields.map((field, idx) => ({ field, idx }));
   const orderFieldEntries = indexedFields.filter(
-    ({ idx }) => !!watchedItems?.[idx]?.purchaseOrderId,
+    ({ idx }) => !!watchedItems?.[idx]?.purchaseOrderId
   );
   const additionalFieldEntries = indexedFields.filter(
-    ({ idx }) => !watchedItems?.[idx]?.purchaseOrderId,
+    ({ idx }) => !watchedItems?.[idx]?.purchaseOrderId
   );
 
   /**
@@ -544,25 +580,48 @@ export function ReceiptCreateView() {
    */
   function renderDiscrepancyPanel(idx: number) {
     const item = watchedItems?.[idx];
+    // Ítems "adicionales" son productos que llegaron sin estar en la OC.
+    // Para ellos no aplican razones que asumen un baseline de OC (faltante
+    // contra lo ordenado, producto incorrecto contra SKU pedido).
+    const isAdditional = !item?.purchaseOrderId;
     const invoiced = Number(item?.invoicedQuantity ?? item?.quantity ?? 0);
     const received = Number(item?.quantity ?? 0);
-    const diff = Math.abs(invoiced - received);
+    // Signo de la diferencia: positivo = faltante (recibí menos que facturado),
+    // negativo = sobrante (recibí más). Conservamos el signo para filtrar
+    // razones y mensajes — antes usábamos `Math.abs` y eso confundía sobrantes
+    // con faltantes en los reportes del QA.
+    const signedDiff = invoiced - received;
+    const diff = Math.abs(signedDiff);
+    const isShortage = signedDiff > 0; // faltó stock
+    const isExcess = signedDiff < 0; // llegó de más
     const epsilon = 0.001;
 
     const discrepancies = item?.discrepancies ?? [];
     const sumDiscrepancies = discrepancies.reduce((s, d) => s + (Number(d.quantity) || 0), 0);
     const remaining = diff - sumDiscrepancies;
+    const balanced = Math.abs(remaining) <= epsilon;
 
     if (diff <= epsilon && discrepancies.length === 0) return null;
 
-    const tone =
-      Math.abs(remaining) <= epsilon ? 'success' : remaining > 0 ? 'warning' : 'error';
-    const message =
-      Math.abs(remaining) <= epsilon
-        ? `Discrepancias cuadran (${diff.toFixed(3)}).`
-        : remaining > 0
-          ? `Faltan ${remaining.toFixed(3)} unidades por explicar.`
-          : `Sobran ${Math.abs(remaining).toFixed(3)} unidades en discrepancias.`;
+    const tone = balanced ? 'success' : remaining > 0 ? 'warning' : 'error';
+    const diffLabel = Math.round(diff); // QA: sin decimales en el display
+    const remainingLabel = Math.round(Math.abs(remaining));
+    const message = balanced
+      ? `Discrepancias cuadran (${diffLabel}).`
+      : remaining > 0
+        ? `Faltan ${remainingLabel} unidades por explicar.`
+        : `Sobran ${remainingLabel} unidades en discrepancias.`;
+
+    // Default reason según contexto:
+    // - Adicional (no en OC): muestra gratis es el caso más frecuente.
+    // - OC con sobrante: "excess".
+    // - OC con faltante: "expired" como punto de partida (operador puede
+    //   cambiar a defectuoso, dañado, etc.).
+    const defaultReason: DiscrepancyReason = isAdditional
+      ? 'sample'
+      : isExcess
+        ? 'excess'
+        : 'expired';
 
     return (
       <Box
@@ -578,17 +637,19 @@ export function ReceiptCreateView() {
           <Stack direction="row" spacing={1} alignItems="center">
             <Iconify icon="solar:danger-triangle-bold" width={18} />
             <Typography variant="subtitle2">
-              Diferencia: facturada {invoiced} vs recibida {received} ({diff.toFixed(3)})
+              Diferencia: facturada {invoiced} vs recibida {received} ({diffLabel})
             </Typography>
           </Stack>
           <Button
             size="small"
             variant="outlined"
             startIcon={<Iconify icon="solar:add-circle-bold" />}
+            // QA: deshabilitar cuando todas las discrepancias ya cuadran.
+            disabled={balanced}
             onClick={() => {
               const next = [
                 ...(watchedItems?.[idx]?.discrepancies ?? []),
-                { reason: 'expired' as const, quantity: '', notes: '' },
+                { reason: defaultReason, quantity: '', notes: '' },
               ];
               setValue(`items.${idx}.discrepancies`, next, { shouldValidate: true });
             }}
@@ -615,15 +676,52 @@ export function ReceiptCreateView() {
                 slotProps={{ inputLabel: { shrink: true } }}
                 sx={{ flex: 1.5, minWidth: 220 }}
               >
-                <MenuItem value="expired">Vencido / próximo a vencer</MenuItem>
-                <MenuItem value="defective">Defectuoso de fábrica</MenuItem>
-                <MenuItem value="damaged_packaging">Empaque dañado</MenuItem>
-                <MenuItem value="damaged_in_transit">Daño en transporte</MenuItem>
-                <MenuItem value="incorrect_product">Producto incorrecto</MenuItem>
-                <MenuItem value="missing">Faltante</MenuItem>
-                <MenuItem value="excess">Sobrante</MenuItem>
-                <MenuItem value="quality_failure">Falla de calidad</MenuItem>
-                <MenuItem value="other">Otro</MenuItem>
+                {/* QA #117: las razones para productos ADICIONALES (no en
+                    OC) son completamente diferentes — clasifican por qué
+                    llegó algo no pedido (muestra, sustituto, regalo). Las
+                    razones de daño/vencimiento aplican solo a ítems de OC
+                    (donde había una expectativa de calidad contra la
+                    factura). */}
+                {isAdditional ? (
+                  <>
+                    <MenuItem value="sample">Muestra gratis</MenuItem>
+                    <MenuItem value="substitute">Sustituto del proveedor</MenuItem>
+                    <MenuItem value="commercial_gift">Regalo comercial / bonificación</MenuItem>
+                    <MenuItem value="excess">Sobrante de OC vecina</MenuItem>
+                    <MenuItem value="other">Otro</MenuItem>
+                  </>
+                ) : (
+                  <>
+                    {/* Razones OC — filtradas por dirección de la diferencia:
+                        - Si llegó MÁS de lo facturado, solo 'excess' aplica.
+                        - Si llegó MENOS, ocultamos 'excess'. */}
+                    {!isExcess && [
+                      <MenuItem key="expired" value="expired">
+                        Vencido / próximo a vencer
+                      </MenuItem>,
+                      <MenuItem key="defective" value="defective">
+                        Defectuoso de fábrica
+                      </MenuItem>,
+                      <MenuItem key="damaged_packaging" value="damaged_packaging">
+                        Empaque dañado
+                      </MenuItem>,
+                      <MenuItem key="damaged_in_transit" value="damaged_in_transit">
+                        Daño en transporte
+                      </MenuItem>,
+                      <MenuItem key="incorrect_product" value="incorrect_product">
+                        Producto incorrecto
+                      </MenuItem>,
+                      <MenuItem key="missing" value="missing">
+                        Faltante
+                      </MenuItem>,
+                      <MenuItem key="quality_failure" value="quality_failure">
+                        Falla de calidad
+                      </MenuItem>,
+                    ]}
+                    {isExcess && <MenuItem value="excess">Sobrante</MenuItem>}
+                    {isShortage && <MenuItem value="other">Otro</MenuItem>}
+                  </>
+                )}
               </Field.Select>
               <Field.Text
                 name={`items.${idx}.discrepancies.${dIdx}.quantity`}
@@ -645,7 +743,7 @@ export function ReceiptCreateView() {
                 sx={{ mt: { sm: 0.5 }, flexShrink: 0 }}
                 onClick={() => {
                   const next = (watchedItems?.[idx]?.discrepancies ?? []).filter(
-                    (_d, i) => i !== dIdx,
+                    (_d, i) => i !== dIdx
                   );
                   setValue(`items.${idx}.discrepancies`, next, { shouldValidate: true });
                 }}
@@ -678,8 +776,9 @@ export function ReceiptCreateView() {
     const product = productId ? productById.get(productId) : undefined;
     const qty = Number(watchedItems?.[idx]?.quantity ?? 0);
     const invoicedQty = Number(watchedItems?.[idx]?.invoicedQuantity ?? qty);
-    const hasDiscrepancies =
-      (watchedItems?.[idx]?.discrepancies ?? []).some((d) => Number(d.quantity) > 0);
+    const hasDiscrepancies = (watchedItems?.[idx]?.discrepancies ?? []).some(
+      (d) => Number(d.quantity) > 0
+    );
     const hasDiff = Math.abs(invoicedQty - qty) > 0.001;
     // "No recibido" = de la OC, sin stock físico, sin diferencia respecto a la
     // factura y sin discrepancias. En ese caso el operador simplemente no recibió
@@ -730,14 +829,20 @@ export function ReceiptCreateView() {
                   slotProps={{ inputLabel: { shrink: true } }}
                   sx={{ flex: 1 }}
                 />
-                <Field.Text
-                  name={`items.${idx}.expirationDate`}
-                  label="Vencimiento"
-                  type="date"
-                  disabled={isNotReceived}
-                  slotProps={{ inputLabel: { shrink: true } }}
-                  sx={{ width: { xs: '100%', sm: 180 }, flexShrink: 0 }}
-                />
+                {/* QA #109: si el producto NO trackea vencimiento (consumo
+                   masivo: jabón, papel, etc.) ocultamos el campo. El backend
+                   guarda el lote con un sentinel far-future para que FEFO lo
+                   ordene al final sin caducidad efectiva. */}
+                {product?.tracksExpiration !== false && (
+                  <Field.Text
+                    name={`items.${idx}.expirationDate`}
+                    label="Vencimiento"
+                    type="date"
+                    disabled={isNotReceived}
+                    slotProps={{ inputLabel: { shrink: true } }}
+                    sx={{ width: { xs: '100%', sm: 180 }, flexShrink: 0 }}
+                  />
+                )}
               </Stack>
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
                 <Field.Text
@@ -759,7 +864,7 @@ export function ReceiptCreateView() {
                   name={`items.${idx}.unitCostUsd`}
                   label="Costo USD"
                   disabled={isNotReceived}
-                  helperText={fromOrder ? 'De la OC (ajustable)' : undefined}
+                  helperText="De la factura del proveedor"
                   slotProps={{ inputLabel: { shrink: true } }}
                   sx={{ flex: 1 }}
                 />
@@ -771,6 +876,58 @@ export function ReceiptCreateView() {
                   sx={{ width: { xs: '100%', sm: 110 }, flexShrink: 0 }}
                 />
               </Stack>
+
+              {/* Resumen por línea — el operador necesita conciliar cada
+                 renglón contra la factura del proveedor sin tener que sumar
+                 mental subtotal × tax. IGTF no se muestra aquí porque es
+                 un impuesto a nivel documento (sólo aplica a pagos en
+                 divisa) — no por línea. */}
+              {(() => {
+                const cost = Number(watchedItems?.[idx]?.unitCostUsd) || 0;
+                const disc = Number(watchedItems?.[idx]?.discountPct) || 0;
+                const lineSubtotal = invoicedQty * cost * (1 - disc / 100);
+                // IVA según el taxType del PRODUCTO, no una tasa única del
+                // recibo. Medicamentos exentos → 0%; misceláneos → general;
+                // especiales → reducido.
+                const taxType = product?.taxType;
+                const lineTaxPct =
+                  !taxType || taxType === 'exempt'
+                    ? 0
+                    : taxType === 'reduced'
+                      ? ivaReducedPct
+                      : ivaGeneralPct;
+                const lineTax = lineSubtotal * (lineTaxPct / 100);
+                const lineTotal = lineSubtotal + lineTax;
+                if (lineSubtotal <= 0 && lineTax <= 0) return null;
+                return (
+                  <Stack
+                    direction="row"
+                    spacing={3}
+                    sx={{ pl: 0.5, color: 'text.secondary' }}
+                    flexWrap="wrap"
+                    useFlexGap
+                  >
+                    <Typography variant="caption">
+                      Subtotal línea:{' '}
+                      <Box component="span" sx={{ fontWeight: 600, color: 'text.primary' }}>
+                        ${lineSubtotal.toFixed(2)}
+                      </Box>
+                    </Typography>
+                    <Typography variant="caption">
+                      IVA ({lineTaxPct}%):{' '}
+                      <Box component="span" sx={{ fontWeight: 600, color: 'text.primary' }}>
+                        ${lineTax.toFixed(2)}
+                      </Box>
+                    </Typography>
+                    <Typography variant="caption">
+                      Total línea:{' '}
+                      <Box component="span" sx={{ fontWeight: 700, color: 'text.primary' }}>
+                        ${lineTotal.toFixed(2)}
+                      </Box>
+                    </Typography>
+                  </Stack>
+                );
+              })()}
 
               {/* El panel se muestra siempre que haya diferencia entre lo
                  facturado y lo recibido (incluso cuando Recibida=0): es el
@@ -845,12 +1002,10 @@ export function ReceiptCreateView() {
                 // si no, en loadedOrders (detalle ya cargado de OCs ya
                 // seleccionadas). Esto evita mostrar el UUID raw cuando una
                 // OC ya consolidada queda fuera del filtro por proveedor.
-                const o =
-                  orderById.get(id as string) ??
-                  loadedOrders.find((lo) => lo.id === id);
+                const o = orderById.get(id as string) ?? loadedOrders.find((lo) => lo.id === id);
                 if (!o) return id as string;
-                const statusTag = o.status === 'partial' ? ' · Parcial' : '';
-                return `${o.orderNumber} · ${new Date(o.createdAt).toLocaleDateString('es-VE')} · $${(Number(o.totalUsd) || 0).toFixed(2)}${statusTag}`;
+                const statusTag = ` · ${ORDER_STATUS_LABEL[o.status] ?? o.status}`;
+                return `${o.orderNumber} · ${new Date(o.createdAt).toLocaleDateString('es-VE')}${statusTag}`;
               }}
               isOptionEqualToValue={(option, value) => option === value}
               helperText={
@@ -865,7 +1020,9 @@ export function ReceiptCreateView() {
 
             {selectedOrdersSummary.length > 0 && (
               <Alert severity="info" icon={<Iconify icon="solar:bill-list-bold" />}>
-                {selectedOrdersSummary.length === 1 ? 'Orden' : `${selectedOrdersSummary.length} órdenes`}{' '}
+                {selectedOrdersSummary.length === 1
+                  ? 'Orden'
+                  : `${selectedOrdersSummary.length} órdenes`}{' '}
                 consolidadas en esta factura:
                 <Stack direction="row" spacing={0.5} sx={{ flexWrap: 'wrap', mt: 0.5 }}>
                   {selectedOrdersSummary.map((o) => (
@@ -873,7 +1030,7 @@ export function ReceiptCreateView() {
                       key={o.id}
                       size="small"
                       variant="outlined"
-                      label={`${o.orderNumber} · ${o.status}`}
+                      label={`${o.orderNumber} · ${ORDER_STATUS_LABEL[o.status] ?? o.status}`}
                     />
                   ))}
                 </Stack>
@@ -900,25 +1057,24 @@ export function ReceiptCreateView() {
                   </MenuItem>
                 ))}
               </Field.Select>
-              <Field.Select
-                name="supplierId"
-                label="Proveedor"
-                disabled={branchSupplierLockedByOrder}
-                helperText={
-                  branchSupplierLockedByOrder
-                    ? 'Heredado de la orden de compra seleccionada.'
-                    : undefined
-                }
-                slotProps={{ inputLabel: { shrink: true } }}
-                sx={{ flex: 1 }}
-              >
-                <MenuItem value="">— Selecciona —</MenuItem>
-                {suppliers.map((s) => (
-                  <MenuItem key={s.id} value={s.id}>
-                    {s.businessName}
-                  </MenuItem>
-                ))}
-              </Field.Select>
+              <Box sx={{ flex: 1 }}>
+                <Field.IdAutocomplete
+                  name="supplierId"
+                  label="Proveedor"
+                  placeholder="Buscar proveedor por nombre o RIF…"
+                  disabled={branchSupplierLockedByOrder}
+                  helperText={
+                    branchSupplierLockedByOrder
+                      ? 'Heredado de la orden de compra seleccionada.'
+                      : undefined
+                  }
+                  options={suppliers.map((s) => ({
+                    id: s.id,
+                    label: s.businessName,
+                    secondaryLabel: s.rif ?? null,
+                  }))}
+                />
+              </Box>
             </Stack>
 
             <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
@@ -937,25 +1093,6 @@ export function ReceiptCreateView() {
               <Field.Text
                 name="supplierInvoiceNumber"
                 label="Nº factura del proveedor"
-                slotProps={{ inputLabel: { shrink: true } }}
-                sx={{ flex: 1 }}
-              />
-            </Stack>
-
-            <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
-              <Field.Text
-                name="taxPct"
-                label="IVA %"
-                disabled
-                helperText="Tasa SUNDDE — configurada globalmente. Aplicado sobre el subtotal."
-                slotProps={{ inputLabel: { shrink: true } }}
-                sx={{ flex: 1 }}
-              />
-              <Field.Text
-                name="igtfPct"
-                label="IGTF %"
-                disabled
-                helperText="Tasa SENIAT — configurada globalmente. Aplicado sobre (subtotal + IVA)."
                 slotProps={{ inputLabel: { shrink: true } }}
                 sx={{ flex: 1 }}
               />
@@ -1000,7 +1137,7 @@ export function ReceiptCreateView() {
                     helperText={
                       latestBcvRate?.rate
                         ? `Última BCV: ${Number(latestBcvRate.rate).toFixed(4)} (${new Date(
-                            latestBcvRate.effectiveDate,
+                            latestBcvRate.effectiveDate
                           ).toLocaleDateString('es-VE')})`
                         : 'No hay tasa BCV registrada — ingresa manualmente'
                     }
@@ -1017,10 +1154,7 @@ export function ReceiptCreateView() {
                 <Alert severity="info" icon={<Iconify icon="solar:wad-of-money-bold" />}>
                   Equivalente USD calculado:{' '}
                   <strong>
-                    $
-                    {(
-                      Number(watch('nativeTotal')) / Number(watch('exchangeRateUsed'))
-                    ).toFixed(2)}
+                    ${(Number(watch('nativeTotal')) / Number(watch('exchangeRateUsed'))).toFixed(2)}
                   </strong>
                   . Compáralo contra el total computado abajo (debería estar cerca; pequeñas
                   diferencias por redondeo son normales).
@@ -1044,10 +1178,13 @@ export function ReceiptCreateView() {
                 <Typography variant="subtitle2" sx={{ color: 'text.secondary' }}>
                   Productos solicitados en la(s) orden(es) ({orderFieldEntries.length})
                 </Typography>
-                <Typography variant="caption" sx={{ color: 'text.disabled', display: 'block', mt: 0.5 }}>
-                  Producto y costo vienen de la OC. Solo ajusta cantidad, lote y vencimiento. El
-                  precio de venta se fija desde el módulo de Precios. Si un producto no llegó,
-                  marca cantidad 0.
+                <Typography
+                  variant="caption"
+                  sx={{ color: 'text.disabled', display: 'block', mt: 0.5 }}
+                >
+                  Producto viene de la OC. Captura cantidad facturada, recibida, lote, vencimiento y
+                  el costo unitario de la factura del proveedor. El precio de venta se fija desde el
+                  módulo de Precios. Si un producto no llegó, marca cantidad 0.
                 </Typography>
               </Box>
               {orderFieldEntries.map(({ field, idx }, i) => {
@@ -1057,7 +1194,12 @@ export function ReceiptCreateView() {
                   : undefined;
                 return (
                   <Box key={field.id}>
-                    {renderItemRow({ field, idx, fromOrder: true, itemOrderNumber: itemOrder?.orderNumber })}
+                    {renderItemRow({
+                      field,
+                      idx,
+                      fromOrder: true,
+                      itemOrderNumber: itemOrder?.orderNumber,
+                    })}
                     {i < orderFieldEntries.length - 1 && (
                       <Divider sx={{ borderStyle: 'dashed', my: 2 }} />
                     )}
@@ -1078,7 +1220,10 @@ export function ReceiptCreateView() {
                     : `Ítems recibidos (${additionalFieldEntries.length})`}
                 </Typography>
                 {orderFieldEntries.length > 0 && (
-                  <Typography variant="caption" sx={{ color: 'text.disabled', display: 'block', mt: 0.5 }}>
+                  <Typography
+                    variant="caption"
+                    sx={{ color: 'text.disabled', display: 'block', mt: 0.5 }}
+                  >
                     Productos que llegaron pero no estaban en ninguna orden de compra (muestras,
                     sustitutos, regalos comerciales, etc.).
                   </Typography>
@@ -1147,7 +1292,7 @@ export function ReceiptCreateView() {
             )}
             <Stack direction="row" justifyContent="space-between">
               <Typography variant="body2" color="text.secondary">
-                IVA ({Number(watchedTaxPct) || 0}%)
+                IVA (promedio {totals.avgTaxPct.toFixed(2)}%)
               </Typography>
               <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
                 ${totals.tax.toFixed(2)}
@@ -1185,10 +1330,7 @@ export function ReceiptCreateView() {
         </Box>
       </Form>
 
-      <UnpricedProductsDialog
-        receiptId={postReceiptId}
-        onClose={handleClosePostReceipt}
-      />
+      <UnpricedProductsDialog receiptId={postReceiptId} onClose={handleClosePostReceipt} />
     </Container>
   );
 }

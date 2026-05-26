@@ -59,6 +59,8 @@ export type Product = {
   isAntibiotic: boolean;
   isImported: boolean;
   requiresRecipe: boolean;
+  /** False para productos sin caducidad (consumo masivo: jabón, papel, etc.). */
+  tracksExpiration: boolean;
   isWeighable: boolean;
   unitOfMeasure: UnitOfMeasure;
   decimalPlaces: number;
@@ -110,6 +112,7 @@ export type CreateProductPayload = {
   isAntibiotic?: boolean;
   isImported?: boolean;
   requiresRecipe?: boolean;
+  tracksExpiration?: boolean;
   isWeighable?: boolean;
   unitOfMeasure?: UnitOfMeasure;
   decimalPlaces?: number;

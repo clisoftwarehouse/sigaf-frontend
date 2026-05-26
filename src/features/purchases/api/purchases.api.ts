@@ -58,6 +58,10 @@ export async function approveOrder(id: string): Promise<PurchaseOrder> {
   return res.data;
 }
 
+export async function deleteOrder(id: string): Promise<void> {
+  await axios.delete(endpoints.purchases.orderById(id));
+}
+
 export type CategoryFlag = 'controlled' | 'antibiotic' | 'cold_chain' | 'imported';
 
 export type ApprovalRequirement = {

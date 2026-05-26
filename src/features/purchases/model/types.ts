@@ -41,7 +41,7 @@ export type PurchaseOrder = {
 export type CreatePurchaseOrderItemPayload = {
   productId: string;
   quantity: number;
-  unitCostUsd: number;
+  unitCostUsd?: number;
   discountPct?: number;
 };
 
@@ -82,6 +82,9 @@ export type DiscrepancyReason =
   | 'missing'
   | 'excess'
   | 'quality_failure'
+  | 'sample'
+  | 'substitute'
+  | 'commercial_gift'
   | 'other';
 
 export const DISCREPANCY_REASONS: DiscrepancyReason[] = [
@@ -93,6 +96,9 @@ export const DISCREPANCY_REASONS: DiscrepancyReason[] = [
   'missing',
   'excess',
   'quality_failure',
+  'sample',
+  'substitute',
+  'commercial_gift',
   'other',
 ];
 
@@ -105,6 +111,9 @@ export const DISCREPANCY_REASON_LABEL: Record<DiscrepancyReason, string> = {
   missing: 'Faltante',
   excess: 'Sobrante',
   quality_failure: 'Falla de control de calidad',
+  sample: 'Muestra gratis',
+  substitute: 'Sustituto del proveedor',
+  commercial_gift: 'Regalo comercial / bonificación',
   other: 'Otro',
 };
 

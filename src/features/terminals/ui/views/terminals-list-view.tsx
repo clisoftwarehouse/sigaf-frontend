@@ -85,22 +85,6 @@ export function TerminalsListView() {
           (branchNameById.get(a) ?? '').localeCompare(branchNameById.get(b) ?? ''),
       },
       {
-        field: 'hardware',
-        headerName: 'Hardware',
-        sortable: false,
-        filterable: false,
-        flex: 1.5,
-        minWidth: 200,
-        valueGetter: (_v, row) => {
-          const parts = [
-            row.fiscalPrinterConfig && 'impresora',
-            row.scaleConfig && 'báscula',
-            row.cashDrawerConfig && 'gaveta',
-          ].filter(Boolean) as string[];
-          return parts.length > 0 ? parts.join(', ') : '—';
-        },
-      },
-      {
         field: 'isActive',
         headerName: 'Activo',
         type: 'boolean',
