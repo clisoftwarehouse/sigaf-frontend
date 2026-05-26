@@ -23,6 +23,9 @@ export type Supplier = {
   promptPaymentDiscountPct: number | string | null;
   hasVolumeDiscount: boolean;
   volumeDiscountPct: number | string | null;
+  /** QA #104: umbral para auto-aplicar volumen en la recepción. */
+  volumeDiscountThreshold: number | string | null;
+  volumeDiscountThresholdType: 'quantity' | 'amount' | null;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -48,6 +51,8 @@ export type CreateSupplierPayload = {
   promptPaymentDiscountPct?: number;
   hasVolumeDiscount?: boolean;
   volumeDiscountPct?: number;
+  volumeDiscountThreshold?: number;
+  volumeDiscountThresholdType?: 'quantity' | 'amount';
 };
 
 export type UpdateSupplierPayload = Partial<CreateSupplierPayload>;

@@ -226,9 +226,9 @@ export type CreateGoodsReceiptPayload = {
   receiptType?: ReceiptType;
   taxPct?: number;
   igtfPct?: number;
-  /** Descuentos comerciales por documento (QA #104). */
+  /** Descuentos comerciales por documento (QA #104). Pronto pago se
+   *  aplica en el módulo de Pagos, no en recepción. */
   headerDiscountPct?: number;
-  promptPaymentDiscountPct?: number;
   volumeDiscountPct?: number;
   notes?: string;
   items: CreateGoodsReceiptItemPayload[];

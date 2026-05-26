@@ -95,6 +95,14 @@ export const SupplierSchema = z.object({
     .refine((v) => !v || (/^\d+(\.\d+)?$/.test(v) && Number(v) >= 0 && Number(v) <= 100), {
       message: 'Entre 0 y 100',
     }),
+  // QA #104: umbral para auto-aplicar el descuento por volumen en la
+  // recepción. Si no se setea, el operador escribe el % manualmente.
+  volumeDiscountThreshold: z
+    .string()
+    .optional()
+    .or(z.literal(''))
+    .refine((v) => !v || /^\d+(\.\d+)?$/.test(v), { message: 'Debe ser un número' }),
+  volumeDiscountThresholdType: z.enum(['quantity', 'amount']).optional().or(z.literal('')),
 });
 
 export type SupplierFormValues = z.infer<typeof SupplierSchema>;
@@ -130,6 +138,8 @@ function toFormValues(s?: Supplier): SupplierFormValues {
     promptPaymentDiscountPct: pct(s?.promptPaymentDiscountPct),
     hasVolumeDiscount: s?.hasVolumeDiscount ?? false,
     volumeDiscountPct: pct(s?.volumeDiscountPct),
+    volumeDiscountThreshold: pct(s?.volumeDiscountThreshold),
+    volumeDiscountThresholdType: s?.volumeDiscountThresholdType ?? '',
   };
 }
 
@@ -182,6 +192,14 @@ export function SupplierForm({ current, submitting, onSubmit, onCancel }: Props)
       ),
       hasVolumeDiscount: values.hasVolumeDiscount,
       volumeDiscountPct: pctIfOn(values.hasVolumeDiscount, values.volumeDiscountPct ?? ''),
+      volumeDiscountThreshold:
+        values.hasVolumeDiscount && values.volumeDiscountThreshold
+          ? Number(values.volumeDiscountThreshold)
+          : undefined,
+      volumeDiscountThresholdType:
+        values.hasVolumeDiscount && values.volumeDiscountThresholdType
+          ? (values.volumeDiscountThresholdType as 'quantity' | 'amount')
+          : undefined,
     });
   });
 
@@ -321,6 +339,32 @@ export function SupplierForm({ current, submitting, onSubmit, onCancel }: Props)
                 helperText="A partir de cierta cantidad / monto comprado."
                 showPct={hasVolume}
               />
+              {/* QA #104: umbral para auto-aplicar volumen en recepción. */}
+              {hasVolume && (
+                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ pl: 6 }}>
+                  <Field.Text
+                    name="volumeDiscountThreshold"
+                    label="Umbral"
+                    placeholder="Ej. 100"
+                    helperText="Cantidad o monto a partir del cual aplica"
+                    slotProps={{
+                      inputLabel: { shrink: true },
+                      htmlInput: { inputMode: 'decimal' },
+                    }}
+                    sx={{ flex: 1 }}
+                  />
+                  <Field.Select
+                    name="volumeDiscountThresholdType"
+                    label="Tipo de umbral"
+                    slotProps={{ inputLabel: { shrink: true } }}
+                    sx={{ width: { xs: '100%', sm: 220 } }}
+                  >
+                    <MenuItem value="">— No auto-aplicar —</MenuItem>
+                    <MenuItem value="quantity">Cantidad (suma de unidades)</MenuItem>
+                    <MenuItem value="amount">Monto (subtotal USD)</MenuItem>
+                  </Field.Select>
+                </Stack>
+              )}
             </Stack>
           </Box>
 
