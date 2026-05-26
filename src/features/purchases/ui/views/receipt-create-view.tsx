@@ -590,6 +590,10 @@ export function ReceiptCreateView() {
     let subtotal = 0;
     let totalDiscount = 0;
     let taxGross = 0;
+    // Desglose por taxType para mostrar en el Resumen (QA: el exento no
+    // se muestra porque siempre es 0).
+    let taxGrossGeneral = 0;
+    let taxGrossReduced = 0;
     for (const it of watchedItems ?? []) {
       // Subtotal usa la cantidad FACTURADA (lo que cobra el proveedor),
       // no la recibida. La diferencia se documenta como discrepancia y se
@@ -607,7 +611,11 @@ export function ReceiptCreateView() {
       // IVA por producto: medicamentos exentos no pagan IVA; misceláneos
       // pagan general; algunos productos especiales pagan reducido.
       const product = productById.get(it.productId);
-      taxGross += lineSubtotal * (resolveLineTaxPct(product?.taxType) / 100);
+      const lineTaxPct = resolveLineTaxPct(product?.taxType);
+      const lineTax = lineSubtotal * (lineTaxPct / 100);
+      taxGross += lineTax;
+      if (product?.taxType === 'reduced') taxGrossReduced += lineTax;
+      else if (product?.taxType && product.taxType !== 'exempt') taxGrossGeneral += lineTax;
     }
 
     // QA #104: descuentos comerciales del documento. Orden:
@@ -622,6 +630,10 @@ export function ReceiptCreateView() {
     const netSubtotal = subtotal - headerDiscount - volumeDiscount;
     const taxScale = subtotal > 0 ? netSubtotal / subtotal : 0;
     const tax = taxGross * taxScale;
+    // Cada bucket de IVA también se escala con el descuento del documento
+    // (el descuento se prorratea proporcionalmente a la base de cada IVA).
+    const taxGeneral = taxGrossGeneral * taxScale;
+    const taxReduced = taxGrossReduced * taxScale;
 
     // IGTF (3% Venezuela) sólo aplica a pagos en divisas. Si la factura es
     // en Bs., el IGTF es cero — sin importar lo configurado globalmente.
@@ -637,6 +649,8 @@ export function ReceiptCreateView() {
       volumeDiscount,
       netSubtotal,
       tax,
+      taxGeneral,
+      taxReduced,
       igtf,
       total,
       avgTaxPct,
@@ -1484,14 +1498,26 @@ export function ReceiptCreateView() {
                 </Typography>
               </Stack>
             )}
-            <Stack direction="row" justifyContent="space-between">
-              <Typography variant="body2" color="text.secondary">
-                IVA (promedio {totals.avgTaxPct.toFixed(2)}%)
-              </Typography>
-              <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
-                ${totals.tax.toFixed(2)}
-              </Typography>
-            </Stack>
+            {totals.taxGeneral > 0 && (
+              <Stack direction="row" justifyContent="space-between">
+                <Typography variant="body2" color="text.secondary">
+                  IVA ({ivaGeneralPct}%)
+                </Typography>
+                <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
+                  ${totals.taxGeneral.toFixed(2)}
+                </Typography>
+              </Stack>
+            )}
+            {totals.taxReduced > 0 && (
+              <Stack direction="row" justifyContent="space-between">
+                <Typography variant="body2" color="text.secondary">
+                  IVA ({ivaReducedPct}%)
+                </Typography>
+                <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
+                  ${totals.taxReduced.toFixed(2)}
+                </Typography>
+              </Stack>
+            )}
             <Stack direction="row" justifyContent="space-between">
               <Typography variant="body2" color="text.secondary">
                 IGTF ({Number(watchedIgtfPct) || 0}%)
