@@ -693,8 +693,15 @@ export function ReceiptCreateView() {
     const total = netSubtotal + tax + igtf;
     // Promedio ponderado de IVA para mostrar en el campo "IVA %" del recibo.
     const avgTaxPct = netSubtotal > 0 ? (tax / netSubtotal) * 100 : 0;
+    // Subtotal BRUTO (antes de aplicar el descuento lineal). Necesario
+    // para mostrarlo en el Resumen y desglosar TODOS los descuentos abajo.
+    // De otra forma "Subtotal $X" y "Descuento lineal −$Y" parecía doble
+    // resta (el lineal ya estaba aplicado en X).
+    const subtotalGross = subtotal + totalDiscount;
+
     return {
       subtotal,
+      subtotalGross,
       totalDiscount,
       headerDiscount,
       volumeDiscount,
@@ -1513,10 +1520,10 @@ export function ReceiptCreateView() {
             </Typography>
             <Stack direction="row" justifyContent="space-between">
               <Typography variant="body2" color="text.secondary">
-                Subtotal (después de descuentos)
+                Subtotal
               </Typography>
               <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
-                ${totals.subtotal.toFixed(2)}
+                ${totals.subtotalGross.toFixed(2)}
               </Typography>
             </Stack>
             {totals.totalDiscount > 0 && (
