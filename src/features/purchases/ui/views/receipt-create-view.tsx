@@ -121,6 +121,11 @@ const ReceiptSchema = z
     receiptType: z.enum(['purchase', 'consignment']),
     taxPct: pctString,
     igtfPct: pctString,
+    // QA #104: descuentos comerciales a nivel de documento. Solo visibles
+    // si el proveedor tiene activado el toggle correspondiente. Default 0.
+    headerDiscountPct: pctString,
+    promptPaymentDiscountPct: pctString,
+    volumeDiscountPct: pctString,
     notes: z.string().max(500).optional().or(z.literal('')),
     items: z.array(ItemSchema).min(1, { message: 'Agrega al menos un ítem' }),
     nativeCurrency: z.enum(['USD', 'VES']),
@@ -207,6 +212,9 @@ export function ReceiptCreateView() {
       receiptType: 'purchase',
       taxPct: '',
       igtfPct: '',
+      headerDiscountPct: '',
+      promptPaymentDiscountPct: '',
+      volumeDiscountPct: '',
       notes: '',
       // Vacío por default: el usuario debe explícitamente "Agregar ítem" o
       // seleccionar una OC. Evita la fricción de tener que eliminar una fila
@@ -246,6 +254,41 @@ export function ReceiptCreateView() {
     if (!selectedSupplier || supplierTouchedCurrencyRef.current) return;
     setValue('nativeCurrency', selectedSupplier.invoicesInCurrency, { shouldValidate: true });
   }, [selectedSupplier, setValue]);
+
+  // QA #104: cuando el operador elige proveedor, autopoblar los % sugeridos
+  // del maestro. El operador puede sobreescribir cada uno para reflejar lo
+  // que dice la factura específica (la queja del QA era justamente que
+  // había que ir al maestro para cambiarlos).
+  useEffect(() => {
+    if (!selectedSupplier) return;
+    const populate = (
+      field: 'headerDiscountPct' | 'promptPaymentDiscountPct' | 'volumeDiscountPct',
+      has: boolean,
+      pct: number | string | null,
+    ) => {
+      if (!has) return;
+      // Solo poblar si el campo está vacío — respeta override manual.
+      const current = methods.getValues(field);
+      if (current) return;
+      const value = pct != null ? String(Number(pct)) : '';
+      if (value) setValue(field, value, { shouldValidate: false });
+    };
+    populate(
+      'headerDiscountPct',
+      selectedSupplier.hasHeaderDiscount,
+      selectedSupplier.headerDiscountPct,
+    );
+    populate(
+      'promptPaymentDiscountPct',
+      selectedSupplier.hasPromptPaymentDiscount,
+      selectedSupplier.promptPaymentDiscountPct,
+    );
+    populate(
+      'volumeDiscountPct',
+      selectedSupplier.hasVolumeDiscount,
+      selectedSupplier.volumeDiscountPct,
+    );
+  }, [selectedSupplier, methods, setValue]);
 
   // Tasa BCV USD→VES más reciente — autofill cuando la moneda nativa es VES.
   const nativeCurrency = watch('nativeCurrency');
@@ -384,6 +427,11 @@ export function ReceiptCreateView() {
       receiptType: values.receiptType,
       taxPct: values.taxPct ? Number(values.taxPct) : undefined,
       igtfPct: values.igtfPct ? Number(values.igtfPct) : undefined,
+      headerDiscountPct: values.headerDiscountPct ? Number(values.headerDiscountPct) : undefined,
+      promptPaymentDiscountPct: values.promptPaymentDiscountPct
+        ? Number(values.promptPaymentDiscountPct)
+        : undefined,
+      volumeDiscountPct: values.volumeDiscountPct ? Number(values.volumeDiscountPct) : undefined,
       notes: values.notes?.trim() || undefined,
       nativeCurrency: values.nativeCurrency,
       // Solo enviamos los campos de moneda nativa cuando es VES — para USD el
@@ -491,6 +539,10 @@ export function ReceiptCreateView() {
   const watchedItems = useWatch({ control, name: 'items' });
   const watchedIgtfPct = useWatch({ control, name: 'igtfPct' });
   const watchedNativeCurrency = useWatch({ control, name: 'nativeCurrency' });
+  // QA #104: descuentos comerciales reactivos.
+  const watchedHeaderDiscPct = useWatch({ control, name: 'headerDiscountPct' });
+  const watchedPromptPayDiscPct = useWatch({ control, name: 'promptPaymentDiscountPct' });
+  const watchedVolumeDiscPct = useWatch({ control, name: 'volumeDiscountPct' });
 
   // IVA por línea según taxType del producto (exempt=0, reduced=alícuota
   // reducida configurada, general=alícuota general). El campo IVA del recibo
@@ -506,7 +558,7 @@ export function ReceiptCreateView() {
     };
     let subtotal = 0;
     let totalDiscount = 0;
-    let tax = 0;
+    let taxGross = 0;
     for (const it of watchedItems ?? []) {
       // Subtotal usa la cantidad FACTURADA (lo que cobra el proveedor),
       // no la recibida. La diferencia se documenta como discrepancia y se
@@ -524,17 +576,54 @@ export function ReceiptCreateView() {
       // IVA por producto: medicamentos exentos no pagan IVA; misceláneos
       // pagan general; algunos productos especiales pagan reducido.
       const product = productById.get(it.productId);
-      tax += lineSubtotal * (resolveLineTaxPct(product?.taxType) / 100);
+      taxGross += lineSubtotal * (resolveLineTaxPct(product?.taxType) / 100);
     }
+
+    // QA #104: descuentos comerciales del documento. Orden:
+    //  1. header + volume sobre subtotal → netSubtotal
+    //  2. IVA escalado proporcionalmente sobre netSubtotal
+    //  3. prompt-payment sobre (net + IVA)
+    //  4. IGTF sobre (net + IVA − promptPay), solo USD
+    const headerDiscPct = Number(watchedHeaderDiscPct) || 0;
+    const volumeDiscPct = Number(watchedVolumeDiscPct) || 0;
+    const promptPayDiscPct = Number(watchedPromptPayDiscPct) || 0;
+    const headerDiscount = subtotal * (headerDiscPct / 100);
+    const volumeDiscount = subtotal * (volumeDiscPct / 100);
+    const netSubtotal = subtotal - headerDiscount - volumeDiscount;
+    const taxScale = subtotal > 0 ? netSubtotal / subtotal : 0;
+    const tax = taxGross * taxScale;
+    const promptPaymentDiscount = (netSubtotal + tax) * (promptPayDiscPct / 100);
+
     // IGTF (3% Venezuela) sólo aplica a pagos en divisas. Si la factura es
     // en Bs., el IGTF es cero — sin importar lo configurado globalmente.
     const igtfPctNum = watchedNativeCurrency === 'VES' ? 0 : Number(watchedIgtfPct) || 0;
-    const igtf = (subtotal + tax) * (igtfPctNum / 100);
-    const total = subtotal + tax + igtf;
+    const igtf = (netSubtotal + tax - promptPaymentDiscount) * (igtfPctNum / 100);
+    const total = netSubtotal + tax - promptPaymentDiscount + igtf;
     // Promedio ponderado de IVA para mostrar en el campo "IVA %" del recibo.
-    const avgTaxPct = subtotal > 0 ? (tax / subtotal) * 100 : 0;
-    return { subtotal, totalDiscount, tax, igtf, total, avgTaxPct };
-  }, [watchedItems, watchedIgtfPct, watchedNativeCurrency, productById, ivaGeneralPct, ivaReducedPct]);
+    const avgTaxPct = netSubtotal > 0 ? (tax / netSubtotal) * 100 : 0;
+    return {
+      subtotal,
+      totalDiscount,
+      headerDiscount,
+      volumeDiscount,
+      netSubtotal,
+      promptPaymentDiscount,
+      tax,
+      igtf,
+      total,
+      avgTaxPct,
+    };
+  }, [
+    watchedItems,
+    watchedIgtfPct,
+    watchedNativeCurrency,
+    watchedHeaderDiscPct,
+    watchedPromptPayDiscPct,
+    watchedVolumeDiscPct,
+    productById,
+    ivaGeneralPct,
+    ivaReducedPct,
+  ]);
 
   // Sincronizamos el promedio calculado al campo taxPct del recibo para que
   // el operador vea el % efectivo y para que el backend reciba el mismo valor
@@ -1161,6 +1250,68 @@ export function ReceiptCreateView() {
                 </Alert>
               )}
 
+            {/* QA #104: descuentos comerciales por documento. Aparecen
+               solo si el proveedor tiene activado el toggle correspondiente
+               en su maestro. El % se autopobla con el sugerido del maestro;
+               el operador puede editarlo para reflejar la factura específica. */}
+            {selectedSupplier &&
+              (selectedSupplier.hasHeaderDiscount ||
+                selectedSupplier.hasPromptPaymentDiscount ||
+                selectedSupplier.hasVolumeDiscount) && (
+                <Box>
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      color: 'text.secondary',
+                      display: 'block',
+                      fontWeight: 700,
+                      letterSpacing: '0.06em',
+                      mb: 1.5,
+                    }}
+                  >
+                    DESCUENTOS COMERCIALES
+                  </Typography>
+                  <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
+                    {selectedSupplier.hasHeaderDiscount && (
+                      <Field.Text
+                        name="headerDiscountPct"
+                        label="Cabecera %"
+                        helperText="Aplicado al subtotal"
+                        slotProps={{
+                          inputLabel: { shrink: true },
+                          htmlInput: { inputMode: 'decimal' },
+                        }}
+                        sx={{ flex: 1 }}
+                      />
+                    )}
+                    {selectedSupplier.hasVolumeDiscount && (
+                      <Field.Text
+                        name="volumeDiscountPct"
+                        label="Volumen %"
+                        helperText="Aplicado al subtotal"
+                        slotProps={{
+                          inputLabel: { shrink: true },
+                          htmlInput: { inputMode: 'decimal' },
+                        }}
+                        sx={{ flex: 1 }}
+                      />
+                    )}
+                    {selectedSupplier.hasPromptPaymentDiscount && (
+                      <Field.Text
+                        name="promptPaymentDiscountPct"
+                        label="Pronto pago %"
+                        helperText="Aplicado a (subtotal + IVA)"
+                        slotProps={{
+                          inputLabel: { shrink: true },
+                          htmlInput: { inputMode: 'decimal' },
+                        }}
+                        sx={{ flex: 1 }}
+                      />
+                    )}
+                  </Stack>
+                </Box>
+              )}
+
             <Field.Text
               name="notes"
               label="Notas"
@@ -1283,10 +1434,30 @@ export function ReceiptCreateView() {
             {totals.totalDiscount > 0 && (
               <Stack direction="row" justifyContent="space-between">
                 <Typography variant="body2" color="text.secondary">
-                  Descuentos aplicados
+                  Descuento lineal (por línea)
                 </Typography>
                 <Typography variant="body2" sx={{ fontFamily: 'monospace', color: 'error.main' }}>
                   −${totals.totalDiscount.toFixed(2)}
+                </Typography>
+              </Stack>
+            )}
+            {totals.headerDiscount > 0 && (
+              <Stack direction="row" justifyContent="space-between">
+                <Typography variant="body2" color="text.secondary">
+                  Descuento cabecera ({Number(watchedHeaderDiscPct) || 0}%)
+                </Typography>
+                <Typography variant="body2" sx={{ fontFamily: 'monospace', color: 'error.main' }}>
+                  −${totals.headerDiscount.toFixed(2)}
+                </Typography>
+              </Stack>
+            )}
+            {totals.volumeDiscount > 0 && (
+              <Stack direction="row" justifyContent="space-between">
+                <Typography variant="body2" color="text.secondary">
+                  Descuento volumen ({Number(watchedVolumeDiscPct) || 0}%)
+                </Typography>
+                <Typography variant="body2" sx={{ fontFamily: 'monospace', color: 'error.main' }}>
+                  −${totals.volumeDiscount.toFixed(2)}
                 </Typography>
               </Stack>
             )}
@@ -1298,6 +1469,16 @@ export function ReceiptCreateView() {
                 ${totals.tax.toFixed(2)}
               </Typography>
             </Stack>
+            {totals.promptPaymentDiscount > 0 && (
+              <Stack direction="row" justifyContent="space-between">
+                <Typography variant="body2" color="text.secondary">
+                  Descuento pronto pago ({Number(watchedPromptPayDiscPct) || 0}%)
+                </Typography>
+                <Typography variant="body2" sx={{ fontFamily: 'monospace', color: 'error.main' }}>
+                  −${totals.promptPaymentDiscount.toFixed(2)}
+                </Typography>
+              </Stack>
+            )}
             <Stack direction="row" justifyContent="space-between">
               <Typography variant="body2" color="text.secondary">
                 IGTF ({Number(watchedIgtfPct) || 0}%)

@@ -168,6 +168,13 @@ export type GoodsReceipt = {
   notes: string | null;
   subtotalUsd: number | string;
   totalDiscountUsd: number | string;
+  /** Descuentos comerciales del documento (QA #104). Default 0 en recepciones legacy. */
+  headerDiscountPct: number | string;
+  headerDiscountUsd: number | string;
+  promptPaymentDiscountPct: number | string;
+  promptPaymentDiscountUsd: number | string;
+  volumeDiscountPct: number | string;
+  volumeDiscountUsd: number | string;
   taxPct: number | string;
   taxUsd: number | string;
   igtfPct: number | string;
@@ -219,6 +226,10 @@ export type CreateGoodsReceiptPayload = {
   receiptType?: ReceiptType;
   taxPct?: number;
   igtfPct?: number;
+  /** Descuentos comerciales por documento (QA #104). */
+  headerDiscountPct?: number;
+  promptPaymentDiscountPct?: number;
+  volumeDiscountPct?: number;
   notes?: string;
   items: CreateGoodsReceiptItemPayload[];
   /**
