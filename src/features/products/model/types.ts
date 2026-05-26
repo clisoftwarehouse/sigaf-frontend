@@ -77,7 +77,12 @@ export type Product = {
   // Campos del layout unificado (QA 2026-05)
   dosageForm: string | null;
   commercialLine: string | null;
+  /** FK a commercial_lines (QA #93). El string `commercialLine` queda
+   *  para compat con productos creados antes del refactor. */
+  commercialLineId: string | null;
   commercialVariant: string | null;
+  /** FK a commercial_variants (QA #93). */
+  commercialVariantId: string | null;
   isActive: boolean;
   inventoryBlocked: boolean;
   createdAt: string;
@@ -129,7 +134,9 @@ export type CreateProductPayload = {
   // Campos del layout unificado (QA 2026-05)
   dosageForm?: string;
   commercialLine?: string;
+  commercialLineId?: string;
   commercialVariant?: string;
+  commercialVariantId?: string;
   barcodes?: CreateBarcodePayload[];
   activeIngredients?: CreateProductIngredientPayload[];
 };

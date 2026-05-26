@@ -451,6 +451,8 @@ export const endpoints = {
   },
   brands: resource('/v1/brands'),
   categories: resource('/v1/categories'),
+  commercialLines: resource('/v1/commercial-lines'),
+  commercialVariants: resource('/v1/commercial-variants'),
   activeIngredients: {
     root: '/v1/active-ingredients',
     byId: (id: string) => `/v1/active-ingredients/${id}`,

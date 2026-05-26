@@ -34,10 +34,15 @@ import { Form, Field } from '@/app/components/hook-form';
 import { useBrandsQuery } from '@/features/brands/api/brands.queries';
 import { useCategoriesQuery } from '@/features/categories/api/categories.queries';
 import { useActiveIngredientsQuery } from '@/features/active-ingredients/api/active-ingredients.queries';
+import {
+  useCommercialLinesQuery,
+  useCommercialVariantsQuery,
+} from '@/features/commercial-taxonomies/api/commercial-taxonomies.queries';
 
 import { QuickCreateBrandDialog } from './quick-create-brand-dialog';
 import { QuickCreateCategoryDialog } from './quick-create-category-dialog';
 import { QuickCreateIngredientDialog } from './quick-create-ingredient-dialog';
+import { QuickCreateCommercialTaxonomyDialog } from './quick-create-commercial-taxonomy-dialog';
 import {
   TAX_TYPE_OPTIONS,
   DOSAGE_FORM_OPTIONS,
@@ -105,7 +110,10 @@ export const ProductSchema = z.object({
   ]),
   // Naturaleza visual: deriva de productType + presencia de campos comerciales.
   // No se persiste en BD; se usa para controlar qué secciones del form mostrar.
-  productNature: z.enum(['generic', 'commercial', 'consumer']),
+  // QA #94: unificamos generic+commercial en `medical`. Los valores
+  // legacy se siguen aceptando como entrada pero el form los normaliza
+  // a 'medical' en inferProductNature.
+  productNature: z.enum(['medical', 'consumer']),
   taxType: z.enum(['exempt', 'general', 'reduced']),
   isControlled: z.boolean(),
   isAntibiotic: z.boolean(),
@@ -128,8 +136,13 @@ export const ProductSchema = z.object({
   leadTimeDays: optionalNumber,
   // Campos del layout unificado
   dosageForm: z.string().max(30).optional().or(z.literal('')),
+  // QA #93: ahora son FKs a commercial_lines / commercial_variants.
+  // Los strings legacy se siguen aceptando para compat con productos viejos
+  // que aún no fueron re-vinculados.
   commercialLine: z.string().max(100).optional().or(z.literal('')),
+  commercialLineId: z.string().uuid().optional().or(z.literal('')),
   commercialVariant: z.string().max(100).optional().or(z.literal('')),
+  commercialVariantId: z.string().uuid().optional().or(z.literal('')),
   // Empaque descompuesto (se recompone en `presentation` al guardar).
   packagingType: z.string().optional().or(z.literal('')),
   packagingQuantity: z
@@ -172,12 +185,17 @@ function parsePresentation(raw?: string | null): {
  * Se usa solo para inicializar el form en modo edit; el operador puede
  * cambiarla manualmente con el radio selector.
  */
-function inferProductNature(p?: Product): 'generic' | 'commercial' | 'consumer' {
-  if (!p) return 'commercial';
+/**
+ * Infiere la naturaleza unificada (QA #94). Antes había 3: generic /
+ * commercial / consumer. Ahora 2: medical / consumer. Lo que distingue
+ * "medicamento genérico vs comercial" es solo la presencia de `shortName`
+ * (nombre comercial), no un tab separado.
+ */
+function inferProductNature(p?: Product): 'medical' | 'consumer' {
+  if (!p) return 'medical';
   if (p.commercialLine || p.commercialVariant) return 'consumer';
   if (p.productType === 'grocery' || p.productType === 'miscellaneous') return 'consumer';
-  if (p.shortName || p.brandId) return 'commercial';
-  return 'generic';
+  return 'medical';
 }
 
 function toFormValues(p?: Product): ProductFormValues {
@@ -210,7 +228,9 @@ function toFormValues(p?: Product): ProductFormValues {
     leadTimeDays: p?.leadTimeDays != null ? String(p.leadTimeDays) : '',
     dosageForm: p?.dosageForm ?? '',
     commercialLine: p?.commercialLine ?? '',
+    commercialLineId: p?.commercialLineId ?? '',
     commercialVariant: p?.commercialVariant ?? '',
+    commercialVariantId: p?.commercialVariantId ?? '',
     packagingType: pkg.type,
     packagingQuantity: pkg.quantity,
     packagingUnit: pkg.unit,
@@ -273,7 +293,7 @@ function composePresentation(input: { type?: string; quantity?: string; unit?: s
  * activos+forma+empaque (similar a genérico sin laboratorio).
  */
 function composeProductName(input: {
-  nature: 'generic' | 'commercial' | 'consumer';
+  nature: 'medical' | 'consumer';
   ingredients: Array<{ name?: string; concentrationValue?: string; concentrationUnit?: string }>;
   commercialName?: string;
   brandName?: string;
@@ -306,13 +326,14 @@ function composeProductName(input: {
     if (line) parts.push(line);
     if (variant) parts.push(variant);
     if (pkg) parts.push(pkg);
-  } else if (input.nature === 'commercial') {
-    if (commercial) parts.push(commercial);
+  } else if (commercial) {
+    // Médico con nombre comercial: comercial + activos + forma + empaque
+    parts.push(commercial);
     if (activos) parts.push(activos);
     if (dosage) parts.push(dosage);
     if (pkg) parts.push(pkg);
   } else {
-    // generic: activos primero, laboratorio al final
+    // Médico genérico (sin nombre comercial): activos + forma + lab + empaque
     if (activos) parts.push(activos);
     if (dosage) parts.push(dosage);
     if (brand) parts.push(brand);
@@ -333,10 +354,14 @@ export function ProductForm({
 
   const { flat: categories, isLoading: loadingCategories } = useCategoriesQuery();
   const { data: brands = [], isLoading: loadingBrands } = useBrandsQuery();
+  const { data: commercialLines = [] } = useCommercialLinesQuery();
+  const { data: commercialVariants = [] } = useCommercialVariantsQuery();
   const { data: ingredientsCatalog = [], isLoading: loadingIngredients } =
     useActiveIngredientsQuery();
 
-  const [quickOpen, setQuickOpen] = useState<'category' | 'brand' | 'ingredient' | null>(null);
+  const [quickOpen, setQuickOpen] = useState<
+    'category' | 'brand' | 'ingredient' | 'commercial-line' | 'commercial-variant' | null
+  >(null);
   const [pendingIngredientIdx, setPendingIngredientIdx] = useState<number | null>(null);
   // Auto-generamos el nombre por defecto tanto en create como en edit: si el
   // operador cambia cualquier campo del nombre, el preview se actualiza en vivo.
@@ -363,8 +388,15 @@ export function ProductForm({
   const watchedPackagingType = useWatch({ control, name: 'packagingType' });
   const watchedPackagingQty = useWatch({ control, name: 'packagingQuantity' });
   const watchedPackagingUnit = useWatch({ control, name: 'packagingUnit' });
-  const watchedCommercialLine = useWatch({ control, name: 'commercialLine' });
-  const watchedCommercialVariant = useWatch({ control, name: 'commercialVariant' });
+  const watchedCommercialLineId = useWatch({ control, name: 'commercialLineId' });
+  const watchedCommercialVariantId = useWatch({ control, name: 'commercialVariantId' });
+  // Resolvemos el name desde el catálogo para que el composeProductName
+  // pueda construir la descripción en vivo. Fallback al string legacy de
+  // la entidad cuando el producto aún no fue re-vinculado al FK.
+  const watchedCommercialLine =
+    commercialLines.find((l) => l.id === watchedCommercialLineId)?.name ?? '';
+  const watchedCommercialVariant =
+    commercialVariants.find((v) => v.id === watchedCommercialVariantId)?.name ?? '';
 
   // Recomponemos `presentation` desde los 3 campos descompuestos y lo
   // mantenemos sincronizado en el form (también es lo que se envía a backend).
@@ -394,7 +426,7 @@ export function ProductForm({
       ? brands.find((b) => b.id === watchedBrandId)?.name
       : undefined;
     return composeProductName({
-      nature: watchedNature ?? 'commercial',
+      nature: watchedNature ?? 'medical',
       ingredients,
       commercialName: watchedShortName,
       brandName,
@@ -470,8 +502,17 @@ export function ProductForm({
       reorderPoint: values.reorderPoint ? Number(values.reorderPoint) : undefined,
       leadTimeDays: values.leadTimeDays ? Number(values.leadTimeDays) : undefined,
       dosageForm: isConsumer ? undefined : values.dosageForm?.trim() || undefined,
-      commercialLine: isConsumer ? values.commercialLine?.trim() || undefined : undefined,
-      commercialVariant: isConsumer ? values.commercialVariant?.trim() || undefined : undefined,
+      commercialLineId: isConsumer ? values.commercialLineId || undefined : undefined,
+      commercialVariantId: isConsumer ? values.commercialVariantId || undefined : undefined,
+      // String legacy: lo derivamos del catálogo seleccionado para compat con
+      // queries que aún leen el string. Backend lo persiste pero ya no es
+      // fuente de verdad.
+      commercialLine: isConsumer
+        ? commercialLines.find((l) => l.id === values.commercialLineId)?.name || undefined
+        : undefined,
+      commercialVariant: isConsumer
+        ? commercialVariants.find((v) => v.id === values.commercialVariantId)?.name || undefined
+        : undefined,
       // Arrays are only submitted in create mode (update endpoint ignores them).
       barcodes:
         !isEdit && values.barcodes.length > 0
@@ -530,13 +571,13 @@ export function ProductForm({
                           // dar de baja el producto y crearlo de nuevo.
                           if (isEdit) return;
                           field.onChange(opt.value);
-                          // Mapeo automático a productType para mantener compat con backend.
+                          // Mapeo automático a productType (compat backend).
+                          // medical → otc (default; el operador refina con
+                          // los flags de "Condición de venta" y "Antibiótico").
                           if (opt.value === 'consumer') {
                             setValue('productType', 'miscellaneous');
-                          } else if (opt.value === 'commercial') {
-                            setValue('productType', 'otc');
                           } else {
-                            setValue('productType', 'pharmaceutical');
+                            setValue('productType', 'otc');
                           }
                         }}
                         sx={{
@@ -628,11 +669,9 @@ export function ProductForm({
                 <Field.IdAutocomplete
                   name="brandId"
                   label={
-                    watchedNature === 'generic'
-                      ? 'Laboratorio Fabricante (opcional)'
-                      : watchedNature === 'consumer'
-                        ? 'Marca Principal (opcional)'
-                        : 'Marca / Laboratorio (opcional)'
+                    watchedNature === 'consumer'
+                      ? 'Marca Principal (opcional)'
+                      : 'Laboratorio / Marca (opcional)'
                   }
                   placeholder="Buscar marca…"
                   disabled={loadingBrands}
@@ -914,21 +953,44 @@ export function ProductForm({
                 >
                   CLASIFICACIÓN RETAIL
                 </Typography>
+                {/* QA #93: línea y variante son catálogos reusables con
+                   quick-create. Antes eran strings libres y cada operador
+                   inventaba ortografías. */}
                 <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-                  <Field.Text
-                    name="commercialLine"
-                    label="Línea o Sub-marca"
-                    placeholder="Ej. Total 12 Clean Mint"
-                    slotProps={{ inputLabel: { shrink: true } }}
-                    sx={{ flex: 1 }}
-                  />
-                  <Field.Text
-                    name="commercialVariant"
-                    label="Tipo / Variante"
-                    placeholder="Ej. CREMA DENTAL"
-                    slotProps={{ inputLabel: { shrink: true } }}
-                    sx={{ flex: 1 }}
-                  />
+                  <Stack direction="row" spacing={1} alignItems="flex-start" sx={{ flex: 1 }}>
+                    <Field.IdAutocomplete
+                      name="commercialLineId"
+                      label="Línea o Sub-marca"
+                      placeholder="Buscar o crear línea…"
+                      options={commercialLines.map((l) => ({ id: l.id, label: l.name }))}
+                    />
+                    <Tooltip title="Crear nueva línea">
+                      <IconButton
+                        color="primary"
+                        sx={{ mt: 0.5 }}
+                        onClick={() => setQuickOpen('commercial-line')}
+                      >
+                        <Iconify icon="solar:add-circle-bold" />
+                      </IconButton>
+                    </Tooltip>
+                  </Stack>
+                  <Stack direction="row" spacing={1} alignItems="flex-start" sx={{ flex: 1 }}>
+                    <Field.IdAutocomplete
+                      name="commercialVariantId"
+                      label="Tipo / Variante"
+                      placeholder="Buscar o crear variante…"
+                      options={commercialVariants.map((v) => ({ id: v.id, label: v.name }))}
+                    />
+                    <Tooltip title="Crear nueva variante">
+                      <IconButton
+                        color="primary"
+                        sx={{ mt: 0.5 }}
+                        onClick={() => setQuickOpen('commercial-variant')}
+                      >
+                        <Iconify icon="solar:add-circle-bold" />
+                      </IconButton>
+                    </Tooltip>
+                  </Stack>
                 </Stack>
                 <Field.Select
                   name="taxType"
@@ -1387,6 +1449,26 @@ export function ProductForm({
             });
           }
           setPendingIngredientIdx(null);
+          setQuickOpen(null);
+        }}
+      />
+
+      <QuickCreateCommercialTaxonomyDialog
+        open={quickOpen === 'commercial-line'}
+        kind="line"
+        onClose={() => setQuickOpen(null)}
+        onCreated={(id) => {
+          setValue('commercialLineId', id, { shouldValidate: true, shouldDirty: true });
+          setQuickOpen(null);
+        }}
+      />
+
+      <QuickCreateCommercialTaxonomyDialog
+        open={quickOpen === 'commercial-variant'}
+        kind="variant"
+        onClose={() => setQuickOpen(null)}
+        onCreated={(id) => {
+          setValue('commercialVariantId', id, { shouldValidate: true, shouldDirty: true });
           setQuickOpen(null);
         }}
       />

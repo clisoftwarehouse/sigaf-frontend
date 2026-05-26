@@ -78,13 +78,24 @@ export const CONSERVATION_LABEL: Record<ConservationType, string> = CONSERVATION
  * No es columna nueva en BD — se deriva de productType + presencia de
  * commercialLine/commercialVariant.
  */
+/**
+ * QA #94: tabs unificados. Antes había 3 naturalezas (generic / commercial /
+ * consumer); ahora son 2:
+ *  - `medical`: medicamento (genérico o comercial — la presencia de
+ *    `shortName` lo distingue visualmente sin necesidad de tab separado)
+ *  - `consumer`: consumo masivo / misceláneo
+ * El antiguo 'generic' y 'commercial' siguen siendo valores válidos para
+ * compat con productos existentes pero la UI los trata como 'medical'.
+ */
 export const PRODUCT_NATURE_OPTIONS = [
-  { value: 'generic', label: 'Medicamento Genérico', accent: 'primary' as const },
-  { value: 'commercial', label: 'Medicina Comercial', accent: 'primary' as const },
+  { value: 'medical', label: 'Medicamento', accent: 'primary' as const },
   { value: 'consumer', label: 'Consumo Masivo / Misceláneos', accent: 'success' as const },
 ] as const;
 
 export type ProductNature = (typeof PRODUCT_NATURE_OPTIONS)[number]['value'];
+
+/** Naturaleza incluyendo valores legacy (generic, commercial) por compat. */
+export type ProductNatureLegacy = ProductNature | 'generic' | 'commercial';
 
 // Catálogos amplios (formas farmacéuticas y presentaciones) viven en
 // archivos separados — se sincronizan desde el Excel del cliente
