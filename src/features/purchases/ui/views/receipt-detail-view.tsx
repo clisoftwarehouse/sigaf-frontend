@@ -431,25 +431,60 @@ export function ReceiptDetailView() {
               justifyContent="flex-end"
               sx={{ p: 3, borderTop: 1, borderColor: 'divider' }}
             >
-              <Stack spacing={1} sx={{ minWidth: 260 }}>
+              <Stack spacing={1} sx={{ minWidth: 280 }}>
+                {/* Subtotal BRUTO (antes de cualquier descuento) para que
+                   el desglose se lea sumando/restando sin "doble cuenta".
+                   El campo persistido subtotalUsd guarda el neto del
+                   descuento lineal, así que recomponemos sumándole los
+                   descuentos lineales antes de mostrar. */}
                 <Stack direction="row" justifyContent="space-between">
                   <Typography variant="body2" color="text.secondary">
                     Subtotal
                   </Typography>
                   <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
-                    ${(Number(receipt.subtotalUsd) || 0).toFixed(2)}
+                    $
+                    {(
+                      (Number(receipt.subtotalUsd) || 0) +
+                      (Number(receipt.totalDiscountUsd) || 0)
+                    ).toFixed(2)}
                   </Typography>
                 </Stack>
                 {Number(receipt.totalDiscountUsd) > 0 && (
                   <Stack direction="row" justifyContent="space-between">
                     <Typography variant="body2" color="text.secondary">
-                      Descuentos
+                      Descuento lineal (por línea)
                     </Typography>
                     <Typography
                       variant="body2"
                       sx={{ fontFamily: 'monospace', color: 'error.main' }}
                     >
                       −${(Number(receipt.totalDiscountUsd) || 0).toFixed(2)}
+                    </Typography>
+                  </Stack>
+                )}
+                {Number(receipt.headerDiscountUsd) > 0 && (
+                  <Stack direction="row" justifyContent="space-between">
+                    <Typography variant="body2" color="text.secondary">
+                      Descuento cabecera ({Number(receipt.headerDiscountPct) || 0}%)
+                    </Typography>
+                    <Typography
+                      variant="body2"
+                      sx={{ fontFamily: 'monospace', color: 'error.main' }}
+                    >
+                      −${(Number(receipt.headerDiscountUsd) || 0).toFixed(2)}
+                    </Typography>
+                  </Stack>
+                )}
+                {Number(receipt.volumeDiscountUsd) > 0 && (
+                  <Stack direction="row" justifyContent="space-between">
+                    <Typography variant="body2" color="text.secondary">
+                      Descuento volumen ({Number(receipt.volumeDiscountPct) || 0}%)
+                    </Typography>
+                    <Typography
+                      variant="body2"
+                      sx={{ fontFamily: 'monospace', color: 'error.main' }}
+                    >
+                      −${(Number(receipt.volumeDiscountUsd) || 0).toFixed(2)}
                     </Typography>
                   </Stack>
                 )}
