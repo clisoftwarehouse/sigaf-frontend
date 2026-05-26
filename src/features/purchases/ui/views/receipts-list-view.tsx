@@ -178,6 +178,10 @@ export function ReceiptsListView() {
         valueFormatter: (value: ReceiptType) => RECEIPT_TYPE_LABEL[value] ?? value,
       },
       {
+        // Subtotal BRUTO (qty × cost antes del descuento lineal) para que
+        // sea consistente con el subtotal del detalle. La columna persistida
+        // subtotalUsd guarda el neto del lineal, así que sumamos
+        // totalDiscountUsd para recomponer el bruto.
         field: 'subtotalUsd',
         headerName: 'Subtotal',
         type: 'number',
@@ -185,7 +189,8 @@ export function ReceiptsListView() {
         minWidth: 120,
         align: 'right',
         headerAlign: 'right',
-        valueGetter: (value: number | string) => Number(value) || 0,
+        valueGetter: (_v, row) =>
+          (Number(row.subtotalUsd) || 0) + (Number(row.totalDiscountUsd) || 0),
         valueFormatter: (value: number) => `$${value.toFixed(2)}`,
       },
       {
