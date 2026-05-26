@@ -68,6 +68,9 @@ export const navData: NavSectionProps['data'] = [
         title: 'Catálogo',
         path: paths.dashboard.catalog.products.root,
         icon: ICONS.catalog,
+        // Visible para cualquier rol que pueda ver productos. Los formularios
+        // dentro deshabilitan las acciones write si falta `products.create/edit`.
+        allowedPermissions: ['products.view'],
         deepMatch: false,
         extraMatchPaths: [
           paths.dashboard.catalog.products.root,
@@ -104,6 +107,8 @@ export const navData: NavSectionProps['data'] = [
         title: 'Precios y promociones',
         path: paths.dashboard.catalog.prices,
         icon: ICONS.pricing,
+        // Solo quienes pueden crear/editar precios o promociones.
+        allowedPermissions: ['products.edit', 'admin.config'],
         deepMatch: false,
         extraMatchPaths: [
           paths.dashboard.catalog.prices,
@@ -133,6 +138,7 @@ export const navData: NavSectionProps['data'] = [
         title: 'Inventario',
         path: paths.dashboard.inventory.stock,
         icon: ICONS.inventory,
+        allowedPermissions: ['inventory.view'],
         deepMatch: false,
         extraMatchPaths: [
           paths.dashboard.inventory.stock,
@@ -157,6 +163,7 @@ export const navData: NavSectionProps['data'] = [
         title: 'Compras',
         path: paths.dashboard.purchases.root,
         icon: ICONS.purchases,
+        allowedPermissions: ['purchases.view'],
         extraMatchPaths: [paths.dashboard.claims.root],
         children: [
           {
@@ -180,6 +187,9 @@ export const navData: NavSectionProps['data'] = [
         title: 'Consignaciones',
         path: paths.dashboard.consignments.root,
         icon: ICONS.consignments,
+        // Consignaciones es una variante de compras; solo quienes pueden ver
+        // compras necesitan acceso (no el cajero ni el farmacéutico).
+        allowedPermissions: ['purchases.view'],
         children: [
           {
             title: 'Entradas',
@@ -261,6 +271,7 @@ export const navData: NavSectionProps['data'] = [
         title: 'Organización',
         path: paths.dashboard.organization.root,
         icon: ICONS.org,
+        allowedPermissions: ['admin.config'],
         children: [
           {
             title: 'Sucursales',

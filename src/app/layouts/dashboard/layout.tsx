@@ -11,8 +11,8 @@ import { useTheme } from '@mui/material/styles';
 import { iconButtonClasses } from '@mui/material/IconButton';
 
 import { Logo } from '@/app/components/logo';
-import { useAuthContext } from '@/features/auth/ui/hooks';
 import { useSettingsContext } from '@/app/components/settings';
+import { useAuthContext, usePermissions } from '@/features/auth/ui/hooks';
 
 import { NavMobile } from './nav-mobile';
 import { VerticalDivider } from './content';
@@ -64,8 +64,32 @@ export function DashboardLayout({
   const isNavVertical = isNavMini || settings.state.navLayout === 'vertical';
 
   const currentRoleName = user?.role?.name ?? '';
-  const canDisplayItemByRole = (allowedRoles: NavItemProps['allowedRoles']): boolean =>
-    !allowedRoles?.includes(currentRoleName);
+  const can = usePermissions();
+  /**
+   * El nav esconde items cuando el callback devuelve `true`. Compatible con
+   * dos estilos:
+   *   - `allowedRoles`: el item es visible solo si el rol del usuario está en
+   *     la lista (legacy).
+   *   - `allowedPermissions`: el item es visible si el usuario tiene AL
+   *     MENOS UNO de los permisos listados (granular). Admin pasa siempre.
+   *
+   * Acepta ambos al mismo tiempo: si están AMBOS, debe cumplir AMBOS.
+   * Item sin restricciones se ve para todos los autenticados.
+   */
+  const canDisplayItemByRole = (
+    allowedRoles: NavItemProps['allowedRoles'],
+    allowedPermissions?: NavItemProps['allowedPermissions'],
+  ): boolean => {
+    if (allowedRoles && allowedRoles.length > 0) {
+      const allow = Array.isArray(allowedRoles) ? allowedRoles : [allowedRoles];
+      if (!allow.includes(currentRoleName)) return true;
+    }
+    if (allowedPermissions && (Array.isArray(allowedPermissions) ? allowedPermissions.length > 0 : true)) {
+      const perms = Array.isArray(allowedPermissions) ? allowedPermissions : [allowedPermissions];
+      if (!can.hasAny(...perms)) return true;
+    }
+    return false;
+  };
 
   const renderHeader = () => {
     const headerSlotProps: HeaderSectionProps['slotProps'] = {

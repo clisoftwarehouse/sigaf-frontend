@@ -10,6 +10,13 @@ export type SigafUser = {
   email: string | null;
   phone: string | null;
   role?: Role | null;
+  /**
+   * Permission codes del rol del usuario (ej. `products.create`, `pos.void`).
+   * El backend los adjunta en `/auth/me` para que el frontend (admin y POS)
+   * filtre la UI sin requests adicionales. Lista vacía = sin permisos (caso
+   * usuario recién creado sin rol). Se refresca con cada hidratación de /me.
+   */
+  permissions?: string[];
   isActive: boolean;
   lastLoginAt?: string | null;
   createdAt?: string;

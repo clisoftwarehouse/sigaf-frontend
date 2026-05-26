@@ -11,6 +11,12 @@ export type SigafUser = {
   email: string | null;
   phone: string | null;
   role?: Role | null;
+  /**
+   * Permission codes asignados al rol del usuario. Lo adjunta el backend en
+   * `/auth/me` (e implícitamente en el login response). El frontend lo usa
+   * para gating de UI vía `usePermissions()`.
+   */
+  permissions?: string[];
   isActive: boolean;
   lastLoginAt?: string | null;
   createdAt?: string;

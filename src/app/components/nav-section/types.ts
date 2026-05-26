@@ -53,7 +53,19 @@ export type NavItemDataProps = Pick<NavItemStateProps, 'disabled'> & {
   caption?: string;
   deepMatch?: boolean;
   extraMatchPaths?: string[];
+  /**
+   * Roles habilitados (legacy). Si está, el nav esconde el item para usuarios
+   * cuyo `role.name` no esté en la lista. Compat con configuraciones viejas.
+   * Para gating granular, preferir `allowedPermissions`.
+   */
   allowedRoles?: string | string[];
+  /**
+   * Permission codes habilitados. Si está, el nav esconde el item a menos que
+   * el usuario tenga AL MENOS UNO (OR lógico). Pensado para gating fino:
+   *   `allowedPermissions: ['products.create', 'products.edit']` → ve la sección
+   *   si puede crear O editar productos. Admin ve todo siempre (en `usePermissions`).
+   */
+  allowedPermissions?: string | string[];
   children?: NavItemDataProps[];
 };
 
@@ -69,7 +81,15 @@ export type NavListProps = Pick<NavItemProps, 'render' | 'depth' | 'enabledRootR
   cssVars?: CSSObject;
   data: NavItemDataProps;
   slotProps?: NavSlotProps;
-  checkPermissions?: (allowedRoles?: NavItemProps['allowedRoles']) => boolean;
+  /**
+   * Callback que decide si OCULTAR un item del nav. Devuelve `true` para
+   * ocultar (el item no cumple los requisitos). El layout del dashboard lo
+   * implementa combinando `allowedRoles` y `allowedPermissions`.
+   */
+  checkPermissions?: (
+    allowedRoles?: NavItemProps['allowedRoles'],
+    allowedPermissions?: NavItemProps['allowedPermissions'],
+  ) => boolean;
 };
 
 export type NavSubListProps = Omit<NavListProps, 'data'> & {
