@@ -22,6 +22,7 @@ import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 import { paths } from '@/app/routes/paths';
 import { useRouter } from '@/app/routes/hooks';
 import { Iconify } from '@/app/components/iconify';
+import { displayName } from '@/shared/utils/casing';
 import { PageHeader } from '@/shared/ui/page-header';
 import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
 import { useBrandOptions } from '@/features/brands/api/brands.options';
@@ -119,12 +120,14 @@ export function ProductsListView() {
         renderCell: ({ row }) => (
           <Box>
             <Stack direction="row" alignItems="center" spacing={1}>
-              <Typography variant="subtitle2">{row.shortName ?? row.description}</Typography>
+              <Typography variant="subtitle2">
+                {displayName(row.shortName ?? row.description)}
+              </Typography>
               {!row.isActive && <Chip size="small" variant="outlined" label="Inactivo" />}
             </Stack>
             {row.shortName && (
               <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                {row.description}
+                {displayName(row.description)}
               </Typography>
             )}
           </Box>
@@ -152,7 +155,8 @@ export function ProductsListView() {
         flex: 1.5,
         minWidth: 180,
         filterOperators: categoryFilterOperators,
-        valueFormatter: (value: string) => categoryNameById.get(value) ?? '—',
+        valueFormatter: (value: string) =>
+          categoryNameById.get(value) ? displayName(categoryNameById.get(value)!) : '—',
         sortComparator: (a, b) =>
           (categoryNameById.get(a) ?? '').localeCompare(categoryNameById.get(b) ?? ''),
       },
@@ -162,7 +166,8 @@ export function ProductsListView() {
         flex: 1.5,
         minWidth: 160,
         filterOperators: brandFilterOperators,
-        valueFormatter: (value: string | null) => (value ? brandNameById.get(value) ?? '—' : '—'),
+        valueFormatter: (value: string | null) =>
+          value && brandNameById.get(value) ? displayName(brandNameById.get(value)!) : '—',
         sortComparator: (a, b) =>
           (brandNameById.get(a ?? '') ?? '').localeCompare(brandNameById.get(b ?? '') ?? ''),
       },
@@ -232,11 +237,33 @@ export function ProductsListView() {
         valueOptions: TAX_TYPE_OPTIONS,
       },
       {
-        field: 'isControlled',
-        headerName: 'Controlado',
-        type: 'boolean',
-        flex: 1,
-        minWidth: 130,
+        // QA #96: el operador no entiende por qué un producto sale como
+        // "OTC" en la columna Tipo cuando lo marcó como récipe. Ese mismatch
+        // es porque `productType` y `requiresRecipe` son campos
+        // independientes. Esta columna deriva la CONDICIÓN DE VENTA real
+        // desde (requiresRecipe + isControlled), idéntica al selector del
+        // form (OTC / BTC / Controlado). Aquí está la fuente de verdad.
+        field: 'conditionOfSale',
+        headerName: 'Condición venta',
+        type: 'singleSelect',
+        flex: 1.2,
+        minWidth: 170,
+        valueOptions: [
+          { value: 'otc', label: 'OTC (Venta libre)' },
+          { value: 'btc', label: 'BTC (Detrás del mostrador)' },
+          { value: 'controlled', label: 'Controlado (con récipe)' },
+        ],
+        valueGetter: (_v, row) =>
+          row.isControlled ? 'controlled' : row.requiresRecipe ? 'btc' : 'otc',
+        renderCell: ({ value }) => {
+          const map: Record<string, { label: string; color: 'default' | 'warning' | 'error' }> = {
+            otc: { label: 'OTC', color: 'default' },
+            btc: { label: 'BTC', color: 'warning' },
+            controlled: { label: 'Controlado', color: 'error' },
+          };
+          const cfg = map[value as string] ?? map.otc;
+          return <Chip size="small" variant="outlined" color={cfg.color} label={cfg.label} />;
+        },
       },
       {
         field: 'requiresRecipe',

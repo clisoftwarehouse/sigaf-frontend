@@ -175,6 +175,18 @@ export function OrderDetailView() {
             {order?.status === 'draft' && (
               <Button
                 variant="outlined"
+                color="inherit"
+                startIcon={<Iconify icon="solar:pen-bold" />}
+                onClick={() =>
+                  router.push(paths.dashboard.purchases.orders.edit(order.id))
+                }
+              >
+                Editar
+              </Button>
+            )}
+            {order?.status === 'draft' && (
+              <Button
+                variant="outlined"
                 color="error"
                 startIcon={<Iconify icon="solar:trash-bin-trash-bold" />}
                 loading={deleteMutation.isPending}

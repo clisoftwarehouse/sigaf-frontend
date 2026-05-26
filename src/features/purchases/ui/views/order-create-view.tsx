@@ -1,4 +1,8 @@
-import type { CreatePurchaseOrderPayload } from '../../model/types';
+import type {
+  PurchaseOrder,
+  CreatePurchaseOrderPayload,
+  UpdatePurchaseOrderPayload,
+} from '../../model/types';
 
 import * as z from 'zod';
 import { toast } from 'sonner';
@@ -28,7 +32,7 @@ import { useProductsQuery } from '@/features/products/api/products.queries';
 import { useSuppliersQuery } from '@/features/suppliers/api/suppliers.queries';
 
 import { ORDER_TYPE_OPTIONS } from '../../model/constants';
-import { useCreateOrderMutation } from '../../api/purchases.queries';
+import { useCreateOrderMutation, useUpdateOrderMutation } from '../../api/purchases.queries';
 
 // ----------------------------------------------------------------------
 
@@ -55,9 +59,21 @@ type FormValues = z.infer<typeof OrderSchema>;
 
 // ----------------------------------------------------------------------
 
-export function OrderCreateView() {
+type Props = {
+  /**
+   * Si se pasa, la vista funciona en modo edición — pre-llena el form con
+   * los datos de la OC, usa useUpdateOrderMutation y redirige al detalle al
+   * guardar. Solo permitido cuando la OC está en draft (validado en backend).
+   */
+  editingOrder?: PurchaseOrder;
+};
+
+export function OrderCreateView({ editingOrder }: Props = {}) {
   const router = useRouter();
-  const mutation = useCreateOrderMutation();
+  const isEdit = !!editingOrder;
+  const createMutation = useCreateOrderMutation();
+  const updateMutation = useUpdateOrderMutation();
+  const mutation = isEdit ? updateMutation : createMutation;
 
   const { data: branches = [] } = useBranchesQuery();
   const { data: suppliers = [] } = useSuppliersQuery({ isActive: true });
@@ -68,14 +84,27 @@ export function OrderCreateView() {
   const methods = useForm<FormValues>({
     mode: 'onBlur',
     resolver: zodResolver(OrderSchema),
-    defaultValues: {
-      branchId: '',
-      supplierId: '',
-      orderType: 'purchase',
-      expectedDate: '',
-      notes: '',
-      items: [{ productId: '', quantity: '' }],
-    },
+    defaultValues: editingOrder
+      ? {
+          branchId: editingOrder.branchId,
+          supplierId: editingOrder.supplierId,
+          orderType: editingOrder.orderType,
+          expectedDate: editingOrder.expectedDate ?? '',
+          notes: editingOrder.notes ?? '',
+          items:
+            editingOrder.items?.map((i) => ({
+              productId: i.productId,
+              quantity: String(Number(i.quantity)),
+            })) ?? [{ productId: '', quantity: '' }],
+        }
+      : {
+          branchId: '',
+          supplierId: '',
+          orderType: 'purchase',
+          expectedDate: '',
+          notes: '',
+          items: [{ productId: '', quantity: '' }],
+        },
   });
 
   const { control } = methods;
@@ -84,21 +113,35 @@ export function OrderCreateView() {
   const watchedItems = useWatch({ control, name: 'items' }) ?? [];
 
   const submit = methods.handleSubmit(async (values) => {
-    const payload: CreatePurchaseOrderPayload = {
-      branchId: values.branchId,
-      supplierId: values.supplierId,
-      orderType: values.orderType,
-      expectedDate: values.expectedDate || undefined,
-      notes: values.notes?.trim() || undefined,
-      items: values.items.map((i) => ({
-        productId: i.productId,
-        quantity: Number(i.quantity),
-      })),
-    };
     try {
-      const created = await mutation.mutateAsync(payload);
-      toast.success(`Orden ${created.orderNumber} creada`);
-      router.push(paths.dashboard.purchases.orders.detail(created.id));
+      if (isEdit && editingOrder) {
+        const updatePayload: UpdatePurchaseOrderPayload = {
+          expectedDate: values.expectedDate || undefined,
+          notes: values.notes?.trim() || undefined,
+          items: values.items.map((i) => ({
+            productId: i.productId,
+            quantity: Number(i.quantity),
+          })),
+        };
+        await updateMutation.mutateAsync({ id: editingOrder.id, payload: updatePayload });
+        toast.success(`Orden ${editingOrder.orderNumber} actualizada`);
+        router.push(paths.dashboard.purchases.orders.detail(editingOrder.id));
+      } else {
+        const createPayload: CreatePurchaseOrderPayload = {
+          branchId: values.branchId,
+          supplierId: values.supplierId,
+          orderType: values.orderType,
+          expectedDate: values.expectedDate || undefined,
+          notes: values.notes?.trim() || undefined,
+          items: values.items.map((i) => ({
+            productId: i.productId,
+            quantity: Number(i.quantity),
+          })),
+        };
+        const created = await createMutation.mutateAsync(createPayload);
+        toast.success(`Orden ${created.orderNumber} creada`);
+        router.push(paths.dashboard.purchases.orders.detail(created.id));
+      }
     } catch (err) {
       toast.error((err as Error).message);
     }
@@ -107,9 +150,17 @@ export function OrderCreateView() {
   return (
     <Container maxWidth="xl" sx={{ pb: 6 }}>
       <PageHeader
-        title="Nueva orden de compra"
-        subtitle="Crea una orden en estado borrador. Puedes aprobarla desde su detalle."
-        crumbs={[{ label: 'Compras' }, { label: 'Órdenes' }, { label: 'Nueva' }]}
+        title={isEdit ? `Editar ${editingOrder?.orderNumber ?? 'orden'}` : 'Nueva orden de compra'}
+        subtitle={
+          isEdit
+            ? 'Modifica los ítems de esta OC en borrador. Sucursal y proveedor no son editables — crea una OC nueva si necesitas cambiarlos.'
+            : 'Crea una orden en estado borrador. Puedes aprobarla desde su detalle.'
+        }
+        crumbs={[
+          { label: 'Compras' },
+          { label: 'Órdenes' },
+          { label: isEdit ? 'Editar' : 'Nueva' },
+        ]}
       />
 
       <Form methods={methods} onSubmit={submit}>
@@ -123,6 +174,8 @@ export function OrderCreateView() {
               <Field.Select
                 name="branchId"
                 label="Sucursal"
+                disabled={isEdit}
+                helperText={isEdit ? 'No editable. Crea una OC nueva si quieres cambiar la sucursal.' : undefined}
                 slotProps={{ inputLabel: { shrink: true } }}
                 sx={{ flex: 1 }}
               >
@@ -138,6 +191,12 @@ export function OrderCreateView() {
                   name="supplierId"
                   label="Proveedor"
                   placeholder="Buscar proveedor por nombre o RIF…"
+                  disabled={isEdit}
+                  helperText={
+                    isEdit
+                      ? 'No editable. Crea una OC nueva si quieres cambiar el proveedor.'
+                      : undefined
+                  }
                   options={suppliers.map((s) => ({
                     id: s.id,
                     label: s.businessName,
@@ -335,7 +394,7 @@ export function OrderCreateView() {
             Cancelar
           </Button>
           <Button type="submit" variant="contained" loading={mutation.isPending}>
-            Crear orden
+            {isEdit ? 'Guardar cambios' : 'Crear orden'}
           </Button>
         </Box>
       </Form>

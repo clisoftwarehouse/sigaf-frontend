@@ -11,11 +11,11 @@ import Dialog from '@mui/material/Dialog';
 import Button from '@mui/material/Button';
 import Switch from '@mui/material/Switch';
 import Tooltip from '@mui/material/Tooltip';
-import MenuItem from '@mui/material/MenuItem';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
 import DialogTitle from '@mui/material/DialogTitle';
+import Autocomplete from '@mui/material/Autocomplete';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import FormControlLabel from '@mui/material/FormControlLabel';
@@ -246,20 +246,48 @@ export function SupplierProductsTab({ supplierId }: Props) {
         <DialogTitle>{editing ? 'Editar asociación' : 'Asociar producto'}</DialogTitle>
         <DialogContent dividers>
           <Stack spacing={2} sx={{ pt: 1 }}>
-            <TextField
-              select
-              label="Producto"
-              value={draft.productId}
-              onChange={(e) => setDraft({ ...draft, productId: e.target.value })}
+            {/* QA #105: el TextField select tipo dropdown obliga a scrollear
+               la lista completa. Autocomplete permite buscar por palabras
+               (cualquier substring del nombre o código). */}
+            <Autocomplete
+              options={productOpts}
+              value={productOpts.find((o) => o.id === draft.productId) ?? null}
+              onChange={(_e, next) => setDraft({ ...draft, productId: next?.id ?? '' })}
               disabled={Boolean(editing)}
-              slotProps={{ inputLabel: { shrink: true } }}
-            >
-              {productOpts.map((o) => (
-                <MenuItem key={o.id} value={o.id}>
-                  {o.label}
-                </MenuItem>
-              ))}
-            </TextField>
+              getOptionLabel={(o) => o.label ?? ''}
+              isOptionEqualToValue={(a, b) => a.id === b.id}
+              filterOptions={(opts, state) => {
+                const q = state.inputValue.toLowerCase().trim();
+                if (!q) return opts;
+                // Match contra label + secondaryLabel (código), permitiendo
+                // términos separados por espacios — todos deben matchear.
+                const terms = q.split(/\s+/);
+                return opts.filter((o) => {
+                  const bag = `${o.label ?? ''} ${o.secondaryLabel ?? ''}`.toLowerCase();
+                  return terms.every((t) => bag.includes(t));
+                });
+              }}
+              renderOption={(props, option) => (
+                <li {...props} key={option.id}>
+                  <Box>
+                    <Typography variant="body2">{option.label}</Typography>
+                    {option.secondaryLabel && (
+                      <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                        {option.secondaryLabel}
+                      </Typography>
+                    )}
+                  </Box>
+                </li>
+              )}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Producto"
+                  placeholder="Buscar por nombre o código…"
+                  slotProps={{ inputLabel: { shrink: true } }}
+                />
+              )}
+            />
             <TextField
               label="SKU del proveedor"
               value={draft.supplierSku}

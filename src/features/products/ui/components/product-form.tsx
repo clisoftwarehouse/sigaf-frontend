@@ -724,24 +724,60 @@ export function ProductForm({
                       </MenuItem>
                     ))}
                   </Field.Select>
+                  {/* QA #95: 3 estados de condición de venta.
+                      - OTC (Venta Libre): no récipe, no controlado.
+                      - BTC (Detrás del mostrador): el farmacéutico decide
+                        si vende. Sin récipe formal pero no acceso libre.
+                      - Controlados: requieren récipe y trazabilidad
+                        regulatoria (psicotrópicos, opiáceos, etc.).
+                      Se mapea a las dos columnas existentes (requiresRecipe,
+                      isControlled) para no romper el schema. */}
                   <Controller
                     name="requiresRecipe"
                     control={control}
-                    render={({ field }) => (
-                      <TextField
-                        select
-                        size="medium"
-                        label="Condición de venta"
-                        value={field.value ? 'rx' : 'otc'}
-                        onChange={(e) => field.onChange(e.target.value === 'rx')}
-                        slotProps={{ inputLabel: { shrink: true } }}
-                        sx={{ flex: 1 }}
-                      >
-                        <MenuItem value="otc">OTC (Venta Libre)</MenuItem>
-                        <MenuItem value="rx" sx={{ color: 'error.main' }}>
-                          Rx (Con Récipe)
-                        </MenuItem>
-                      </TextField>
+                    render={({ field: requiresRecipeField }) => (
+                      <Controller
+                        name="isControlled"
+                        control={control}
+                        render={({ field: isControlledField }) => {
+                          const saleCondition = isControlledField.value
+                            ? 'controlled'
+                            : requiresRecipeField.value
+                              ? 'btc'
+                              : 'otc';
+                          return (
+                            <TextField
+                              select
+                              size="medium"
+                              label="Condición de venta"
+                              value={saleCondition}
+                              onChange={(e) => {
+                                const v = e.target.value;
+                                if (v === 'otc') {
+                                  requiresRecipeField.onChange(false);
+                                  isControlledField.onChange(false);
+                                } else if (v === 'btc') {
+                                  requiresRecipeField.onChange(true);
+                                  isControlledField.onChange(false);
+                                } else {
+                                  requiresRecipeField.onChange(true);
+                                  isControlledField.onChange(true);
+                                }
+                              }}
+                              slotProps={{ inputLabel: { shrink: true } }}
+                              sx={{ flex: 1 }}
+                            >
+                              <MenuItem value="otc">OTC (Venta libre)</MenuItem>
+                              <MenuItem value="btc" sx={{ color: 'warning.main' }}>
+                                BTC (Detrás del mostrador)
+                              </MenuItem>
+                              <MenuItem value="controlled" sx={{ color: 'error.main' }}>
+                                Controlado (con récipe)
+                              </MenuItem>
+                            </TextField>
+                          );
+                        }}
+                      />
                     )}
                   />
                 </Stack>
@@ -1056,11 +1092,10 @@ export function ProductForm({
                   Regulación
                 </Typography>
                 <Stack spacing={1}>
-                  <Field.Switch
-                    name="isControlled"
-                    label="Sustancia controlada"
-                    helperText="Medicamento psicotrópico o estupefaciente."
-                  />
+                  {/* QA #95: el flag "isControlled" pasa a manejarse desde
+                     el selector de "Condición de venta" en la sección
+                     médica. Aquí dejamos solo flags ortogonales (antibiótico
+                     y producto importado). */}
                   <Field.Switch
                     name="isAntibiotic"
                     label="Antibiótico"

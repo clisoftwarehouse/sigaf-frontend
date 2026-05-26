@@ -54,10 +54,20 @@ export type CreatePurchaseOrderPayload = {
   items: CreatePurchaseOrderItemPayload[];
 };
 
+export type UpdatePurchaseOrderItemPayload = {
+  productId: string;
+  quantity: number;
+};
+
 export type UpdatePurchaseOrderPayload = {
   status?: 'draft' | 'sent' | 'cancelled';
   expectedDate?: string;
   notes?: string;
+  /**
+   * Reemplaza TOTAL los ítems de la OC. Solo permitido en estado draft;
+   * el backend rechaza si la OC ya fue aprobada o tiene recepciones.
+   */
+  items?: UpdatePurchaseOrderItemPayload[];
 };
 
 export type PurchaseOrderFilters = {
