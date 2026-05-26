@@ -118,14 +118,19 @@ export function ReceiptDetailView() {
           (productNameById.get(a) ?? '').localeCompare(productNameById.get(b) ?? ''),
       },
       {
-        field: 'lotId',
-        headerName: 'Lote creado',
+        // Mostramos el número de lote real (el que escribió el operador en
+        // la recepción) en vez del UUID truncado. lotId queda solo como
+        // fallback para recepciones legacy que no tuvieran lotNumber
+        // capturado. Si la línea está pendiente de reaprobación todavía no
+        // tiene lote creado.
+        field: 'lotNumber',
+        headerName: 'Lote',
         flex: 1.5,
         minWidth: 160,
         renderCell: ({ row }) =>
           row.lotId ? (
-            <Typography variant="body2" sx={{ fontFamily: 'monospace', color: 'text.secondary' }}>
-              {row.lotId.slice(0, 8)}
+            <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
+              {row.lotNumber || row.lotId.slice(0, 8)}
             </Typography>
           ) : (
             <Typography variant="caption" sx={{ color: 'warning.main', fontStyle: 'italic' }}>
