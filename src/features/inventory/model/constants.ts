@@ -58,17 +58,46 @@ export const EXPIRY_SIGNAL_COLOR: Record<
 
 // ----------------------------------------------------------------------
 
-export const ADJUSTMENT_TYPE_OPTIONS: { value: AdjustmentType; label: string }[] = [
-  { value: 'damage', label: 'Daño / merma' },
-  { value: 'correction', label: 'Corrección' },
-  { value: 'count_difference', label: 'Diferencia de conteo' },
-  { value: 'expiry_write_off', label: 'Baja por vencimiento' },
+/**
+ * Causas de ajuste separadas por dirección:
+ * - ENTRADA (cantidad positiva): el operador está agregando stock al lote.
+ * - SALIDA (cantidad negativa): el operador está retirando stock del lote.
+ *
+ * `correction` y `count_difference` aplican a ambas direcciones porque un
+ * conteo físico puede dar de más o de menos, y una corrección administrativa
+ * puede ser un ingreso o un egreso histórico.
+ */
+export const ADJUSTMENT_TYPE_OPTIONS_IN: { value: AdjustmentType; label: string }[] = [
+  { value: 'count_difference', label: 'Diferencia de conteo (sobrante físico)' },
+  { value: 'return', label: 'Devolución de cliente' },
+  { value: 'donation', label: 'Donación recibida' },
+  { value: 'found', label: 'Encontrado / hallazgo' },
+  { value: 'correction', label: 'Corrección administrativa' },
 ];
 
-export const ADJUSTMENT_TYPE_LABEL: Record<AdjustmentType, string> = ADJUSTMENT_TYPE_OPTIONS.reduce(
-  (acc, o) => ({ ...acc, [o.value]: o.label }),
-  {} as Record<AdjustmentType, string>
-);
+export const ADJUSTMENT_TYPE_OPTIONS_OUT: { value: AdjustmentType; label: string }[] = [
+  { value: 'damage', label: 'Daño / merma' },
+  { value: 'expiry_write_off', label: 'Baja por vencimiento' },
+  { value: 'count_difference', label: 'Diferencia de conteo (faltante físico)' },
+  { value: 'theft', label: 'Hurto / robo' },
+  { value: 'internal_use', label: 'Consumo interno' },
+  { value: 'loss', label: 'Pérdida sin causa identificada' },
+  { value: 'correction', label: 'Corrección administrativa' },
+];
+
+/** Lista combinada para usar como label genérico (en filtros, kardex, etc.). */
+export const ADJUSTMENT_TYPE_LABEL: Record<AdjustmentType, string> = {
+  damage: 'Daño / merma',
+  correction: 'Corrección',
+  count_difference: 'Diferencia de conteo',
+  expiry_write_off: 'Baja por vencimiento',
+  return: 'Devolución de cliente',
+  donation: 'Donación recibida',
+  found: 'Encontrado / hallazgo',
+  theft: 'Hurto / robo',
+  internal_use: 'Consumo interno',
+  loss: 'Pérdida sin causa identificada',
+};
 
 // ----------------------------------------------------------------------
 

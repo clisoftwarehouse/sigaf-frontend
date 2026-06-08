@@ -425,6 +425,14 @@ export const endpoints = {
     kardex: '/v1/inventory/kardex',
     averageCost: (productId: string) => `/v1/inventory/products/${productId}/average-cost`,
   },
+  inventoryTransfers: {
+    root: '/v1/inventory-transfers',
+    byId: (id: string) => `/v1/inventory-transfers/${id}`,
+    fromReceipt: (receiptId: string) => `/v1/inventory-transfers/from-receipt/${receiptId}`,
+    dispatch: (id: string) => `/v1/inventory-transfers/${id}/dispatch`,
+    receive: (id: string) => `/v1/inventory-transfers/${id}/receive`,
+    cancel: (id: string) => `/v1/inventory-transfers/${id}/cancel`,
+  },
   purchases: {
     orders: '/v1/purchases/orders',
     orderById: (id: string) => `/v1/purchases/orders/${id}`,
@@ -464,7 +472,7 @@ export const endpoints = {
   suppliers: resource('/v1/suppliers'),
   branches: resource('/v1/branches'),
   terminals: resource('/v1/terminals'),
-  locations: resource('/v1/locations'),
+  warehouses: resource('/v1/warehouses'),
   users: resource('/v1/users'),
   roles: resource('/v1/roles'),
   permissions: { root: '/v1/permissions' },

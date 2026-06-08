@@ -1,7 +1,19 @@
 export type LotStatus = 'available' | 'quarantine' | 'expired' | 'returned' | 'depleted';
 export type ExpirySignal = 'EXPIRED' | 'RED' | 'YELLOW' | 'ORANGE' | 'GREEN';
 export type AcquisitionType = 'purchase' | 'consignment';
-export type AdjustmentType = 'damage' | 'correction' | 'count_difference' | 'expiry_write_off';
+export type AdjustmentType =
+  | 'damage'
+  | 'correction'
+  | 'count_difference'
+  | 'expiry_write_off'
+  | 'return'
+  | 'donation'
+  | 'found'
+  | 'theft'
+  | 'internal_use'
+  | 'loss';
+
+export type AdjustmentDirection = 'in' | 'out';
 export type StockStatus = 'normal' | 'low' | 'out';
 
 // ----------------------------------------------------------------------

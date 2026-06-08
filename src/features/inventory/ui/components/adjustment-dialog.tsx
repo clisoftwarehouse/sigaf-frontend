@@ -1,4 +1,4 @@
-import type { InventoryLot, CreateAdjustmentPayload } from '../../model/types';
+import type { InventoryLot, AdjustmentType, CreateAdjustmentPayload } from '../../model/types';
 
 import * as z from 'zod';
 import { toast } from 'sonner';
@@ -18,13 +18,24 @@ import DialogContent from '@mui/material/DialogContent';
 
 import { Form, Field } from '@/app/components/hook-form';
 
-import { ADJUSTMENT_TYPE_OPTIONS } from '../../model/constants';
 import { useCreateAdjustmentMutation } from '../../api/inventory.queries';
+import { ADJUSTMENT_TYPE_OPTIONS_IN, ADJUSTMENT_TYPE_OPTIONS_OUT } from '../../model/constants';
 
 // ----------------------------------------------------------------------
 
 const AdjustmentSchema = z.object({
-  adjustmentType: z.enum(['damage', 'correction', 'count_difference', 'expiry_write_off']),
+  adjustmentType: z.enum([
+    'damage',
+    'correction',
+    'count_difference',
+    'expiry_write_off',
+    'return',
+    'donation',
+    'found',
+    'theft',
+    'internal_use',
+    'loss',
+  ]),
   direction: z.enum(['in', 'out']),
   quantity: z
     .string()
@@ -67,6 +78,21 @@ export function AdjustmentDialog({ lot, onClose }: Props) {
     }
   }, [lot, methods]);
 
+  const direction = methods.watch('direction');
+  const adjustmentType = methods.watch('adjustmentType');
+  const options =
+    direction === 'in' ? ADJUSTMENT_TYPE_OPTIONS_IN : ADJUSTMENT_TYPE_OPTIONS_OUT;
+
+  // Si el operador cambia la dirección y la causa actual no es válida en la
+  // nueva, la reseteamos a la primera opción válida. Evita estados inválidos
+  // que el backend rechazaría.
+  useEffect(() => {
+    const valid = options.some((o) => o.value === adjustmentType);
+    if (!valid) {
+      methods.setValue('adjustmentType', options[0].value, { shouldValidate: true });
+    }
+  }, [direction, options, adjustmentType, methods]);
+
   if (!lot) return null;
 
   const available = Number(lot.quantityAvailable) || 0;
@@ -84,7 +110,7 @@ export function AdjustmentDialog({ lot, onClose }: Props) {
       productId: lot.productId,
       lotId: lot.id,
       branchId: lot.branchId,
-      adjustmentType: values.adjustmentType,
+      adjustmentType: values.adjustmentType as AdjustmentType,
       quantity: signedQty,
       reason: values.reason.trim(),
     };
@@ -110,19 +136,6 @@ export function AdjustmentDialog({ lot, onClose }: Props) {
 
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
               <Field.Select
-                name="adjustmentType"
-                label="Tipo de ajuste"
-                slotProps={{ inputLabel: { shrink: true } }}
-                sx={{ flex: 1 }}
-              >
-                {ADJUSTMENT_TYPE_OPTIONS.map((o) => (
-                  <MenuItem key={o.value} value={o.value}>
-                    {o.label}
-                  </MenuItem>
-                ))}
-              </Field.Select>
-
-              <Field.Select
                 name="direction"
                 label="Dirección"
                 slotProps={{ inputLabel: { shrink: true } }}
@@ -130,6 +143,19 @@ export function AdjustmentDialog({ lot, onClose }: Props) {
               >
                 <MenuItem value="out">Salida (−)</MenuItem>
                 <MenuItem value="in">Entrada (+)</MenuItem>
+              </Field.Select>
+
+              <Field.Select
+                name="adjustmentType"
+                label="Causa del ajuste"
+                slotProps={{ inputLabel: { shrink: true } }}
+                sx={{ flex: 1 }}
+              >
+                {options.map((o) => (
+                  <MenuItem key={o.value} value={o.value}>
+                    {o.label}
+                  </MenuItem>
+                ))}
               </Field.Select>
             </Stack>
 

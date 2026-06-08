@@ -51,6 +51,11 @@ export const paths = {
         new: `${inventory}/counts/new`,
         detail: (id: string) => `${inventory}/counts/${id}`,
       },
+      transfers: {
+        root: `${inventory}/transfers`,
+        new: `${inventory}/transfers/new`,
+        detail: (id: string) => `${inventory}/transfers/${id}`,
+      },
       cyclicSchedules: `${inventory}/cyclic-schedules`,
     },
     purchases: {
@@ -74,7 +79,7 @@ export const paths = {
       root: org,
       branches: crud(`${org}/branches`),
       terminals: crud(`${org}/terminals`),
-      locations: crud(`${org}/locations`),
+      warehouses: crud(`${org}/warehouses`),
       branchGroups: crud(`${org}/branch-groups`),
     },
     pos: {

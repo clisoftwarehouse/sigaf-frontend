@@ -1,4 +1,4 @@
-import type { CreateLocationPayload } from '../../model/types';
+import type { CreateWarehousePayload } from '../../model/types';
 
 import { toast } from 'sonner';
 
@@ -9,20 +9,20 @@ import Typography from '@mui/material/Typography';
 import { paths } from '@/app/routes/paths';
 import { useRouter } from '@/app/routes/hooks';
 
-import { LocationForm } from '../components/location-form';
-import { useCreateLocationMutation } from '../../api/locations.queries';
+import { WarehouseForm } from '../components/warehouse-form';
+import { useCreateWarehouseMutation } from '../../api/warehouses.queries';
 
 // ----------------------------------------------------------------------
 
-export function LocationCreateView() {
+export function WarehouseCreateView() {
   const router = useRouter();
-  const mutation = useCreateLocationMutation();
+  const mutation = useCreateWarehouseMutation();
 
-  const handleSubmit = async (payload: CreateLocationPayload) => {
+  const handleSubmit = async (payload: CreateWarehousePayload) => {
     try {
       const created = await mutation.mutateAsync(payload);
-      toast.success(`Ubicación "${created.locationCode}" creada`);
-      router.push(paths.dashboard.organization.locations.root);
+      toast.success(`Almacén "${created.name ?? created.locationCode}" creado`);
+      router.push(paths.dashboard.organization.warehouses.root);
     } catch (err) {
       toast.error((err as Error).message);
     }
@@ -31,13 +31,13 @@ export function LocationCreateView() {
   return (
     <Container maxWidth="xl">
       <Box sx={{ mb: 4 }}>
-        <Typography variant="h4">Nueva ubicación</Typography>
+        <Typography variant="h4">Nuevo almacén</Typography>
       </Box>
 
-      <LocationForm
+      <WarehouseForm
         submitting={mutation.isPending}
         onSubmit={handleSubmit}
-        onCancel={() => router.push(paths.dashboard.organization.locations.root)}
+        onCancel={() => router.push(paths.dashboard.organization.warehouses.root)}
       />
     </Container>
   );

@@ -1,5 +1,5 @@
 import type { GridColDef } from '@mui/x-data-grid';
-import type { WarehouseLocation } from '../../model/types';
+import type { Warehouse } from '../../model/types';
 
 import { toast } from 'sonner';
 import { useMemo, useState } from 'react';
@@ -7,6 +7,7 @@ import { useMemo, useState } from 'react';
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Chip from '@mui/material/Chip';
+import Stack from '@mui/material/Stack';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
 import Tooltip from '@mui/material/Tooltip';
@@ -22,16 +23,16 @@ import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
 import { useBranchOptions } from '@/features/branches/api/branches.options';
 import { DataTable, createFkFilterOperators } from '@/app/components/data-table';
 
-import { useLocationsQuery, useDeleteLocationMutation } from '../../api/locations.queries';
+import { useWarehousesQuery, useDeleteWarehouseMutation } from '../../api/warehouses.queries';
 
 // ----------------------------------------------------------------------
 
-export function LocationsListView() {
+export function WarehousesListView() {
   const router = useRouter();
   const [toDelete, setToDelete] = useState<{ id: string; name: string } | null>(null);
 
-  const { data: locations = [], isLoading, isError, error, refetch } = useLocationsQuery();
-  const deleteMutation = useDeleteLocationMutation();
+  const { data: warehouses = [], isLoading, isError, error, refetch } = useWarehousesQuery();
+  const deleteMutation = useDeleteWarehouseMutation();
 
   const { data: branchOpts = [] } = useBranchOptions();
   const branchNameById = useMemo(
@@ -43,7 +44,7 @@ export function LocationsListView() {
     if (!toDelete) return;
     try {
       await deleteMutation.mutateAsync(toDelete.id);
-      toast.success(`Ubicación "${toDelete.name}" eliminada`);
+      toast.success(`Almacén "${toDelete.name}" eliminado`);
       setToDelete(null);
     } catch (err) {
       toast.error((err as Error).message);
@@ -55,13 +56,20 @@ export function LocationsListView() {
     []
   );
 
-  const columns = useMemo<GridColDef<WarehouseLocation>[]>(
+  const columns = useMemo<GridColDef<Warehouse>[]>(
     () => [
+      {
+        field: 'name',
+        headerName: 'Nombre',
+        flex: 1.2,
+        minWidth: 160,
+        valueGetter: (_value, row) => row.name ?? row.locationCode,
+      },
       {
         field: 'locationCode',
         headerName: 'Código',
-        flex: 1,
-        minWidth: 140,
+        flex: 0.8,
+        minWidth: 120,
         renderCell: ({ row }) => (
           <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
             {row.locationCode}
@@ -79,50 +87,24 @@ export function LocationsListView() {
           (branchNameById.get(a) ?? '').localeCompare(branchNameById.get(b) ?? ''),
       },
       {
-        field: 'aisle',
-        headerName: 'Pasillo',
-        flex: 1,
-        minWidth: 110,
-        valueGetter: (value: string | null) => value ?? '—',
-      },
-      {
-        field: 'shelf',
-        headerName: 'Estante',
-        flex: 1,
-        minWidth: 110,
-        valueGetter: (value: string | null) => value ?? '—',
-      },
-      {
-        field: 'section',
-        headerName: 'Sección',
-        flex: 1,
-        minWidth: 110,
-        valueGetter: (value: string | null) => value ?? '—',
-      },
-      {
-        field: 'capacity',
-        headerName: 'Capacidad',
-        type: 'number',
-        flex: 1,
-        minWidth: 120,
-        valueGetter: (value: number | null) => value ?? null,
-      },
-      {
-        field: 'isQuarantine',
-        headerName: 'Zona',
-        type: 'singleSelect',
-        flex: 1,
-        minWidth: 140,
-        valueOptions: [
-          { value: true, label: 'Cuarentena' },
-          { value: false, label: 'Normal' },
-        ],
-        renderCell: ({ row }) =>
-          row.isQuarantine ? (
-            <Chip size="small" color="warning" label="Cuarentena" />
-          ) : (
-            <Chip size="small" variant="outlined" label="Normal" />
-          ),
+        field: 'flags',
+        headerName: 'Uso',
+        flex: 1.5,
+        minWidth: 240,
+        sortable: false,
+        filterable: false,
+        renderCell: ({ row }) => (
+          <Stack direction="row" spacing={0.5} sx={{ flexWrap: 'wrap', gap: 0.5 }}>
+            {row.isQuarantine && <Chip size="small" color="warning" label="Cuarentena" />}
+            {row.isForSale && <Chip size="small" color="success" variant="outlined" label="Venta" />}
+            {row.isForPurchase && (
+              <Chip size="small" color="info" variant="outlined" label="Compra" />
+            )}
+            {!row.isQuarantine && !row.isForSale && !row.isForPurchase && (
+              <Chip size="small" variant="outlined" label="Sin uso" />
+            )}
+          </Stack>
+        ),
       },
       {
         field: 'actions',
@@ -135,7 +117,7 @@ export function LocationsListView() {
           <>
             <Tooltip title="Editar">
               <IconButton
-                onClick={() => router.push(paths.dashboard.organization.locations.edit(row.id))}
+                onClick={() => router.push(paths.dashboard.organization.warehouses.edit(row.id))}
               >
                 <Iconify icon="solar:pen-bold" />
               </IconButton>
@@ -143,7 +125,9 @@ export function LocationsListView() {
             <Tooltip title="Eliminar">
               <IconButton
                 color="error"
-                onClick={() => setToDelete({ id: row.id, name: row.locationCode })}
+                onClick={() =>
+                  setToDelete({ id: row.id, name: row.name ?? row.locationCode })
+                }
               >
                 <Iconify icon="solar:trash-bin-trash-bold" />
               </IconButton>
@@ -158,16 +142,16 @@ export function LocationsListView() {
   return (
     <Container maxWidth="xl">
       <PageHeader
-        title="Ubicaciones de almacén"
-        subtitle="Pasillos, estantes y zonas de cuarentena por sucursal."
-        crumbs={[{ label: 'Organización' }, { label: 'Ubicaciones' }]}
+        title="Almacenes"
+        subtitle="Almacenes por sucursal con marcas para venta, compra y cuarentena."
+        crumbs={[{ label: 'Organización' }, { label: 'Almacenes' }]}
         action={
           <Button
             variant="contained"
             startIcon={<Iconify icon="solar:add-circle-bold" />}
-            onClick={() => router.push(paths.dashboard.organization.locations.new)}
+            onClick={() => router.push(paths.dashboard.organization.warehouses.new)}
           >
-            Nueva ubicación
+            Nuevo almacén
           </Button>
         }
       />
@@ -183,7 +167,7 @@ export function LocationsListView() {
                 </Button>
               }
             >
-              {(error as Error)?.message ?? 'Error al cargar ubicaciones'}
+              {(error as Error)?.message ?? 'Error al cargar almacenes'}
             </Alert>
           </Box>
         )}
@@ -191,7 +175,7 @@ export function LocationsListView() {
         <Box sx={{ width: '100%' }}>
           <DataTable
             columns={columns}
-            rows={locations}
+            rows={warehouses}
             loading={isLoading}
             disableRowSelectionOnClick
             autoHeight
@@ -201,11 +185,11 @@ export function LocationsListView() {
 
       <ConfirmDialog
         open={!!toDelete}
-        title="Eliminar ubicación"
+        title="Eliminar almacén"
         description={
           toDelete ? (
             <>
-              ¿Seguro que deseas eliminar la ubicación <strong>{toDelete.name}</strong>?
+              ¿Seguro que deseas eliminar el almacén <strong>{toDelete.name}</strong>?
             </>
           ) : null
         }

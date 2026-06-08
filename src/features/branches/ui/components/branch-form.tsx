@@ -8,9 +8,11 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import Card from '@mui/material/Card';
 import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
+import MenuItem from '@mui/material/MenuItem';
 
 import { FormFooter } from '@/shared/ui/form-footer';
 import { Form, Field } from '@/app/components/hook-form';
+import { useBranchGroupsQuery } from '@/features/branch-groups/api/branch-groups.queries';
 
 // ----------------------------------------------------------------------
 
@@ -37,6 +39,7 @@ export const BranchSchema = z.object({
     .optional()
     .or(z.literal(''))
     .refine((v) => !v || /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v), { message: 'Email inválido' }),
+  branchGroupId: z.string().optional().or(z.literal('')),
 });
 
 export type BranchFormValues = z.infer<typeof BranchSchema>;
@@ -49,6 +52,8 @@ type Props = {
 };
 
 export function BranchForm({ current, submitting, onSubmit, onCancel }: Props) {
+  const { data: branchGroups = [] } = useBranchGroupsQuery();
+
   const methods = useForm<BranchFormValues>({
     mode: 'onBlur',
     resolver: zodResolver(BranchSchema),
@@ -58,6 +63,7 @@ export function BranchForm({ current, submitting, onSubmit, onCancel }: Props) {
       address: current?.address ?? '',
       phone: current?.phone ?? '',
       email: current?.email ?? '',
+      branchGroupId: current?.branchGroupId ?? '',
     },
   });
 
@@ -71,6 +77,7 @@ export function BranchForm({ current, submitting, onSubmit, onCancel }: Props) {
         address: current.address,
         phone: current.phone ?? '',
         email: current.email ?? '',
+        branchGroupId: current.branchGroupId ?? '',
       });
     }
   }, [current, reset]);
@@ -82,6 +89,7 @@ export function BranchForm({ current, submitting, onSubmit, onCancel }: Props) {
       address: values.address.trim(),
       phone: values.phone?.trim() || undefined,
       email: values.email?.trim() || undefined,
+      branchGroupId: values.branchGroupId?.trim() || undefined,
     });
   });
 
@@ -121,6 +129,21 @@ export function BranchForm({ current, submitting, onSubmit, onCancel }: Props) {
             />
           </Stack>
 
+          <Field.Select
+            name="branchGroupId"
+            label="Grupo de sucursales (opcional)"
+            helperText="Define qué matriz de aprobación aplica a las OCs de esta sucursal."
+            slotProps={{ inputLabel: { shrink: true } }}
+          >
+            <MenuItem value="">— Sin grupo —</MenuItem>
+            {branchGroups
+              .filter((g) => g.isActive)
+              .map((g) => (
+                <MenuItem key={g.id} value={g.id}>
+                  {g.name}
+                </MenuItem>
+              ))}
+          </Field.Select>
         </Stack>
       </Card>
 

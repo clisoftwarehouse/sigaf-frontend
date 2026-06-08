@@ -176,6 +176,23 @@ function parsePresentation(raw?: string | null): {
   return { type: m[1].toUpperCase(), quantity: m[2], unit: m[3].toUpperCase() };
 }
 
+function parseConcentration(raw?: string | null): {
+  value: string;
+  unit: (typeof CONCENTRATION_UNITS)[number];
+} {
+  if (!raw) return { value: '', unit: 'mg' };
+  const trimmed = raw.trim();
+  const match = trimmed.match(/^([\d.,]+)\s*([A-Za-z%]+)?$/);
+  if (!match) return { value: trimmed, unit: 'mg' };
+  const unit = match[2]
+    ? CONCENTRATION_UNITS.find((candidate) => candidate.toLowerCase() === match[2]!.toLowerCase())
+    : undefined;
+  return {
+    value: match[1],
+    unit: unit ?? 'mg',
+  };
+}
+
 /**
  * Infiere la "naturaleza" del producto a partir de los campos guardados:
  * - Si tiene commercialLine/Variant → 'consumer'
@@ -235,7 +252,16 @@ function toFormValues(p?: Product): ProductFormValues {
     packagingQuantity: pkg.quantity,
     packagingUnit: pkg.unit,
     barcodes: [],
-    activeIngredients: [],
+    activeIngredients:
+      p?.activeIngredients?.map((ingredient) => {
+        const concentration = parseConcentration(ingredient.concentration);
+        return {
+          activeIngredientId: ingredient.activeIngredientId,
+          concentrationValue: concentration.value,
+          concentrationUnit: concentration.unit,
+          isPrimary: ingredient.isPrimary,
+        };
+      }) ?? [],
   } as ProductFormValues;
 }
 
@@ -455,7 +481,7 @@ export function ProductForm({
   }, [autoName, generatedName, setValue]);
 
   useEffect(() => {
-    if (current) reset(toFormValues(current));
+    if (current) reset(toFormValues(current), { keepDirtyValues: true, keepDirty: true });
   }, [current, reset]);
 
   const submit = handleSubmit(async (values) => {
@@ -689,15 +715,21 @@ export function ProductForm({
                 </Tooltip>
               </Stack>
 
-              {watchedNature !== 'consumer' && (
-                <Field.Text
-                  name="shortName"
-                  label="Nombre comercial (opcional)"
-                  placeholder="Ej. Atamel"
-                  helperText="Nombre con el que se conoce comercialmente el producto. Entra en la construcción del nombre completo."
-                  slotProps={{ inputLabel: { shrink: true } }}
-                />
-              )}
+              <Field.Text
+                name="shortName"
+                label={
+                  watchedNature === 'consumer'
+                    ? 'Subtítulo / Nombre corto (opcional)'
+                    : 'Nombre comercial (opcional)'
+                }
+                placeholder={watchedNature === 'consumer' ? 'Ej. Línea o subtítulo' : 'Ej. Atamel'}
+                helperText={
+                  watchedNature === 'consumer'
+                    ? 'Subtítulo o nombre corto que acompaña la marca (ej. línea o variante). Opcional.'
+                    : 'Nombre con el que se conoce comercialmente el producto. Entra en la construcción del nombre completo.'
+                }
+                slotProps={{ inputLabel: { shrink: true } }}
+              />
 
               <Field.Text
                 name="internalCode"
@@ -733,9 +765,7 @@ export function ProductForm({
                     sx={{ mt: 0.5 }}
                     onClick={() => setAutoName((v) => !v)}
                   >
-                    <Iconify
-                      icon={autoName ? 'solar:lock-password-outline' : 'solar:pen-bold'}
-                    />
+                    <Iconify icon={autoName ? 'solar:lock-password-outline' : 'solar:pen-bold'} />
                   </IconButton>
                 </Tooltip>
               </Stack>

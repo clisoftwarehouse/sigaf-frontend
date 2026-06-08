@@ -135,6 +135,19 @@ export type ReceiptItemDiscrepancy = {
   notes: string | null;
 };
 
+export type AdditionReason = 'sample' | 'commercial_gift' | 'substitute' | 'excess' | 'other';
+
+export const ADDITION_REASON_LABEL: Record<AdditionReason, string> = {
+  sample: 'Muestras',
+  commercial_gift: 'Regalos comerciales',
+  substitute: 'Sustitutos',
+  excess: 'Sobrante',
+  other: 'Otro',
+};
+
+/** Causas para las que la factura del proveedor cobra 0 (no llevan costo). */
+export const FREE_ADDITION_REASONS: AdditionReason[] = ['sample', 'commercial_gift'];
+
 export type GoodsReceiptItem = {
   id: string;
   goodsReceiptId: string;
@@ -146,11 +159,16 @@ export type GoodsReceiptItem = {
   /** Cantidad facturada por el proveedor. Default = `quantity` en recepciones legacy. */
   invoicedQuantity: number | string | null;
   unitCostUsd: number | string;
+  /** Costo unitario en moneda nativa (Bs.) cuando la factura es VES. NULL para USD. */
+  unitCostNative: number | string | null;
   discountPct: number | string;
   subtotalUsd: number | string;
   salePrice: number | string;
   lotNumber: string;
   expirationDate: string;
+  locationId: string | null;
+  /** Solo para ítems sin OC: por qué llegó este producto (muestra, regalo, etc.). */
+  additionReason: AdditionReason | null;
   discrepancies?: ReceiptItemDiscrepancy[];
 };
 
@@ -212,10 +230,15 @@ export type CreateGoodsReceiptItemPayload = {
   /** Cantidad facturada por el proveedor. Default = `quantity` si se omite. */
   invoicedQuantity?: number;
   unitCostUsd: number;
+  /** Costo unitario en moneda nativa (Bs.). Si se envía y la factura es VES,
+   *  el backend recomputa unitCostUsd = unitCostNative / tasaBCV. */
+  unitCostNative?: number;
   /** Opcional (Fase E): si se omite, el lote entra sin precio publicado y la fijación queda al módulo de Precios. */
   salePrice?: number;
   discountPct?: number;
   locationId?: string;
+  /** Obligatorio cuando no hay `purchaseOrderId`. Explica por qué se recibió un producto fuera de OC. */
+  additionReason?: AdditionReason;
   discrepancies?: DiscrepancyInputPayload[];
 };
 

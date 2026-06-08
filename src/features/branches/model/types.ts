@@ -5,6 +5,7 @@ export type Branch = {
   address: string;
   phone: string | null;
   email: string | null;
+  branchGroupId: string | null;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -16,6 +17,7 @@ export type CreateBranchPayload = {
   address: string;
   phone?: string;
   email?: string;
+  branchGroupId?: string;
 };
 
 export type UpdateBranchPayload = Partial<CreateBranchPayload>;

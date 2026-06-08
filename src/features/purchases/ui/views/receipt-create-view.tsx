@@ -16,6 +16,7 @@ import Button from '@mui/material/Button';
 import Divider from '@mui/material/Divider';
 import MenuItem from '@mui/material/MenuItem';
 import Container from '@mui/material/Container';
+import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
 
@@ -28,7 +29,7 @@ import { useBranchesQuery } from '@/features/branches/api/branches.queries';
 import { useProductsQuery } from '@/features/products/api/products.queries';
 import { useConfigQuery } from '@/features/config-global/api/config.queries';
 import { useSuppliersQuery } from '@/features/suppliers/api/suppliers.queries';
-import { useLocationsQuery } from '@/features/locations/api/locations.queries';
+import { useWarehousesQuery } from '@/features/warehouses/api/warehouses.queries';
 import { useLatestExchangeRateQuery } from '@/features/exchange-rates/api/exchange-rates.queries';
 
 import { fetchOrder } from '../../api/purchases.api';
@@ -91,8 +92,17 @@ const ItemSchema = z
       .string()
       .min(1, { message: 'Obligatorio' })
       .refine((v) => /^\d+(\.\d+)?$/.test(v) && Number(v) >= 0, { message: '≥ 0' }),
+    unitCostNative: z
+      .string()
+      .optional()
+      .or(z.literal(''))
+      .refine((v) => !v || (/^\d+(\.\d+)?$/.test(v) && Number(v) >= 0), { message: '≥ 0' }),
     discountPct: pctString,
     locationId: z.string().optional().or(z.literal('')),
+    additionReason: z
+      .enum(['sample', 'commercial_gift', 'substitute', 'excess', 'other'])
+      .optional()
+      .or(z.literal('')),
     discrepancies: z.array(DiscrepancySchema).optional(),
   })
   // Lote es obligatorio cuando se recibe stock (quantity > 0). La validación
@@ -109,6 +119,14 @@ const ItemSchema = z
           path: ['lotNumber'],
         });
       }
+    }
+    // Productos adicionales (sin OC) deben declarar su causa.
+    if (!data.purchaseOrderId && Number(data.quantity) > 0 && !data.additionReason) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Selecciona una causa',
+        path: ['additionReason'],
+      });
     }
   });
 
@@ -170,8 +188,10 @@ const emptyItem: FormValues['items'][number] = {
   quantity: '',
   invoicedQuantity: '',
   unitCostUsd: '',
+  unitCostNative: '',
   discountPct: '',
   locationId: '',
+  additionReason: '',
   discrepancies: [],
 };
 
@@ -295,6 +315,7 @@ export function ReceiptCreateView() {
 
   // Tasa BCV USD→VES más reciente — autofill cuando la moneda nativa es VES.
   const nativeCurrency = watch('nativeCurrency');
+  const watchedExchangeRate = watch('exchangeRateUsed');
   const { data: latestBcvRate } = useLatestExchangeRateQuery('USD', 'VES');
   useEffect(() => {
     if (nativeCurrency !== 'VES') return;
@@ -304,11 +325,31 @@ export function ReceiptCreateView() {
     }
   }, [nativeCurrency, latestBcvRate, methods, setValue]);
 
+  // Cuando cambia la tasa BCV (o el modo a VES), recompute el `unitCostUsd`
+  // de cada ítem con `unitCostNative` ya cargado — así la conversión queda
+  // siempre consistente con la tasa vigente del receipt.
+  useEffect(() => {
+    if (nativeCurrency !== 'VES') return;
+    const rate = Number(watchedExchangeRate) || 0;
+    if (rate <= 0) return;
+    const items = methods.getValues('items') ?? [];
+    items.forEach((item, idx) => {
+      const native = Number(item.unitCostNative) || 0;
+      if (native > 0) {
+        const usd = (native / rate).toFixed(4);
+        if (item.unitCostUsd !== usd) {
+          setValue(`items.${idx}.unitCostUsd`, usd, { shouldValidate: false });
+        }
+      }
+    });
+  }, [nativeCurrency, watchedExchangeRate, methods, setValue]);
+
   // Si el usuario seleccionó OCs, branch y supplier se heredan: no editables.
   const branchSupplierLockedByOrder = (selectedOrderIds ?? []).length > 0;
 
-  const { data: locations = [] } = useLocationsQuery({
+  const { data: warehouses = [] } = useWarehousesQuery({
     branchId: selectedBranchId || undefined,
+    isForPurchase: true,
   });
 
   // Órdenes elegibles: del proveedor seleccionado (si hay) y en estado sent/partial.
@@ -386,6 +427,7 @@ export function ReceiptCreateView() {
           // ajusta si la factura difiere y se generan discrepancias.
           invoicedQuantity: suggestedQty,
           unitCostUsd: String(Number(it.unitCostUsd)),
+          unitCostNative: '',
           discountPct: it.discountPct ? String(Number(it.discountPct)) : '',
           locationId: '',
           discrepancies: [],
@@ -455,10 +497,22 @@ export function ReceiptCreateView() {
             ? Number(i.invoicedQuantity)
             : undefined,
         unitCostUsd: Number(i.unitCostUsd),
+        // Cuando la factura está en VES, mandamos el costo nativo (Bs.) — el
+        // backend recomputa `unitCostUsd = native / tasa` autoritativamente.
+        unitCostNative:
+          values.nativeCurrency === 'VES' && i.unitCostNative && i.unitCostNative.trim() !== ''
+            ? Number(i.unitCostNative)
+            : undefined,
         discountPct: i.discountPct ? Number(i.discountPct) : undefined,
         // El precio de venta NO se fija desde la recepción: lo gestiona el
         // módulo de Precios. El backend acepta el campo undefined.
         locationId: i.locationId || undefined,
+        // Solo para productos adicionales (sin OC): la causa que justifica
+        // que llegue fuera de OC. El backend rechaza la recepción si falta.
+        additionReason:
+          !i.purchaseOrderId && i.additionReason
+            ? (i.additionReason as 'sample' | 'commercial_gift' | 'substitute' | 'excess' | 'other')
+            : undefined,
         discrepancies: (i.discrepancies ?? []).map((d) => ({
           reason: d.reason,
           quantity: Number(d.quantity),
@@ -780,8 +834,7 @@ export function ReceiptCreateView() {
     // con faltantes en los reportes del QA.
     const signedDiff = invoiced - received;
     const diff = Math.abs(signedDiff);
-    const isShortage = signedDiff > 0; // faltó stock
-    const isExcess = signedDiff < 0; // llegó de más
+    const isExcess = signedDiff < 0; // llegó de más (recibido > facturado)
     const epsilon = 0.001;
 
     const discrepancies = item?.discrepancies ?? [];
@@ -832,8 +885,10 @@ export function ReceiptCreateView() {
             size="small"
             variant="outlined"
             startIcon={<Iconify icon="solar:add-circle-bold" />}
-            // QA: deshabilitar cuando todas las discrepancias ya cuadran.
-            disabled={balanced}
+            // Deshabilitar cuando: (a) ya cuadran las discrepancias, o
+            // (b) es sobrante de OC y ya existe una fila — solo "Sobrante"
+            // tiene sentido como causa, no se subdivide.
+            disabled={balanced || (isExcess && !isAdditional && discrepancies.length >= 1)}
             onClick={() => {
               const next = [
                 ...(watchedItems?.[idx]?.discrepancies ?? []),
@@ -851,95 +906,124 @@ export function ReceiptCreateView() {
         </Alert>
 
         <Stack spacing={1}>
-          {discrepancies.map((_, dIdx) => (
-            <Stack
-              key={dIdx}
-              direction={{ xs: 'column', sm: 'row' }}
-              spacing={1.5}
-              alignItems={{ xs: 'stretch', sm: 'flex-start' }}
-            >
-              <Field.Select
-                name={`items.${idx}.discrepancies.${dIdx}.reason`}
-                label="Razón"
-                slotProps={{ inputLabel: { shrink: true } }}
-                sx={{ flex: 1.5, minWidth: 220 }}
+          {discrepancies.map((_, dIdx) => {
+            // Sobrante de OC: razón fija. No tiene sentido un dropdown si la
+            // única causa posible es "Sobrante" — confunde al operador (QA #X).
+            const fixedExcessForOcLine = isExcess && !isAdditional;
+            return (
+              <Stack
+                key={dIdx}
+                direction={{ xs: 'column', sm: 'row' }}
+                spacing={1.5}
+                alignItems={{ xs: 'stretch', sm: 'flex-start' }}
               >
-                {/* QA #117: las razones para productos ADICIONALES (no en
-                    OC) son completamente diferentes — clasifican por qué
-                    llegó algo no pedido (muestra, sustituto, regalo). Las
-                    razones de daño/vencimiento aplican solo a ítems de OC
-                    (donde había una expectativa de calidad contra la
-                    factura). */}
-                {isAdditional ? (
-                  <>
-                    <MenuItem value="sample">Muestra gratis</MenuItem>
-                    <MenuItem value="substitute">Sustituto del proveedor</MenuItem>
-                    <MenuItem value="commercial_gift">Regalo comercial / bonificación</MenuItem>
-                    <MenuItem value="excess">Sobrante de OC vecina</MenuItem>
-                    <MenuItem value="other">Otro</MenuItem>
-                  </>
+                {fixedExcessForOcLine ? (
+                  <Box
+                    sx={{
+                      flex: 1.5,
+                      minWidth: 220,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 0.5,
+                      pt: 0.5,
+                    }}
+                  >
+                    <Typography variant="caption" color="text.secondary">
+                      Razón
+                    </Typography>
+                    <Chip
+                      label="Sobrante"
+                      color="warning"
+                      variant="filled"
+                      sx={{ alignSelf: 'flex-start', fontWeight: 600 }}
+                    />
+                    <Typography variant="caption" color="text.disabled">
+                      Asignada automáticamente: recibiste más que lo facturado.
+                    </Typography>
+                  </Box>
                 ) : (
-                  <>
-                    {/* Razones OC — filtradas por dirección de la diferencia:
-                        - Si llegó MÁS de lo facturado, solo 'excess' aplica.
-                        - Si llegó MENOS, ocultamos 'excess'. */}
-                    {!isExcess && [
-                      <MenuItem key="expired" value="expired">
-                        Vencido / próximo a vencer
-                      </MenuItem>,
-                      <MenuItem key="defective" value="defective">
-                        Defectuoso de fábrica
-                      </MenuItem>,
-                      <MenuItem key="damaged_packaging" value="damaged_packaging">
-                        Empaque dañado
-                      </MenuItem>,
-                      <MenuItem key="damaged_in_transit" value="damaged_in_transit">
-                        Daño en transporte
-                      </MenuItem>,
-                      <MenuItem key="incorrect_product" value="incorrect_product">
-                        Producto incorrecto
-                      </MenuItem>,
-                      <MenuItem key="missing" value="missing">
-                        Faltante
-                      </MenuItem>,
-                      <MenuItem key="quality_failure" value="quality_failure">
-                        Falla de calidad
-                      </MenuItem>,
-                    ]}
-                    {isExcess && <MenuItem value="excess">Sobrante</MenuItem>}
-                    {isShortage && <MenuItem value="other">Otro</MenuItem>}
-                  </>
+                  <Field.Select
+                    name={`items.${idx}.discrepancies.${dIdx}.reason`}
+                    label="Razón"
+                    slotProps={{ inputLabel: { shrink: true } }}
+                    sx={{ flex: 1.5, minWidth: 220 }}
+                  >
+                    {isAdditional
+                      ? [
+                          <MenuItem key="sample" value="sample">
+                            Muestras
+                          </MenuItem>,
+                          <MenuItem key="substitute" value="substitute">
+                            Sustitutos
+                          </MenuItem>,
+                          <MenuItem key="commercial_gift" value="commercial_gift">
+                            Regalos comerciales
+                          </MenuItem>,
+                          <MenuItem key="excess" value="excess">
+                            Sobrante
+                          </MenuItem>,
+                          <MenuItem key="other" value="other">
+                            Otro
+                          </MenuItem>,
+                        ]
+                      : [
+                          <MenuItem key="expired" value="expired">
+                            Vencido / próximo a vencer
+                          </MenuItem>,
+                          <MenuItem key="defective" value="defective">
+                            Defectuoso de fábrica
+                          </MenuItem>,
+                          <MenuItem key="damaged_packaging" value="damaged_packaging">
+                            Empaque dañado
+                          </MenuItem>,
+                          <MenuItem key="damaged_in_transit" value="damaged_in_transit">
+                            Daño en transporte
+                          </MenuItem>,
+                          <MenuItem key="incorrect_product" value="incorrect_product">
+                            Producto incorrecto
+                          </MenuItem>,
+                          <MenuItem key="missing" value="missing">
+                            Faltante
+                          </MenuItem>,
+                          <MenuItem key="quality_failure" value="quality_failure">
+                            Falla de calidad
+                          </MenuItem>,
+                          <MenuItem key="other" value="other">
+                            Otro
+                          </MenuItem>,
+                        ]}
+                  </Field.Select>
                 )}
-              </Field.Select>
-              <Field.Text
-                name={`items.${idx}.discrepancies.${dIdx}.quantity`}
-                label="Cantidad"
-                slotProps={{
-                  inputLabel: { shrink: true },
-                  htmlInput: { inputMode: 'decimal' },
-                }}
-                sx={{ width: { xs: '100%', sm: 140 }, flexShrink: 0 }}
-              />
-              <Field.Text
-                name={`items.${idx}.discrepancies.${dIdx}.notes`}
-                label="Nota (obligatorio si es 'Otro')"
-                slotProps={{ inputLabel: { shrink: true } }}
-                sx={{ flex: 2 }}
-              />
-              <IconButton
-                color="error"
-                sx={{ mt: { sm: 0.5 }, flexShrink: 0 }}
-                onClick={() => {
-                  const next = (watchedItems?.[idx]?.discrepancies ?? []).filter(
-                    (_d, i) => i !== dIdx
-                  );
-                  setValue(`items.${idx}.discrepancies`, next, { shouldValidate: true });
-                }}
-              >
-                <Iconify icon="solar:trash-bin-trash-bold" width={18} />
-              </IconButton>
-            </Stack>
-          ))}
+                <Field.Text
+                  name={`items.${idx}.discrepancies.${dIdx}.quantity`}
+                  label="Cantidad"
+                  slotProps={{
+                    inputLabel: { shrink: true },
+                    htmlInput: { inputMode: 'decimal' },
+                  }}
+                  sx={{ width: { xs: '100%', sm: 140 }, flexShrink: 0 }}
+                />
+                <Field.Text
+                  name={`items.${idx}.discrepancies.${dIdx}.notes`}
+                  label="Nota (obligatorio si es 'Otro')"
+                  slotProps={{ inputLabel: { shrink: true } }}
+                  sx={{ flex: 2 }}
+                />
+                <IconButton
+                  color="error"
+                  sx={{ mt: { sm: 0.5 }, flexShrink: 0 }}
+                  onClick={() => {
+                    const next = (watchedItems?.[idx]?.discrepancies ?? []).filter(
+                      (_d, i) => i !== dIdx
+                    );
+                    setValue(`items.${idx}.discrepancies`, next, { shouldValidate: true });
+                  }}
+                >
+                  <Iconify icon="solar:trash-bin-trash-bold" width={18} />
+                </IconButton>
+              </Stack>
+            );
+          })}
         </Stack>
       </Box>
     );
@@ -968,6 +1052,10 @@ export function ReceiptCreateView() {
       (d) => Number(d.quantity) > 0
     );
     const hasDiff = Math.abs(invoicedQty - qty) > 0.001;
+    // Producto adicional: lo que llegó sin estar en OC. La causa explica por qué.
+    // Causas "gratuitas" (muestra, regalo comercial) implican costo=0 y desc=0.
+    const additionReason = watchedItems?.[idx]?.additionReason ?? '';
+    const isFreeReason = additionReason === 'sample' || additionReason === 'commercial_gift';
     // "No recibido" = de la OC, sin stock físico, sin diferencia respecto a la
     // factura y sin discrepancias. En ese caso el operador simplemente no recibió
     // este producto en esta entrega — atenuamos la línea para señalar "siguiente
@@ -1009,6 +1097,45 @@ export function ReceiptCreateView() {
                 </Typography>
               )}
 
+              {/* Causa: solo aplica a productos adicionales (sin OC). Es lo que
+                  justifica que el producto esté en la recepción aunque no
+                  estuviera ordenado. Muestras/regalos comerciales fuerzan
+                  costo=0 y descuento=0 (por definición no tienen costo). */}
+              {!fromOrder && (
+                <Field.Select
+                  name={`items.${idx}.additionReason`}
+                  label="Causa del producto adicional"
+                  helperText={
+                    isFreeReason
+                      ? 'Las muestras y regalos comerciales se reciben sin costo (cost = 0).'
+                      : 'Selecciona por qué llegó este producto sin estar en una OC.'
+                  }
+                  slotProps={{ inputLabel: { shrink: true } }}
+                  onChange={(e) => {
+                    const value = e.target.value as
+                      | ''
+                      | 'sample'
+                      | 'commercial_gift'
+                      | 'substitute'
+                      | 'excess'
+                      | 'other';
+                    setValue(`items.${idx}.additionReason`, value, { shouldValidate: true });
+                    if (value === 'sample' || value === 'commercial_gift') {
+                      setValue(`items.${idx}.unitCostUsd`, '0', { shouldValidate: true });
+                      setValue(`items.${idx}.unitCostNative`, '0', { shouldValidate: true });
+                      setValue(`items.${idx}.discountPct`, '0', { shouldValidate: true });
+                    }
+                  }}
+                >
+                  <MenuItem value="">— Selecciona una causa —</MenuItem>
+                  <MenuItem value="sample">Muestras</MenuItem>
+                  <MenuItem value="substitute">Sustitutos</MenuItem>
+                  <MenuItem value="commercial_gift">Regalos comerciales</MenuItem>
+                  <MenuItem value="excess">Sobrante</MenuItem>
+                  <MenuItem value="other">Otro</MenuItem>
+                </Field.Select>
+              )}
+
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
                 <Field.Text
                   name={`items.${idx}.lotNumber`}
@@ -1048,18 +1175,54 @@ export function ReceiptCreateView() {
                   slotProps={{ inputLabel: { shrink: true } }}
                   sx={{ flex: 1 }}
                 />
-                <Field.Text
-                  name={`items.${idx}.unitCostUsd`}
-                  label="Costo USD"
-                  disabled={isNotReceived}
-                  helperText="De la factura del proveedor"
-                  slotProps={{ inputLabel: { shrink: true } }}
-                  sx={{ flex: 1 }}
-                />
+                {nativeCurrency === 'VES' ? (
+                  (() => {
+                    const nativeStr = watchedItems?.[idx]?.unitCostNative ?? '';
+                    const native = Number(nativeStr) || 0;
+                    const rate = Number(watch('exchangeRateUsed')) || 0;
+                    const usdPreview = isFreeReason
+                      ? 'Causa gratuita — sin costo'
+                      : native > 0 && rate > 0
+                        ? `≈ $${(native / rate).toFixed(4)} USD`
+                        : 'Bs. de la factura del proveedor';
+                    return (
+                      <TextField
+                        label="Costo Bs."
+                        type="text"
+                        value={nativeStr}
+                        onChange={(e) => {
+                          const raw = e.target.value;
+                          setValue(`items.${idx}.unitCostNative`, raw, { shouldValidate: true });
+                          if (raw === '') {
+                            setValue(`items.${idx}.unitCostUsd`, '', { shouldValidate: true });
+                          } else if (/^\d+(\.\d+)?$/.test(raw) && rate > 0) {
+                            const usd = (Number(raw) / rate).toFixed(4);
+                            setValue(`items.${idx}.unitCostUsd`, usd, { shouldValidate: true });
+                          }
+                        }}
+                        disabled={isNotReceived || isFreeReason}
+                        helperText={usdPreview}
+                        slotProps={{ inputLabel: { shrink: true } }}
+                        sx={{ flex: 1 }}
+                      />
+                    );
+                  })()
+                ) : (
+                  <Field.Text
+                    name={`items.${idx}.unitCostUsd`}
+                    label="Costo USD"
+                    disabled={isNotReceived || isFreeReason}
+                    helperText={
+                      isFreeReason ? 'Causa gratuita — sin costo' : 'De la factura del proveedor'
+                    }
+                    slotProps={{ inputLabel: { shrink: true } }}
+                    sx={{ flex: 1 }}
+                  />
+                )}
                 <Field.Text
                   name={`items.${idx}.discountPct`}
                   label="Desc. %"
-                  disabled={isNotReceived}
+                  disabled={isNotReceived || isFreeReason}
                   slotProps={{ inputLabel: { shrink: true } }}
                   sx={{ width: { xs: '100%', sm: 110 }, flexShrink: 0 }}
                 />
@@ -1124,14 +1287,14 @@ export function ReceiptCreateView() {
               <Box sx={{ opacity: 1 }}>{renderDiscrepancyPanel(idx)}</Box>
               <Field.Select
                 name={`items.${idx}.locationId`}
-                label="Ubicación (opcional)"
+                label="Almacén (opcional)"
                 disabled={isNotReceived}
                 slotProps={{ inputLabel: { shrink: true } }}
               >
-                <MenuItem value="">— Sin ubicación —</MenuItem>
-                {locations.map((l) => (
-                  <MenuItem key={l.id} value={l.id}>
-                    {l.locationCode}
+                <MenuItem value="">— Sin almacén —</MenuItem>
+                {warehouses.map((w) => (
+                  <MenuItem key={w.id} value={w.id}>
+                    {w.name ?? w.locationCode}
                   </MenuItem>
                 ))}
               </Field.Select>
@@ -1514,84 +1677,157 @@ export function ReceiptCreateView() {
         </Card>
 
         <Card sx={{ p: 3, mb: 3 }}>
-          <Stack spacing={1.5}>
-            <Typography variant="subtitle2" sx={{ color: 'text.secondary' }}>
-              Resumen
-            </Typography>
-            <Stack direction="row" justifyContent="space-between">
-              <Typography variant="body2" color="text.secondary">
-                Subtotal
-              </Typography>
-              <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
-                ${totals.subtotalGross.toFixed(2)}
-              </Typography>
-            </Stack>
-            {totals.totalDiscount > 0 && (
-              <Stack direction="row" justifyContent="space-between">
-                <Typography variant="body2" color="text.secondary">
-                  Descuento lineal (por línea)
+          {(() => {
+            const isVes = watchedNativeCurrency === 'VES';
+            const rateNum = Number(watch('exchangeRateUsed')) || 0;
+            const showBs = isVes && rateNum > 0;
+            const fmtUsd = (n: number, neg = false) => `${neg ? '−' : ''}$${Math.abs(n).toFixed(2)}`;
+            const fmtBs = (n: number, neg = false) =>
+              `${neg ? '−' : ''}Bs. ${Math.abs(n * rateNum).toLocaleString('es-VE', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })}`;
+
+            const renderAmount = (usdAmount: number, opts: { negative?: boolean; emphasis?: boolean } = {}) => {
+              const { negative = false, emphasis = false } = opts;
+              const color = negative ? 'error.main' : undefined;
+              if (showBs) {
+                return (
+                  <Box sx={{ textAlign: 'right' }}>
+                    <Typography
+                      variant={emphasis ? 'subtitle1' : 'body2'}
+                      sx={{ fontFamily: 'monospace', color }}
+                    >
+                      {fmtBs(usdAmount, negative)}
+                    </Typography>
+                    <Typography variant="caption" sx={{ fontFamily: 'monospace', color: 'text.secondary' }}>
+                      ≈ {fmtUsd(usdAmount, negative)}
+                    </Typography>
+                  </Box>
+                );
+              }
+              return (
+                <Typography
+                  variant={emphasis ? 'subtitle1' : 'body2'}
+                  sx={{ fontFamily: 'monospace', color }}
+                >
+                  {fmtUsd(usdAmount, negative)}
                 </Typography>
-                <Typography variant="body2" sx={{ fontFamily: 'monospace', color: 'error.main' }}>
-                  −${totals.totalDiscount.toFixed(2)}
+              );
+            };
+
+            // Discrepancia: comparar el total declarado en la factura (Bs.) con
+            // la suma computada de las líneas. Si difiere >1%, alertamos al
+            // operador para que verifique antes de registrar.
+            const headerTotalNative = Number(watch('nativeTotal')) || 0;
+            const computedTotalNative = totals.total * rateNum;
+            const diffNative = headerTotalNative - computedTotalNative;
+            const diffPct =
+              headerTotalNative > 0 ? Math.abs(diffNative) / headerTotalNative : 0;
+            const showDiscrepancy = showBs && headerTotalNative > 0 && diffPct > 0.01;
+
+            return (
+              <Stack spacing={1.5}>
+                <Typography variant="subtitle2" sx={{ color: 'text.secondary' }}>
+                  Resumen {showBs && '(factura en Bs.)'}
                 </Typography>
+
+                <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
+                  <Typography variant="body2" color="text.secondary">
+                    Subtotal
+                  </Typography>
+                  {renderAmount(totals.subtotalGross)}
+                </Stack>
+                {totals.totalDiscount > 0 && (
+                  <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
+                    <Typography variant="body2" color="text.secondary">
+                      Descuento lineal (por línea)
+                    </Typography>
+                    {renderAmount(totals.totalDiscount, { negative: true })}
+                  </Stack>
+                )}
+                {totals.headerDiscount > 0 && (
+                  <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
+                    <Typography variant="body2" color="text.secondary">
+                      Descuento cabecera ({Number(watchedHeaderDiscPct) || 0}%)
+                    </Typography>
+                    {renderAmount(totals.headerDiscount, { negative: true })}
+                  </Stack>
+                )}
+                {totals.volumeDiscount > 0 && (
+                  <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
+                    <Typography variant="body2" color="text.secondary">
+                      Descuento volumen ({Number(watchedVolumeDiscPct) || 0}%)
+                    </Typography>
+                    {renderAmount(totals.volumeDiscount, { negative: true })}
+                  </Stack>
+                )}
+                {totals.taxGeneral > 0 && (
+                  <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
+                    <Typography variant="body2" color="text.secondary">
+                      IVA ({ivaGeneralPct}%)
+                    </Typography>
+                    {renderAmount(totals.taxGeneral)}
+                  </Stack>
+                )}
+                {totals.taxReduced > 0 && (
+                  <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
+                    <Typography variant="body2" color="text.secondary">
+                      IVA ({ivaReducedPct}%)
+                    </Typography>
+                    {renderAmount(totals.taxReduced)}
+                  </Stack>
+                )}
+                <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
+                  <Typography variant="body2" color="text.secondary">
+                    IGTF ({Number(watchedIgtfPct) || 0}%)
+                  </Typography>
+                  {renderAmount(totals.igtf)}
+                </Stack>
+                <Divider />
+                <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
+                  <Typography variant="subtitle1">Total computado</Typography>
+                  {renderAmount(totals.total, { emphasis: true })}
+                </Stack>
+
+                {showDiscrepancy && (
+                  <Alert
+                    severity="warning"
+                    icon={<Iconify icon="solar:danger-triangle-bold" />}
+                    sx={{ mt: 1 }}
+                  >
+                    <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
+                      Diferencia entre la factura y la suma de líneas
+                    </Typography>
+                    <Stack spacing={0.25}>
+                      <Typography variant="caption" sx={{ display: 'block' }}>
+                        Factura (cabecera): <strong>Bs. {headerTotalNative.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>{' '}
+                        (≈ ${(headerTotalNative / rateNum).toFixed(2)})
+                      </Typography>
+                      <Typography variant="caption" sx={{ display: 'block' }}>
+                        Suma de líneas: <strong>Bs. {computedTotalNative.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>{' '}
+                        (≈ ${totals.total.toFixed(2)})
+                      </Typography>
+                      <Typography
+                        variant="caption"
+                        sx={{ display: 'block', fontWeight: 600, color: 'warning.dark' }}
+                      >
+                        Diferencia: {diffNative >= 0 ? '+' : '−'}Bs.{' '}
+                        {Math.abs(diffNative).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}{' '}
+                        ({(diffPct * 100).toFixed(1)}%)
+                      </Typography>
+                    </Stack>
+                    <Typography variant="caption" sx={{ display: 'block', mt: 1 }}>
+                      Posibles causas: descuentos comerciales no aplicados a las líneas, items que el
+                      proveedor cobró pero no estás cargando, cargos no itemizados (flete, manejo), o
+                      diferencia de redondeo. Verifica antes de registrar; la recepción se guardará con
+                      lo que ves arriba (el total de la factura se preserva en cabecera para auditoría).
+                    </Typography>
+                  </Alert>
+                )}
               </Stack>
-            )}
-            {totals.headerDiscount > 0 && (
-              <Stack direction="row" justifyContent="space-between">
-                <Typography variant="body2" color="text.secondary">
-                  Descuento cabecera ({Number(watchedHeaderDiscPct) || 0}%)
-                </Typography>
-                <Typography variant="body2" sx={{ fontFamily: 'monospace', color: 'error.main' }}>
-                  −${totals.headerDiscount.toFixed(2)}
-                </Typography>
-              </Stack>
-            )}
-            {totals.volumeDiscount > 0 && (
-              <Stack direction="row" justifyContent="space-between">
-                <Typography variant="body2" color="text.secondary">
-                  Descuento volumen ({Number(watchedVolumeDiscPct) || 0}%)
-                </Typography>
-                <Typography variant="body2" sx={{ fontFamily: 'monospace', color: 'error.main' }}>
-                  −${totals.volumeDiscount.toFixed(2)}
-                </Typography>
-              </Stack>
-            )}
-            {totals.taxGeneral > 0 && (
-              <Stack direction="row" justifyContent="space-between">
-                <Typography variant="body2" color="text.secondary">
-                  IVA ({ivaGeneralPct}%)
-                </Typography>
-                <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
-                  ${totals.taxGeneral.toFixed(2)}
-                </Typography>
-              </Stack>
-            )}
-            {totals.taxReduced > 0 && (
-              <Stack direction="row" justifyContent="space-between">
-                <Typography variant="body2" color="text.secondary">
-                  IVA ({ivaReducedPct}%)
-                </Typography>
-                <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
-                  ${totals.taxReduced.toFixed(2)}
-                </Typography>
-              </Stack>
-            )}
-            <Stack direction="row" justifyContent="space-between">
-              <Typography variant="body2" color="text.secondary">
-                IGTF ({Number(watchedIgtfPct) || 0}%)
-              </Typography>
-              <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
-                ${totals.igtf.toFixed(2)}
-              </Typography>
-            </Stack>
-            <Divider />
-            <Stack direction="row" justifyContent="space-between">
-              <Typography variant="subtitle1">Total a pagar</Typography>
-              <Typography variant="subtitle1" sx={{ fontFamily: 'monospace' }}>
-                ${totals.total.toFixed(2)}
-              </Typography>
-            </Stack>
-          </Stack>
+            );
+          })()}
         </Card>
 
         <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1.5 }}>

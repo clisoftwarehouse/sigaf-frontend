@@ -1,5 +1,5 @@
 import type { GridColDef } from '@mui/x-data-grid';
-import type { GoodsReceiptItem } from '../../model/types';
+import type { AdditionReason, GoodsReceiptItem } from '../../model/types';
 
 import { toast } from 'sonner';
 import { useParams } from 'react-router';
@@ -30,6 +30,7 @@ import { useBranchOptions } from '@/features/branches/api/branches.options';
 import { useProductOptions } from '@/features/products/api/products.options';
 import { useSupplierOptions } from '@/features/suppliers/api/suppliers.options';
 
+import { ADDITION_REASON_LABEL } from '../../model/types';
 import { RECEIPT_TYPE_LABEL, ORDER_STATUS_LABEL, ORDER_STATUS_COLOR } from '../../model/constants';
 import {
   useOrdersQuery,
@@ -77,15 +78,34 @@ export function ReceiptDetailView() {
     [receipt, orderById]
   );
 
+  const isVes = receipt?.nativeCurrency === 'VES';
+  const rateUsed = Number(receipt?.exchangeRateUsed ?? 0);
+  const showBs = isVes && rateUsed > 0;
+
+  const fmtUsd = (n: number, neg = false) => `${neg ? '−' : ''}$${Math.abs(n).toFixed(2)}`;
+  const fmtBs = useMemo(
+    () => (n: number, neg = false) =>
+      `${neg ? '−' : ''}Bs. ${Math.abs(n * rateUsed).toLocaleString('es-VE', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })}`,
+    [rateUsed]
+  );
+
   const itemColumns = useMemo<GridColDef<GoodsReceiptItem>[]>(
     () => [
       {
         field: 'purchaseOrderId',
-        headerName: 'OC',
-        flex: 0.8,
-        minWidth: 120,
-        valueGetter: (value: string | null) =>
-          value ? (orderById.get(value)?.orderNumber ?? value.slice(0, 8)) : '—',
+        headerName: 'OC / Causa',
+        flex: 1,
+        minWidth: 150,
+        sortable: false,
+        valueGetter: (value: string | null, row) =>
+          value
+            ? (orderById.get(value)?.orderNumber ?? value.slice(0, 8))
+            : row.additionReason
+              ? `+ ${ADDITION_REASON_LABEL[row.additionReason as AdditionReason]}`
+              : '—',
         renderCell: ({ row }) =>
           row.purchaseOrderId ? (
             <Typography
@@ -97,6 +117,13 @@ export function ReceiptDetailView() {
             >
               {orderById.get(row.purchaseOrderId)?.orderNumber ?? row.purchaseOrderId.slice(0, 8)}
             </Typography>
+          ) : row.additionReason ? (
+            <Chip
+              size="small"
+              variant="outlined"
+              color="info"
+              label={ADDITION_REASON_LABEL[row.additionReason as AdditionReason]}
+            />
           ) : (
             <Typography variant="body2" sx={{ color: 'text.disabled' }}>
               —
@@ -118,11 +145,6 @@ export function ReceiptDetailView() {
           (productNameById.get(a) ?? '').localeCompare(productNameById.get(b) ?? ''),
       },
       {
-        // Mostramos el número de lote real (el que escribió el operador en
-        // la recepción) en vez del UUID truncado. lotId queda solo como
-        // fallback para recepciones legacy que no tuvieran lotNumber
-        // capturado. Si la línea está pendiente de reaprobación todavía no
-        // tiene lote creado.
         field: 'lotNumber',
         headerName: 'Lote',
         flex: 1.5,
@@ -147,13 +169,32 @@ export function ReceiptDetailView() {
         valueGetter: (value: number | string) => Number(value) || 0,
       },
       {
-        field: 'unitCostUsd',
-        headerName: 'Costo unitario',
+        field: 'unitCost',
+        headerName: showBs ? 'Costo unitario (Bs.)' : 'Costo unitario',
         type: 'number',
-        flex: 1,
-        minWidth: 140,
-        valueGetter: (value: number | string) => Number(value) || 0,
-        valueFormatter: (value: number) => `$${value.toFixed(2)}`,
+        flex: 1.2,
+        minWidth: 160,
+        sortable: false,
+        valueGetter: (_v, row) => Number(row.unitCostUsd) || 0,
+        renderCell: ({ row }) => {
+          const usd = Number(row.unitCostUsd) || 0;
+          if (!showBs) return <Typography variant="body2">{fmtUsd(usd)}</Typography>;
+          const native = row.unitCostNative != null ? Number(row.unitCostNative) : usd * rateUsed;
+          return (
+            <Box sx={{ textAlign: 'right' }}>
+              <Typography variant="body2">
+                Bs.{' '}
+                {Number(native).toLocaleString('es-VE', {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                ≈ {fmtUsd(usd)}
+              </Typography>
+            </Box>
+          );
+        },
       },
       {
         field: 'discountPct',
@@ -166,10 +207,11 @@ export function ReceiptDetailView() {
       },
       {
         field: 'subtotalUsd',
-        headerName: 'Subtotal',
+        headerName: showBs ? 'Subtotal (Bs.)' : 'Subtotal',
         type: 'number',
-        flex: 1,
-        minWidth: 130,
+        flex: 1.2,
+        minWidth: 160,
+        sortable: false,
         valueGetter: (value: number | string | null, row) => {
           const stored = Number(value) || 0;
           if (stored > 0) return stored;
@@ -178,11 +220,32 @@ export function ReceiptDetailView() {
           const d = Number(row.discountPct) || 0;
           return qty * cost * (1 - d / 100);
         },
-        valueFormatter: (value: number) => `$${value.toFixed(2)}`,
+        renderCell: ({ row }) => {
+          const stored = Number(row.subtotalUsd) || 0;
+          const usd =
+            stored > 0
+              ? stored
+              : (Number(row.quantity) || 0) *
+                (Number(row.unitCostUsd) || 0) *
+                (1 - (Number(row.discountPct) || 0) / 100);
+          if (!showBs) {
+            return <Typography variant="body2" sx={{ fontWeight: 600 }}>{fmtUsd(usd)}</Typography>;
+          }
+          return (
+            <Box sx={{ textAlign: 'right' }}>
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                {fmtBs(usd)}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                ≈ {fmtUsd(usd)}
+              </Typography>
+            </Box>
+          );
+        },
         cellClassName: 'subtotal-cell',
       },
     ],
-    [productNameById, orderById, router]
+    [productNameById, orderById, router, showBs, rateUsed, fmtBs]
   );
 
   return (
@@ -436,86 +499,162 @@ export function ReceiptDetailView() {
               justifyContent="flex-end"
               sx={{ p: 3, borderTop: 1, borderColor: 'divider' }}
             >
-              <Stack spacing={1} sx={{ minWidth: 280 }}>
-                {/* Subtotal BRUTO (antes de cualquier descuento) para que
-                   el desglose se lea sumando/restando sin "doble cuenta".
-                   El campo persistido subtotalUsd guarda el neto del
-                   descuento lineal, así que recomponemos sumándole los
-                   descuentos lineales antes de mostrar. */}
-                <Stack direction="row" justifyContent="space-between">
-                  <Typography variant="body2" color="text.secondary">
-                    Subtotal
-                  </Typography>
-                  <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
-                    $
-                    {(
-                      (Number(receipt.subtotalUsd) || 0) +
-                      (Number(receipt.totalDiscountUsd) || 0)
-                    ).toFixed(2)}
-                  </Typography>
-                </Stack>
-                {Number(receipt.totalDiscountUsd) > 0 && (
-                  <Stack direction="row" justifyContent="space-between">
-                    <Typography variant="body2" color="text.secondary">
-                      Descuento lineal (por línea)
-                    </Typography>
-                    <Typography
-                      variant="body2"
-                      sx={{ fontFamily: 'monospace', color: 'error.main' }}
-                    >
-                      −${(Number(receipt.totalDiscountUsd) || 0).toFixed(2)}
-                    </Typography>
-                  </Stack>
-                )}
-                {Number(receipt.headerDiscountUsd) > 0 && (
-                  <Stack direction="row" justifyContent="space-between">
-                    <Typography variant="body2" color="text.secondary">
-                      Descuento cabecera ({Number(receipt.headerDiscountPct) || 0}%)
-                    </Typography>
-                    <Typography
-                      variant="body2"
-                      sx={{ fontFamily: 'monospace', color: 'error.main' }}
-                    >
-                      −${(Number(receipt.headerDiscountUsd) || 0).toFixed(2)}
-                    </Typography>
-                  </Stack>
-                )}
-                {Number(receipt.volumeDiscountUsd) > 0 && (
-                  <Stack direction="row" justifyContent="space-between">
-                    <Typography variant="body2" color="text.secondary">
-                      Descuento volumen ({Number(receipt.volumeDiscountPct) || 0}%)
-                    </Typography>
-                    <Typography
-                      variant="body2"
-                      sx={{ fontFamily: 'monospace', color: 'error.main' }}
-                    >
-                      −${(Number(receipt.volumeDiscountUsd) || 0).toFixed(2)}
-                    </Typography>
-                  </Stack>
-                )}
-                <Stack direction="row" justifyContent="space-between">
-                  <Typography variant="body2" color="text.secondary">
-                    IVA ({Number(receipt.taxPct) || 0}%)
-                  </Typography>
-                  <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
-                    ${(Number(receipt.taxUsd) || 0).toFixed(2)}
-                  </Typography>
-                </Stack>
-                <Stack direction="row" justifyContent="space-between">
-                  <Typography variant="body2" color="text.secondary">
-                    IGTF ({Number(receipt.igtfPct) || 0}%)
-                  </Typography>
-                  <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
-                    ${(Number(receipt.igtfUsd) || 0).toFixed(2)}
-                  </Typography>
-                </Stack>
-                <Divider />
-                <Stack direction="row" justifyContent="space-between">
-                  <Typography variant="subtitle1">Total recepción</Typography>
-                  <Typography variant="subtitle1" sx={{ fontFamily: 'monospace', fontWeight: 700 }}>
-                    ${(Number(receipt.totalUsd) || 0).toFixed(2)}
-                  </Typography>
-                </Stack>
+              <Stack spacing={1} sx={{ minWidth: showBs ? 360 : 280 }}>
+                {(() => {
+                  const subtotalGross =
+                    (Number(receipt.subtotalUsd) || 0) + (Number(receipt.totalDiscountUsd) || 0);
+                  const totalDiscount = Number(receipt.totalDiscountUsd) || 0;
+                  const headerDiscount = Number(receipt.headerDiscountUsd) || 0;
+                  const volumeDiscount = Number(receipt.volumeDiscountUsd) || 0;
+                  const tax = Number(receipt.taxUsd) || 0;
+                  const igtf = Number(receipt.igtfUsd) || 0;
+                  const total = Number(receipt.totalUsd) || 0;
+
+                  const renderAmount = (
+                    usdAmount: number,
+                    opts: { negative?: boolean; emphasis?: boolean } = {}
+                  ) => {
+                    const { negative = false, emphasis = false } = opts;
+                    const color = negative ? 'error.main' : undefined;
+                    if (showBs) {
+                      return (
+                        <Box sx={{ textAlign: 'right' }}>
+                          <Typography
+                            variant={emphasis ? 'subtitle1' : 'body2'}
+                            sx={{ fontFamily: 'monospace', color, fontWeight: emphasis ? 700 : undefined }}
+                          >
+                            {fmtBs(usdAmount, negative)}
+                          </Typography>
+                          <Typography
+                            variant="caption"
+                            sx={{ fontFamily: 'monospace', color: 'text.secondary' }}
+                          >
+                            ≈ {fmtUsd(usdAmount, negative)}
+                          </Typography>
+                        </Box>
+                      );
+                    }
+                    return (
+                      <Typography
+                        variant={emphasis ? 'subtitle1' : 'body2'}
+                        sx={{ fontFamily: 'monospace', color, fontWeight: emphasis ? 700 : undefined }}
+                      >
+                        {fmtUsd(usdAmount, negative)}
+                      </Typography>
+                    );
+                  };
+
+                  const headerTotalNative = Number(receipt.nativeTotal ?? 0);
+                  const computedTotalNative = total * rateUsed;
+                  const diffNative = headerTotalNative - computedTotalNative;
+                  const diffPct =
+                    headerTotalNative > 0 ? Math.abs(diffNative) / headerTotalNative : 0;
+                  const showDiscrepancy = showBs && headerTotalNative > 0 && diffPct > 0.01;
+
+                  return (
+                    <>
+                      <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
+                        <Typography variant="body2" color="text.secondary">
+                          Subtotal
+                        </Typography>
+                        {renderAmount(subtotalGross)}
+                      </Stack>
+                      {totalDiscount > 0 && (
+                        <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
+                          <Typography variant="body2" color="text.secondary">
+                            Descuento lineal (por línea)
+                          </Typography>
+                          {renderAmount(totalDiscount, { negative: true })}
+                        </Stack>
+                      )}
+                      {headerDiscount > 0 && (
+                        <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
+                          <Typography variant="body2" color="text.secondary">
+                            Descuento cabecera ({Number(receipt.headerDiscountPct) || 0}%)
+                          </Typography>
+                          {renderAmount(headerDiscount, { negative: true })}
+                        </Stack>
+                      )}
+                      {volumeDiscount > 0 && (
+                        <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
+                          <Typography variant="body2" color="text.secondary">
+                            Descuento volumen ({Number(receipt.volumeDiscountPct) || 0}%)
+                          </Typography>
+                          {renderAmount(volumeDiscount, { negative: true })}
+                        </Stack>
+                      )}
+                      <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
+                        <Typography variant="body2" color="text.secondary">
+                          IVA ({Number(receipt.taxPct) || 0}%)
+                        </Typography>
+                        {renderAmount(tax)}
+                      </Stack>
+                      <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
+                        <Typography variant="body2" color="text.secondary">
+                          IGTF ({Number(receipt.igtfPct) || 0}%)
+                        </Typography>
+                        {renderAmount(igtf)}
+                      </Stack>
+                      <Divider />
+                      <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
+                        <Typography variant="subtitle1">Total recepción</Typography>
+                        {renderAmount(total, { emphasis: true })}
+                      </Stack>
+
+                      {showDiscrepancy && (
+                        <Alert
+                          severity="warning"
+                          icon={<Iconify icon="solar:danger-triangle-bold" />}
+                          sx={{ mt: 1 }}
+                        >
+                          <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
+                            Diferencia entre la factura y la suma de líneas
+                          </Typography>
+                          <Stack spacing={0.25}>
+                            <Typography variant="caption" sx={{ display: 'block' }}>
+                              Factura (cabecera):{' '}
+                              <strong>
+                                Bs.{' '}
+                                {headerTotalNative.toLocaleString('es-VE', {
+                                  minimumFractionDigits: 2,
+                                  maximumFractionDigits: 2,
+                                })}
+                              </strong>{' '}
+                              (≈ ${(headerTotalNative / rateUsed).toFixed(2)})
+                            </Typography>
+                            <Typography variant="caption" sx={{ display: 'block' }}>
+                              Suma de líneas:{' '}
+                              <strong>
+                                Bs.{' '}
+                                {computedTotalNative.toLocaleString('es-VE', {
+                                  minimumFractionDigits: 2,
+                                  maximumFractionDigits: 2,
+                                })}
+                              </strong>{' '}
+                              (≈ ${total.toFixed(2)})
+                            </Typography>
+                            <Typography
+                              variant="caption"
+                              sx={{ display: 'block', fontWeight: 600, color: 'warning.dark' }}
+                            >
+                              Diferencia: {diffNative >= 0 ? '+' : '−'}Bs.{' '}
+                              {Math.abs(diffNative).toLocaleString('es-VE', {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                              })}{' '}
+                              ({(diffPct * 100).toFixed(1)}%)
+                            </Typography>
+                          </Stack>
+                          <Typography variant="caption" sx={{ display: 'block', mt: 1 }}>
+                            La recepción quedó registrada con la suma de líneas (afecta inventario y
+                            CxP). El total de la factura del proveedor se preserva en cabecera para
+                            auditoría contra el papel físico.
+                          </Typography>
+                        </Alert>
+                      )}
+                    </>
+                  );
+                })()}
               </Stack>
             </Stack>
           </Card>

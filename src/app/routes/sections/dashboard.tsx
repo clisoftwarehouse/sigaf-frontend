@@ -19,10 +19,10 @@ import { branchesRoutes } from '@/features/branches/routes';
 import { inventoryRoutes } from '@/features/inventory/routes';
 import { suppliersRoutes } from '@/features/suppliers/routes';
 import { terminalsRoutes } from '@/features/terminals/routes';
-import { locationsRoutes } from '@/features/locations/routes';
 import { purchasesRoutes } from '@/features/purchases/routes';
 import { customersRoutes } from '@/features/customers/routes';
 import { configRoutes } from '@/features/config-global/routes';
+import { warehousesRoutes } from '@/features/warehouses/routes';
 import { categoriesRoutes } from '@/features/categories/routes';
 import { promotionsRoutes } from '@/features/promotions/routes';
 import { LoadingScreen } from '@/app/components/loading-screen';
@@ -34,6 +34,7 @@ import { prescriptionsRoutes } from '@/features/prescriptions/routes';
 import { exchangeRatesRoutes } from '@/features/exchange-rates/routes';
 import { paymentsReportRoutes } from '@/features/payments-report/routes';
 import { activeIngredientsRoutes } from '@/features/active-ingredients/routes';
+import { inventoryTransfersRoutes } from '@/features/inventory-transfers/routes';
 
 import { usePathname } from '../hooks';
 
@@ -85,6 +86,7 @@ export const dashboardRoutes: RouteObject[] = [
         children: [
           { index: true, element: <Navigate to={paths.dashboard.inventory.stock} replace /> },
           ...inventoryRoutes,
+          ...inventoryTransfersRoutes,
         ],
       },
       {
@@ -117,7 +119,7 @@ export const dashboardRoutes: RouteObject[] = [
           },
           ...branchesRoutes,
           ...terminalsRoutes,
-          ...locationsRoutes,
+          ...warehousesRoutes,
           ...branchGroupsRoutes,
         ],
       },

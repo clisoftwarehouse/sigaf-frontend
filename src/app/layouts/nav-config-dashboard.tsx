@@ -21,6 +21,7 @@ const ICONS = {
   stock: <Iconify icon="solar:archive-down-minimlistic-bold" width={22} />,
   counts: <Iconify icon="solar:bill-list-bold-duotone" width={22} />,
   cyclic: <Iconify icon="solar:clock-circle-bold" width={22} />,
+  transfers: <Iconify icon="solar:transfer-horizontal-bold-duotone" width={22} />,
   purchases: <Iconify icon="solar:cart-plus-bold" width={22} />,
   orders: <Iconify icon="solar:bill-list-bold-duotone" width={22} />,
   receipts: <Iconify icon="solar:inbox-in-bold-duotone" width={22} />,
@@ -33,7 +34,7 @@ const ICONS = {
   org: <Iconify icon="solar:home-2-outline" width={22} />,
   branches: <Iconify icon="solar:home-angle-bold-duotone" width={22} />,
   terminals: <Iconify icon="solar:cart-3-bold" width={22} />,
-  locations: <Iconify icon="solar:box-minimalistic-bold" width={22} />,
+  warehouses: <Iconify icon="solar:box-minimalistic-bold" width={22} />,
   branchGroups: <Iconify icon="solar:atom-bold-duotone" width={22} />,
   system: <Iconify icon="solar:shield-keyhole-bold-duotone" width={22} />,
   users: <Iconify icon="solar:users-group-rounded-bold-duotone" width={22} />,
@@ -143,6 +144,7 @@ export const navData: NavSectionProps['data'] = [
         extraMatchPaths: [
           paths.dashboard.inventory.stock,
           paths.dashboard.inventory.counts.root,
+          paths.dashboard.inventory.transfers.root,
           paths.dashboard.inventory.cyclicSchedules,
         ],
         children: [
@@ -151,6 +153,11 @@ export const navData: NavSectionProps['data'] = [
             title: 'Tomas',
             path: paths.dashboard.inventory.counts.root,
             icon: ICONS.counts,
+          },
+          {
+            title: 'Transferencias',
+            path: paths.dashboard.inventory.transfers.root,
+            icon: ICONS.transfers,
           },
           {
             title: 'Conteo cíclico',
@@ -284,9 +291,9 @@ export const navData: NavSectionProps['data'] = [
             icon: ICONS.terminals,
           },
           {
-            title: 'Ubicaciones',
-            path: paths.dashboard.organization.locations.root,
-            icon: ICONS.locations,
+            title: 'Almacenes',
+            path: paths.dashboard.organization.warehouses.root,
+            icon: ICONS.warehouses,
           },
           {
             title: 'Grupos de sucursales',

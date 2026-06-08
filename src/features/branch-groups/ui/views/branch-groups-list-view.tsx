@@ -10,15 +10,10 @@ import Chip from '@mui/material/Chip';
 import Stack from '@mui/material/Stack';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
-import Dialog from '@mui/material/Dialog';
 import Tooltip from '@mui/material/Tooltip';
-import TextField from '@mui/material/TextField';
 import Container from '@mui/material/Container';
 import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
-import DialogTitle from '@mui/material/DialogTitle';
-import DialogActions from '@mui/material/DialogActions';
-import DialogContent from '@mui/material/DialogContent';
 
 import { paths } from '@/app/routes/paths';
 import { useRouter } from '@/app/routes/hooks';
@@ -27,46 +22,16 @@ import { PageHeader } from '@/shared/ui/page-header';
 import { DataTable } from '@/app/components/data-table';
 import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
 
-import {
-  useBranchGroupsQuery,
-  useCreateBranchGroupMutation,
-  useDeleteBranchGroupMutation,
-} from '../../api/branch-groups.queries';
+import { useBranchGroupsQuery, useDeleteBranchGroupMutation } from '../../api/branch-groups.queries';
 
 // ----------------------------------------------------------------------
 
 export function BranchGroupsListView() {
   const router = useRouter();
   const { data: groups = [], isLoading, isError, error, refetch } = useBranchGroupsQuery();
-  const createMutation = useCreateBranchGroupMutation();
   const deleteMutation = useDeleteBranchGroupMutation();
 
-  const [createOpen, setCreateOpen] = useState(false);
-  const [createName, setCreateName] = useState('');
-  const [createDescription, setCreateDescription] = useState('');
-  const [nameTouched, setNameTouched] = useState(false);
   const [toDelete, setToDelete] = useState<BranchGroup | null>(null);
-
-  const nameError = nameTouched && !createName.trim() ? 'El nombre del grupo es obligatorio' : '';
-
-  const handleCreate = async () => {
-    setNameTouched(true);
-    if (!createName.trim()) return;
-    try {
-      const created = await createMutation.mutateAsync({
-        name: createName.trim(),
-        description: createDescription.trim() || undefined,
-      });
-      toast.success(`Grupo "${created.name}" creado`);
-      setCreateOpen(false);
-      setCreateName('');
-      setCreateDescription('');
-      setNameTouched(false);
-      router.push(paths.dashboard.organization.branchGroups.edit(created.id));
-    } catch (err) {
-      toast.error((err as Error).message);
-    }
-  };
 
   const handleDelete = async () => {
     if (!toDelete) return;
@@ -205,7 +170,7 @@ export function BranchGroupsListView() {
           <Button
             variant="contained"
             startIcon={<Iconify icon="solar:add-circle-bold" />}
-            onClick={() => setCreateOpen(true)}
+            onClick={() => router.push(paths.dashboard.organization.branchGroups.new)}
           >
             Nuevo grupo
           </Button>
@@ -237,45 +202,6 @@ export function BranchGroupsListView() {
           />
         </Box>
       </Card>
-
-      <Dialog open={createOpen} onClose={() => { setCreateOpen(false); setNameTouched(false); }} maxWidth="xl" fullWidth>
-        <DialogTitle>Nuevo grupo</DialogTitle>
-        <DialogContent dividers>
-          <Stack spacing={2.5} sx={{ mt: 1 }}>
-            <TextField
-              autoFocus
-              label="Nombre"
-              placeholder="Ej. Caracas premium"
-              value={createName}
-              onChange={(e) => setCreateName(e.target.value)}
-              onBlur={() => setNameTouched(true)}
-              error={!!nameError}
-              helperText={nameError}
-              slotProps={{ inputLabel: { shrink: true } }}
-              fullWidth
-            />
-            <TextField
-              label="Descripción (opcional)"
-              placeholder="Ej. Sucursales con flujo de aprobación más estricto"
-              value={createDescription}
-              onChange={(e) => setCreateDescription(e.target.value)}
-              multiline
-              minRows={2}
-              slotProps={{ inputLabel: { shrink: true } }}
-              fullWidth
-            />
-            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-              Después de crearlo, configura la matriz de aprobación y asigna sucursales.
-            </Typography>
-          </Stack>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => { setCreateOpen(false); setNameTouched(false); }}>Cancelar</Button>
-          <Button variant="contained" loading={createMutation.isPending} onClick={handleCreate}>
-            Crear y configurar
-          </Button>
-        </DialogActions>
-      </Dialog>
 
       <ConfirmDialog
         open={!!toDelete}

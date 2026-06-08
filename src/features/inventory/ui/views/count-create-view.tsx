@@ -20,6 +20,7 @@ import { Form, Field } from '@/app/components/hook-form';
 import { useBranchOptions } from '@/features/branches/api/branches.options';
 import { useProductOptions } from '@/features/products/api/products.options';
 import { useCategoryOptions } from '@/features/categories/api/categories.options';
+import { useWarehousesQuery } from '@/features/warehouses/api/warehouses.queries';
 
 import { useCreateCountMutation } from '../../api/counts.queries';
 import { COUNT_TYPES, COUNT_TYPE_OPTIONS } from '../../model/counts-types';
@@ -60,6 +61,13 @@ export function CountCreateView() {
 
   const { handleSubmit, watch, control } = methods;
   const countType = watch('countType');
+  const selectedBranchId = watch('branchId');
+
+  // Almacenes de la sucursal seleccionada (para acotar el alcance de una
+  // toma parcial a un almacén específico, p.ej. solo "Sala de ventas").
+  const { data: warehouses = [] } = useWarehousesQuery(
+    selectedBranchId ? { branchId: selectedBranchId } : {}
+  );
 
   const submit = handleSubmit(async (values) => {
     try {
@@ -142,11 +150,22 @@ export function CountCreateView() {
                   ))}
                 </Field.Select>
 
-                <Field.Text
+                <Field.Select
                   name="locationId"
-                  label="ID de ubicación física (opcional)"
+                  label="Almacén (opcional)"
+                  helperText="Limita la toma parcial a los lotes ubicados en este almacén."
+                  disabled={!selectedBranchId}
                   slotProps={{ inputLabel: { shrink: true } }}
-                />
+                >
+                  <MenuItem value="">— Todos los almacenes —</MenuItem>
+                  {warehouses
+                    .filter((w) => w.isActive)
+                    .map((w) => (
+                      <MenuItem key={w.id} value={w.id}>
+                        {w.name ?? w.locationCode}
+                      </MenuItem>
+                    ))}
+                </Field.Select>
 
                 <Controller
                   control={control}
