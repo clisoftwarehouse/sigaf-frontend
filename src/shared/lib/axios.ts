@@ -458,6 +458,20 @@ export const endpoints = {
       `/v1/purchases/receipts/${id}/unpriced-products`,
     reapproveReceipt: (id: string) => `/v1/purchases/receipts/${id}/reapprove`,
   },
+  purchasesIntelligence: {
+    conditionsDrugstore: '/v1/purchases-intelligence/conditions/drugstore',
+    conditionsDrugstoreById: (id: string) =>
+      `/v1/purchases-intelligence/conditions/drugstore/${id}`,
+    conditionsLab: '/v1/purchases-intelligence/conditions/lab',
+    conditionsLabById: (id: string) => `/v1/purchases-intelligence/conditions/lab/${id}`,
+    comparator: (productId: string) => `/v1/purchases-intelligence/comparator/${productId}`,
+    recalculate: '/v1/purchases-intelligence/recalculate',
+    classifications: '/v1/purchases-intelligence/classifications',
+    classificationDetail: (productId: string) =>
+      `/v1/purchases-intelligence/classifications/${productId}`,
+    suggestionsGenerate: '/v1/purchases-intelligence/suggestions/generate',
+    suggestionsCreateOrders: '/v1/purchases-intelligence/suggestions/create-orders',
+  },
   branchGroups: resource('/v1/branch-groups'),
   claims: {
     root: '/v1/claims',

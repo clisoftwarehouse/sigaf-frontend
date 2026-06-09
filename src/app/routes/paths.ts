@@ -63,6 +63,7 @@ export const paths = {
       orders: crud(`${purchases}/orders`),
       receipts: crud(`${purchases}/receipts`),
       comparator: `${purchases}/comparator`,
+      intelligence: `${purchases}/intelligence`,
     },
     claims: {
       root: claims,

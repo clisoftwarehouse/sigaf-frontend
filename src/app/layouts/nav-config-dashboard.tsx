@@ -23,6 +23,7 @@ const ICONS = {
   cyclic: <Iconify icon="solar:clock-circle-bold" width={22} />,
   transfers: <Iconify icon="solar:transfer-horizontal-bold-duotone" width={22} />,
   comparator: <Iconify icon="solar:chart-square-outline" width={22} />,
+  intelligence: <Iconify icon="solar:atom-bold-duotone" width={22} />,
   purchases: <Iconify icon="solar:cart-plus-bold" width={22} />,
   orders: <Iconify icon="solar:bill-list-bold-duotone" width={22} />,
   receipts: <Iconify icon="solar:inbox-in-bold-duotone" width={22} />,
@@ -188,6 +189,11 @@ export const navData: NavSectionProps['data'] = [
             title: 'Comparador de precios',
             path: paths.dashboard.purchases.comparator,
             icon: ICONS.comparator,
+          },
+          {
+            title: 'Inteligencia de compras',
+            path: paths.dashboard.purchases.intelligence,
+            icon: ICONS.intelligence,
           },
           {
             title: 'Reclamos',
