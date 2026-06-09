@@ -22,6 +22,7 @@ import CircularProgress from '@mui/material/CircularProgress';
 import { Iconify } from '@/app/components/iconify';
 
 import { formatBs } from './format-money';
+import { PriceHistoryChart } from './price-history-chart';
 import { useIngredientComparisonQuery } from '../../api/purchases-comparator.queries';
 
 // ----------------------------------------------------------------------
@@ -33,6 +34,7 @@ type Props = {
 
 export function IngredientDetailDrawer({ ingredient, onClose }: Props) {
   const [providerFilter, setProviderFilter] = useState<string>('');
+  const [historyProduct, setHistoryProduct] = useState<ComparisonProduct | null>(null);
 
   const { data, isLoading, isError, error } = useIngredientComparisonQuery(
     ingredient ?? undefined,
@@ -52,8 +54,11 @@ export function IngredientDetailDrawer({ ingredient, onClose }: Props) {
     <Drawer
       anchor="right"
       open={!!ingredient}
-      onClose={onClose}
-      slotProps={{ paper: { sx: { width: { xs: '100%', sm: 640 }, p: 0 } } }}
+      onClose={() => {
+        setHistoryProduct(null);
+        onClose();
+      }}
+      slotProps={{ paper: { sx: { width: { xs: '100%', sm: 720 }, p: 0 } } }}
     >
       <Box sx={{ p: 2.5, display: 'flex', flexDirection: 'column', height: '100%' }}>
         <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
@@ -139,43 +144,76 @@ export function IngredientDetailDrawer({ ingredient, onClose }: Props) {
                     <TableCell>Marca</TableCell>
                     <TableCell>Droguería</TableCell>
                     <TableCell align="right">Precio</TableCell>
+                    <TableCell align="center" sx={{ width: 48 }} />
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {filtered.map((p, idx) => (
-                    <TableRow key={`${p.externalId}-${idx}`} hover>
-                      <TableCell sx={{ fontFamily: 'monospace', color: 'text.disabled' }}>
-                        {idx + 1}
-                      </TableCell>
-                      <TableCell sx={{ maxWidth: 220 }}>
-                        <Typography variant="body2" noWrap title={p.name}>
-                          {p.name}
-                        </Typography>
-                        <Typography
-                          variant="caption"
-                          color="text.disabled"
-                          sx={{ fontFamily: 'monospace' }}
+                  {filtered.map((p, idx) => {
+                    const isOpen = historyProduct?.externalId === p.externalId;
+                    return (
+                      <TableRow key={`${p.externalId}-${idx}`} hover selected={isOpen}>
+                        <TableCell sx={{ fontFamily: 'monospace', color: 'text.disabled' }}>
+                          {idx + 1}
+                        </TableCell>
+                        <TableCell sx={{ maxWidth: 220 }}>
+                          <Typography variant="body2" noWrap title={p.name}>
+                            {p.name}
+                          </Typography>
+                          <Typography
+                            variant="caption"
+                            color="text.disabled"
+                            sx={{ fontFamily: 'monospace' }}
+                          >
+                            {p.externalId}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>{p.brand}</TableCell>
+                        <TableCell>{p.provider}</TableCell>
+                        <TableCell
+                          align="right"
+                          sx={{
+                            fontFamily: 'monospace',
+                            fontWeight: idx === 0 && !providerFilter ? 700 : 500,
+                            color: idx === 0 && !providerFilter ? 'success.dark' : 'text.primary',
+                          }}
                         >
-                          {p.externalId}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>{p.brand}</TableCell>
-                      <TableCell>{p.provider}</TableCell>
-                      <TableCell
-                        align="right"
-                        sx={{
-                          fontFamily: 'monospace',
-                          fontWeight: idx === 0 && !providerFilter ? 700 : 500,
-                          color: idx === 0 && !providerFilter ? 'success.dark' : 'text.primary',
-                        }}
-                      >
-                        {formatBs(p.price)}
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                          {formatBs(p.price)}
+                        </TableCell>
+                        <TableCell align="center">
+                          <IconButton
+                            size="small"
+                            onClick={() => setHistoryProduct(isOpen ? null : p)}
+                            title={isOpen ? 'Ocultar historial' : 'Ver historial de precios'}
+                          >
+                            <Iconify
+                              icon="solar:chart-square-outline"
+                              width={18}
+                              sx={{ color: isOpen ? 'primary.main' : 'text.secondary' }}
+                            />
+                          </IconButton>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </Box>
+
+            {historyProduct && (
+              <Box
+                sx={{
+                  mt: 2,
+                  pt: 2,
+                  borderTop: 1,
+                  borderColor: 'divider',
+                }}
+              >
+                <PriceHistoryChart
+                  externalId={historyProduct.externalId}
+                  productName={historyProduct.name}
+                />
+              </Box>
+            )}
           </>
         )}
       </Box>
