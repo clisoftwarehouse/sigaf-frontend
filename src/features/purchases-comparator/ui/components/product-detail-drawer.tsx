@@ -102,34 +102,48 @@ export function ProductDetailDrawer({ externalId, onClose }: Props) {
                   Principio activo
                 </Typography>
                 <Stack direction="row" spacing={0.5} sx={{ flexWrap: 'wrap', gap: 0.5, mt: 0.5 }}>
-                  {product.activeIngredients.map((ai) => (
+                  {product.activeIngredients.map((name) => (
                     <Chip
-                      key={ai.name}
+                      key={name}
                       size="small"
                       color="primary"
                       variant="outlined"
-                      label={
-                        ai.concentration ? `${ai.name} (${ai.concentration})` : ai.name
-                      }
+                      label={name}
                     />
                   ))}
                 </Stack>
               </Box>
             )}
 
-            <Stack direction="row" spacing={1} sx={{ mb: 2 }}>
+            <Stack direction="row" spacing={1} sx={{ mb: 2, flexWrap: 'wrap', gap: 0.5 }}>
+              {(() => {
+                const best = offers.find((o) => o.isBest) ?? offers[0];
+                const bestPrice = product.summary?.bestPrice ?? best?.priceConIva ?? null;
+                const bestProvider = best?.providerName ?? '—';
+                return (
+                  <Chip
+                    size="small"
+                    color="success"
+                    label={`Mejor: ${formatBs(bestPrice)} · ${bestProvider}`}
+                  />
+                );
+              })()}
               <Chip
                 size="small"
-                color="success"
-                label={`Mejor: ${formatBs(product.bestPrice)} · ${product.bestProvider ?? '—'}`}
+                variant="outlined"
+                label={`${product.summary?.offersCount ?? offers.length} ${
+                  (product.summary?.offersCount ?? offers.length) === 1 ? 'oferta' : 'ofertas'
+                }`}
               />
-              <Chip size="small" variant="outlined" label={`${offers.length} ofertas`} />
-              {product.savings && product.savings.absolute > 0 && (
+              {product.summary?.savings > 0 && product.summary.worstPrice && (
                 <Chip
                   size="small"
                   color="warning"
                   variant="outlined"
-                  label={`Ahorro vs. más cara: ${formatBs(product.savings.absolute)} (${product.savings.pct.toFixed(0)}%)`}
+                  label={`Ahorro vs. más cara: ${formatBs(product.summary.savings)} (${(
+                    (product.summary.savings / product.summary.worstPrice) *
+                    100
+                  ).toFixed(0)}%)`}
                 />
               )}
             </Stack>
@@ -152,11 +166,11 @@ export function ProductDetailDrawer({ externalId, onClose }: Props) {
                 </TableHead>
                 <TableBody>
                   {offers.map((offer, idx) => (
-                    <TableRow key={`${offer.provider}-${idx}`} hover>
+                    <TableRow key={`${offer.providerName}-${idx}`} hover>
                       <TableCell sx={{ fontFamily: 'monospace', color: 'text.disabled' }}>
                         {idx + 1}
                       </TableCell>
-                      <TableCell>{offer.provider}</TableCell>
+                      <TableCell>{offer.providerName}</TableCell>
                       <TableCell
                         align="right"
                         sx={{
@@ -165,7 +179,7 @@ export function ProductDetailDrawer({ externalId, onClose }: Props) {
                           color: offer.isBest ? 'success.dark' : 'text.primary',
                         }}
                       >
-                        {formatBs(offer.price)}
+                        {formatBs(offer.priceConIva)}
                       </TableCell>
                       <TableCell align="center">
                         {offer.isBest && (

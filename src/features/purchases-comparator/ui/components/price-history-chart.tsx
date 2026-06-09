@@ -35,11 +35,11 @@ export function PriceHistoryChart({ externalId, productName }: Props) {
     // Agrupa entries por droguería.
     const byProvider = new Map<string, { x: number; y: number }[]>();
     for (const entry of data.data) {
-      const t = new Date(entry.date).getTime();
+      const t = new Date(entry.scrapedAt).getTime();
       if (!Number.isFinite(t)) continue;
-      const arr = byProvider.get(entry.provider) ?? [];
-      arr.push({ x: t, y: Number(entry.price) });
-      byProvider.set(entry.provider, arr);
+      const arr = byProvider.get(entry.providerName) ?? [];
+      arr.push({ x: t, y: Number(entry.priceConIva) });
+      byProvider.set(entry.providerName, arr);
     }
 
     // Ordena por fecha ascendente cada serie y convierte a formato ApexCharts.

@@ -53,29 +53,68 @@ export type ComparisonFilters = {
 
 // ─── Productos (vista por SKU) ────────────────────────────────────────
 
+export type BestOfferSummary = {
+  providerName: string;
+  providerCode: string | null;
+  priceConIva: number;
+  priceSinIva: number;
+  quantity: number;
+};
+
 export type ProductOffer = {
-  provider: string;
-  price: number;
-  isBest?: boolean;
-  lastSeen?: string;
+  providerName: string;
+  providerCode: string | null;
+  providerProduct?: string;
+  ranking?: string;
+  isBest: boolean;
+  lote?: string | null;
+  vence?: string | null;
+  sourceUpdatedAt?: string | null;
+  priceBaseSinIva?: number;
+  priceConIva: number;
+  priceSinIva: number;
+  quantity: number;
+  diffBest?: number | null;
+  currency: 'VES';
 };
 
 export type ProductListItem = {
+  id: number;
   externalId: string;
   name: string;
   brand: string;
   category: string | null;
   activeIngredient: string | null;
-  bestPrice: number | null;
-  bestProvider: string | null;
+  imageUrl?: string | null;
+  bestOffer: BestOfferSummary | null;
   offersCount: number;
-  lastSeen: string | null;
 };
 
-export type ProductDetail = ProductListItem & {
+export type ProductDetailSummary = {
+  offersCount: number;
+  bestPrice: number | null;
+  worstPrice: number | null;
+  savings: number;
+  currency: 'VES';
+};
+
+export type ProductDetail = {
+  id: number;
+  externalId: string;
+  name: string;
+  brand: string;
+  category: string | null;
+  activeIngredient: string | null;
+  /** Lista plana de nombres de principios activos (puede estar vacía). */
+  activeIngredients: string[];
+  bulkUnit?: string | null;
+  imageUrl?: string | null;
+  url?: string | null;
+  catalog?: string | null;
+  firstSeenAt?: string | null;
+  lastSeenAt?: string | null;
+  summary: ProductDetailSummary;
   offers: ProductOffer[];
-  activeIngredients?: Array<{ name: string; concentration: string | null }>;
-  savings?: { absolute: number; pct: number } | null;
 };
 
 export type ProductFilters = {
@@ -94,9 +133,14 @@ export type ProductFilters = {
 // ─── Historial de precios ─────────────────────────────────────────────
 
 export type PriceHistoryEntry = {
-  provider: string;
-  price: number;
-  date: string;
+  providerName: string;
+  providerCode: string | null;
+  priceConIva: number;
+  priceSinIva: number;
+  quantity: number;
+  isBest: boolean;
+  currency: 'VES';
+  scrapedAt: string;
 };
 
 export type HistoryFilters = {

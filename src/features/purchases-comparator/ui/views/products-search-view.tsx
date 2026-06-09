@@ -260,9 +260,9 @@ export function ProductsSearchView() {
                       <Chip size="small" variant="outlined" label={p.offersCount} />
                     </TableCell>
                     <TableCell align="right" sx={{ fontFamily: 'monospace', fontWeight: 600 }}>
-                      {formatBs(p.bestPrice)}
+                      {formatBs(p.bestOffer?.priceConIva ?? null)}
                     </TableCell>
-                    <TableCell>{p.bestProvider || '—'}</TableCell>
+                    <TableCell>{p.bestOffer?.providerName || '—'}</TableCell>
                     <TableCell align="center">
                       <IconButton
                         size="small"

@@ -20,7 +20,7 @@ export function ComparatorView() {
     <Container maxWidth="xl" sx={{ pb: 6 }}>
       <PageHeader
         title="Comparador de precios"
-        subtitle="Mercado externo (iCompras360). Datos en bolívares."
+        subtitle="Mercado externo. Datos en bolívares."
         crumbs={[{ label: 'Compras' }, { label: 'Comparador' }]}
       />
 
