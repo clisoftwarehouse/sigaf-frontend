@@ -58,7 +58,14 @@ export function IngredientDetailDrawer({ ingredient, onClose }: Props) {
         setHistoryProduct(null);
         onClose();
       }}
-      slotProps={{ paper: { sx: { width: { xs: '100%', sm: 720 }, p: 0 } } }}
+      slotProps={{
+        paper: {
+          sx: {
+            width: { xs: '100%', sm: 'min(960px, 90vw)', xl: 'min(1100px, 80vw)' },
+            p: 0,
+          },
+        },
+      }}
     >
       <Box sx={{ p: 2.5, display: 'flex', flexDirection: 'column', height: '100%' }}>
         <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
@@ -155,7 +162,7 @@ export function IngredientDetailDrawer({ ingredient, onClose }: Props) {
                         <TableCell sx={{ fontFamily: 'monospace', color: 'text.disabled' }}>
                           {idx + 1}
                         </TableCell>
-                        <TableCell sx={{ maxWidth: 220 }}>
+                        <TableCell sx={{ minWidth: 280, maxWidth: 420 }}>
                           <Typography variant="body2" noWrap title={p.name}>
                             {p.name}
                           </Typography>

@@ -47,7 +47,14 @@ export function ProductDetailDrawer({ externalId, onClose }: Props) {
         setShowHistory(false);
         onClose();
       }}
-      slotProps={{ paper: { sx: { width: { xs: '100%', sm: 720 }, p: 0 } } }}
+      slotProps={{
+        paper: {
+          sx: {
+            width: { xs: '100%', sm: 'min(960px, 90vw)', xl: 'min(1100px, 80vw)' },
+            p: 0,
+          },
+        },
+      }}
     >
       <Box sx={{ p: 2.5, display: 'flex', flexDirection: 'column', height: '100%' }}>
         <Stack direction="row" alignItems="flex-start" spacing={1} sx={{ mb: 2 }}>
