@@ -59,6 +59,8 @@ export type LabConditionInput = Omit<LabCondition, 'id' | 'createdAt' | 'updated
 export type ProductClassification = {
   id: string;
   productId: string;
+  productName: string;
+  productSku: string | null;
   branchId: string;
   abcdClass: AbcdClass;
   score: number;
@@ -142,6 +144,7 @@ export type ComparatorCandidate = {
   netCostBreakdown: {
     basePriceUsd: number;
     appliedDiscounts: {
+      supplierProductPct: number;
       cabeceraPct: number;
       linealPct: number;
       volumenPct: number;

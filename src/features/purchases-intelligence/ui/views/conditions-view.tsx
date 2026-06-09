@@ -56,6 +56,26 @@ export function ConditionsView() {
 
   return (
     <Stack spacing={2}>
+      <Alert severity="info" variant="outlined">
+        <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
+          ¿Qué son las condiciones comerciales?
+        </Typography>
+        <Typography variant="caption" component="div" color="text.secondary">
+          Son los descuentos <strong>framework</strong> que negociaste con droguerías y laboratorios.
+          El motor los multiplica al costo del proveedor para calcular el costo neto real al comprar.
+          Esto convive con el descuento puntual que ya existe en <em>Proveedores → Productos del
+          proveedor</em> (campo Descuento %) — ese sigue funcionando para descuentos por SKU
+          específico. Los layers se aplican en cascada multiplicativa:
+        </Typography>
+        <Typography
+          variant="caption"
+          component="div"
+          color="text.secondary"
+          sx={{ mt: 0.5, fontFamily: 'monospace' }}
+        >
+          net = base × (1−sku) × (1−cabecera) × (1−lineal) × (1−volumen) × (1−escala) × (1−pronto pago)
+        </Typography>
+      </Alert>
       <Tabs
         value={tab}
         onChange={(_, v) => setTab(v)}
@@ -271,6 +291,7 @@ function DrugstoreConditionsTab() {
                 value={form.cabeceraPct}
                 onChange={(e) => setForm({ ...form, cabeceraPct: Number(e.target.value) })}
                 size="small"
+                helperText="Descuento general que aplica siempre a todo lo comprado en esta droguería"
               />
               <TextField
                 label="Volumen %"
@@ -278,6 +299,7 @@ function DrugstoreConditionsTab() {
                 value={form.volumenPct}
                 onChange={(e) => setForm({ ...form, volumenPct: Number(e.target.value) })}
                 size="small"
+                helperText="Descuento extra cuando la compra supera el umbral USD o de unidades"
               />
               <TextField
                 label="Pronto pago %"
@@ -285,6 +307,7 @@ function DrugstoreConditionsTab() {
                 value={form.prontoPagoPct}
                 onChange={(e) => setForm({ ...form, prontoPagoPct: Number(e.target.value) })}
                 size="small"
+                helperText="Descuento si pagás en plazo. Sólo se muestra como escenario financiero, no afecta el margen base"
               />
             </Box>
             <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.5 }}>
@@ -519,6 +542,7 @@ function LabConditionsTab() {
                 value={form.linealPct}
                 onChange={(e) => setForm({ ...form, linealPct: Number(e.target.value) })}
                 size="small"
+                helperText="Descuento del laboratorio que aplica siempre a sus productos"
               />
               <TextField
                 label="Escala %"
@@ -526,6 +550,7 @@ function LabConditionsTab() {
                 value={form.escalaPct}
                 onChange={(e) => setForm({ ...form, escalaPct: Number(e.target.value) })}
                 size="small"
+                helperText="Descuento extra si pedís ≥ mínimo de unidades"
               />
               <TextField
                 label="Mín. unidades"
@@ -533,6 +558,7 @@ function LabConditionsTab() {
                 value={form.escalaMinUnits}
                 onChange={(e) => setForm({ ...form, escalaMinUnits: e.target.value })}
                 size="small"
+                helperText="Umbral para activar la escala"
               />
             </Box>
             <TextField

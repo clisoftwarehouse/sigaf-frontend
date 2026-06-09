@@ -97,15 +97,26 @@ export function PortfolioView({ branchId }: { branchId: string }) {
                   <TableCell sx={{ width: 110 }}>
                     <AbcdChip abcd={c.abcdClass} isPareto={c.isPareto} />
                   </TableCell>
-                  <TableCell sx={{ fontFamily: 'monospace' }}>
-                    <Typography variant="body2">{c.productId}</Typography>
+                  <TableCell sx={{ maxWidth: 320 }}>
+                    <Typography variant="body2" noWrap title={c.productName}>
+                      {c.productName}
+                    </Typography>
+                    {c.productSku && (
+                      <Typography
+                        variant="caption"
+                        color="text.disabled"
+                        sx={{ fontFamily: 'monospace', fontSize: '0.65rem' }}
+                      >
+                        {c.productSku}
+                      </Typography>
+                    )}
                     {c.forcedPromotionToB && (
                       <Chip
                         size="small"
                         color="warning"
                         variant="outlined"
                         label="Ascenso forzado por Pareto"
-                        sx={{ mt: 0.25, fontSize: '0.65rem' }}
+                        sx={{ mt: 0.25, fontSize: '0.65rem', display: 'block', width: 'fit-content' }}
                       />
                     )}
                   </TableCell>
