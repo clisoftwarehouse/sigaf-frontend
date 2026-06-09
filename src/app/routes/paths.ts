@@ -62,6 +62,7 @@ export const paths = {
       root: purchases,
       orders: crud(`${purchases}/orders`),
       receipts: crud(`${purchases}/receipts`),
+      comparator: `${purchases}/comparator`,
     },
     claims: {
       root: claims,

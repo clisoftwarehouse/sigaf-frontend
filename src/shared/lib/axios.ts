@@ -425,6 +425,20 @@ export const endpoints = {
     kardex: '/v1/inventory/kardex',
     averageCost: (productId: string) => `/v1/inventory/products/${productId}/average-cost`,
   },
+  purchasesComparator: {
+    comparison: '/v1/purchases/comparator/comparison',
+    products: '/v1/purchases/comparator/products',
+    productById: (id: string) =>
+      `/v1/purchases/comparator/products/${encodeURIComponent(id)}`,
+    productHistory: (id: string) =>
+      `/v1/purchases/comparator/products/${encodeURIComponent(id)}/history`,
+    ingredientProducts: (name: string) =>
+      `/v1/purchases/comparator/active-ingredients/${encodeURIComponent(name)}/products`,
+    providers: '/v1/purchases/comparator/providers',
+    activeIngredients: '/v1/purchases/comparator/active-ingredients',
+    categories: '/v1/purchases/comparator/categories',
+    brands: '/v1/purchases/comparator/brands',
+  },
   inventoryTransfers: {
     root: '/v1/inventory-transfers',
     byId: (id: string) => `/v1/inventory-transfers/${id}`,

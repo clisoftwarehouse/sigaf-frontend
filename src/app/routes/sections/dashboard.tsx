@@ -35,6 +35,7 @@ import { exchangeRatesRoutes } from '@/features/exchange-rates/routes';
 import { paymentsReportRoutes } from '@/features/payments-report/routes';
 import { activeIngredientsRoutes } from '@/features/active-ingredients/routes';
 import { inventoryTransfersRoutes } from '@/features/inventory-transfers/routes';
+import { purchasesComparatorRoutes } from '@/features/purchases-comparator/routes';
 
 import { usePathname } from '../hooks';
 
@@ -97,6 +98,7 @@ export const dashboardRoutes: RouteObject[] = [
             element: <Navigate to={paths.dashboard.purchases.orders.root} replace />,
           },
           ...purchasesRoutes,
+          ...purchasesComparatorRoutes,
         ],
       },
       ...claimsRoutes,
