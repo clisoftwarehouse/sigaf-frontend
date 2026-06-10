@@ -22,6 +22,7 @@ import { terminalsRoutes } from '@/features/terminals/routes';
 import { purchasesRoutes } from '@/features/purchases/routes';
 import { customersRoutes } from '@/features/customers/routes';
 import { configRoutes } from '@/features/config-global/routes';
+import { librosIvaRoutes } from '@/features/libros-iva/routes';
 import { warehousesRoutes } from '@/features/warehouses/routes';
 import { categoriesRoutes } from '@/features/categories/routes';
 import { promotionsRoutes } from '@/features/promotions/routes';
@@ -155,6 +156,7 @@ export const dashboardRoutes: RouteObject[] = [
           ...exchangeRatesRoutes,
           ...auditRoutes,
           ...importsRoutes,
+          ...librosIvaRoutes,
         ],
       },
     ],

@@ -110,6 +110,7 @@ export const paths = {
       exchangeRates: `${admin}/exchange-rates`,
       auditLog: `${admin}/audit-log`,
       imports: `${admin}/imports`,
+      librosIva: `${admin}/libros-iva`,
     },
   },
 };

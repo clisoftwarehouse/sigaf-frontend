@@ -525,6 +525,10 @@ export const endpoints = {
     run: (type: string) => `/v1/imports/${type}`,
     template: (type: string) => `/v1/imports/templates/${type}`,
   },
+  librosIva: {
+    ventas: '/v1/libros-iva/ventas',
+    compras: '/v1/libros-iva/compras',
+  },
   prices: {
     root: '/v1/prices',
     byId: (id: string) => `/v1/prices/${id}`,
