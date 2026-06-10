@@ -57,3 +57,39 @@ export type CreateCustomerPayload = {
 };
 
 export type UpdateCustomerPayload = Partial<CreateCustomerPayload>;
+
+export type ClinicalProfile = {
+  customer: {
+    id: string;
+    fullName: string;
+    documentType: string;
+    documentNumber: string;
+    phone: string | null;
+    customerType: string;
+    allergies: string | null;
+    chronicConditions: string | null;
+    birthDate: string | null;
+    isBirthdayToday: boolean;
+    notes: string | null;
+  };
+  commercial: {
+    purchaseCount: number;
+    isRecurrent: boolean;
+    lastPurchase: {
+      date: string;
+      daysAgo: number;
+      totalUsd: number;
+      topProducts: string[];
+    } | null;
+  };
+  pendingPrescriptions: Array<{
+    id: string;
+    doctorName: string;
+    issuedAt: string;
+    expiresAt: string | null;
+    status: string;
+    expiringSoon: boolean;
+    items: Array<{ productName: string; remaining: number }>;
+  }>;
+  alerts: string[];
+};

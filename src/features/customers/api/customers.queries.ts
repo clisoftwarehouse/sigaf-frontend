@@ -13,6 +13,7 @@ import {
   fetchCustomers,
   updateCustomer,
   restoreCustomer,
+  fetchClinicalProfile,
   fetchCustomerByDocument,
 } from './customers.api';
 
@@ -22,6 +23,7 @@ export const customerKeys = {
   all: ['customers'] as const,
   list: (filters: CustomerFilters) => [...customerKeys.all, 'list', filters] as const,
   detail: (id: string) => [...customerKeys.all, 'detail', id] as const,
+  clinicalProfile: (id: string) => [...customerKeys.all, 'clinical-profile', id] as const,
   byDocument: (type: string, number: string) =>
     [...customerKeys.all, 'by-document', type, number] as const,
 };
@@ -37,6 +39,14 @@ export function useCustomerQuery(id: string | undefined) {
   return useQuery({
     queryKey: customerKeys.detail(id ?? ''),
     queryFn: () => fetchCustomer(id as string),
+    enabled: Boolean(id),
+  });
+}
+
+export function useClinicalProfileQuery(id: string | undefined) {
+  return useQuery({
+    queryKey: customerKeys.clinicalProfile(id ?? ''),
+    queryFn: () => fetchClinicalProfile(id as string),
     enabled: Boolean(id),
   });
 }

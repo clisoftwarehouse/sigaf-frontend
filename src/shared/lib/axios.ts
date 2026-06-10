@@ -552,6 +552,7 @@ export const endpoints = {
     byDocument: (type: string, number: string) =>
       `/v1/customers/by-document/${type}/${encodeURIComponent(number)}`,
     restore: (id: string) => `/v1/customers/${id}/restore`,
+    clinicalProfile: (id: string) => `/v1/customers/${id}/clinical-profile`,
   },
   prescriptions: {
     root: '/v1/prescriptions',

@@ -1,5 +1,6 @@
 import type {
   Customer,
+  ClinicalProfile,
   CustomerFilters,
   CustomersListResponse,
   CreateCustomerPayload,
@@ -24,6 +25,11 @@ export async function fetchCustomers(filters: CustomerFilters = {}): Promise<Cus
 
 export async function fetchCustomer(id: string): Promise<Customer> {
   const res = await axios.get<Customer>(endpoints.customers.byId(id));
+  return res.data;
+}
+
+export async function fetchClinicalProfile(id: string): Promise<ClinicalProfile> {
+  const res = await axios.get<ClinicalProfile>(endpoints.customers.clinicalProfile(id));
   return res.data;
 }
 

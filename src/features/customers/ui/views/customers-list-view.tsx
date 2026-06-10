@@ -149,11 +149,18 @@ export function CustomersListView() {
         field: 'actions',
         type: 'actions',
         headerName: 'Acciones',
-        width: 130,
+        width: 170,
         align: 'right',
         headerAlign: 'right',
         renderCell: ({ row }) => (
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', height: '100%' }}>
+            <Tooltip title="Ver ficha">
+              <IconButton
+                onClick={() => router.push(paths.dashboard.pos.customers.detail(row.id))}
+              >
+                <Iconify icon="solar:eye-bold" />
+              </IconButton>
+            </Tooltip>
             {row.isActive ? (
               <>
                 <Tooltip title="Editar">
