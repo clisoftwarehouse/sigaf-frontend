@@ -472,6 +472,7 @@ export const endpoints = {
     suggestionsGenerate: '/v1/purchases-intelligence/suggestions/generate',
     suggestionsCreateOrders: '/v1/purchases-intelligence/suggestions/create-orders',
   },
+  prescribers: resource('/v1/prescribers'),
   accountsPayable: {
     root: '/v1/accounts-payable',
     byId: (id: string) => `/v1/accounts-payable/${id}`,

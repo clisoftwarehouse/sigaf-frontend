@@ -25,6 +25,7 @@ const ICONS = {
   comparator: <Iconify icon="solar:chart-square-outline" width={22} />,
   intelligence: <Iconify icon="solar:atom-bold-duotone" width={22} />,
   accountsPayable: <Iconify icon="solar:wad-of-money-bold" width={22} />,
+  prescribers: <Iconify icon="solar:user-id-bold" width={22} />,
   purchases: <Iconify icon="solar:cart-plus-bold" width={22} />,
   orders: <Iconify icon="solar:bill-list-bold-duotone" width={22} />,
   receipts: <Iconify icon="solar:inbox-in-bold-duotone" width={22} />,
@@ -258,6 +259,11 @@ export const navData: NavSectionProps['data'] = [
             title: 'Récipes',
             path: paths.dashboard.pos.prescriptions.root,
             icon: ICONS.prescriptions,
+          },
+          {
+            title: 'Médicos',
+            path: paths.dashboard.pos.prescribers,
+            icon: ICONS.prescribers,
           },
           {
             title: 'Sesiones de caja',

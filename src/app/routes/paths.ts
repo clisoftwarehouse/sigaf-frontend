@@ -86,6 +86,7 @@ export const paths = {
       branchGroups: crud(`${org}/branch-groups`),
     },
     pos: {
+      prescribers: `${pos}/prescribers`,
       root: pos,
       customers: crud(`${pos}/customers`),
       prescriptions: {

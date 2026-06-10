@@ -27,6 +27,7 @@ import { categoriesRoutes } from '@/features/categories/routes';
 import { promotionsRoutes } from '@/features/promotions/routes';
 import { LoadingScreen } from '@/app/components/loading-screen';
 import { permissionsRoutes } from '@/features/permissions/routes';
+import { prescribersRoutes } from '@/features/prescribers/routes';
 import { consignmentsRoutes } from '@/features/consignments/routes';
 import { cashSessionsRoutes } from '@/features/cash-sessions/routes';
 import { branchGroupsRoutes } from '@/features/branch-groups/routes';
@@ -138,6 +139,7 @@ export const dashboardRoutes: RouteObject[] = [
           },
           ...customersRoutes,
           ...prescriptionsRoutes,
+          ...prescribersRoutes,
           ...cashSessionsRoutes,
           ...paymentsReportRoutes,
         ],
