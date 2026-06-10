@@ -23,6 +23,7 @@ import { Iconify } from '@/app/components/iconify';
 import { AgingChip } from './aging-chip';
 import { PayDialog } from './pay-dialog';
 import { StatusChip } from './status-chip';
+import { ReasonDialog } from './reason-dialog';
 import { fmtBs, fmtUsd, fmtDate, toNumber } from './format';
 import { useCxpDetail, useCancelCxp, useReversePayment } from '../../api/accounts-payable.queries';
 
@@ -36,28 +37,34 @@ export function CxpDetailDrawer({ cxpId, onClose }: Props) {
   const reverseMut = useReversePayment();
   const cancelMut = useCancelCxp();
   const [payOpen, setPayOpen] = useState(false);
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const [reversePaymentId, setReversePaymentId] = useState<string | null>(null);
 
-  const handleCancel = (id: string) => {
-    const reason = window.prompt('Motivo de la cancelación:');
-    if (!reason || reason.trim().length === 0) return;
+  const cxp = data ?? null;
+
+  const handleCancel = (reason: string) => {
+    if (!cxp) return;
     cancelMut.mutate(
-      { id, reason: reason.trim() },
+      { id: cxp.id, reason },
       {
-        onSuccess: () => toast.success('Cuenta cancelada'),
+        onSuccess: () => {
+          toast.success('Cuenta cancelada');
+          setCancelOpen(false);
+        },
         onError: (err: Error) => toast.error(`Error: ${err.message}`),
       },
     );
   };
 
-  const cxp = data ?? null;
-
-  const handleReverse = (paymentId: string) => {
-    const reason = window.prompt('Motivo de la reversa:');
-    if (!reason || reason.trim().length === 0) return;
+  const handleReverse = (reason: string) => {
+    if (!reversePaymentId) return;
     reverseMut.mutate(
-      { paymentId, reason: reason.trim() },
+      { paymentId: reversePaymentId, reason },
       {
-        onSuccess: () => toast.success('Pago revertido'),
+        onSuccess: () => {
+          toast.success('Pago revertido');
+          setReversePaymentId(null);
+        },
         onError: (err: Error) => toast.error(`Error: ${err.message}`),
       },
     );
@@ -175,7 +182,7 @@ export function CxpDetailDrawer({ cxpId, onClose }: Props) {
                     variant="outlined"
                     color="error"
                     startIcon={<Iconify icon="solar:close-circle-bold" />}
-                    onClick={() => handleCancel(cxp.id)}
+                    onClick={() => setCancelOpen(true)}
                   >
                     Cancelar cuenta
                   </Button>
@@ -253,7 +260,7 @@ export function CxpDetailDrawer({ cxpId, onClose }: Props) {
                               <IconButton
                                 size="small"
                                 color="error"
-                                onClick={() => handleReverse(p.id)}
+                                onClick={() => setReversePaymentId(p.id)}
                                 title="Revertir pago"
                               >
                                 <Iconify icon="solar:reply-bold" width={16} />
@@ -284,6 +291,30 @@ export function CxpDetailDrawer({ cxpId, onClose }: Props) {
       </Drawer>
 
       <PayDialog open={payOpen} onClose={() => setPayOpen(false)} cxp={cxp} />
+
+      <ReasonDialog
+        open={cancelOpen}
+        title="Cancelar cuenta por pagar"
+        description="Esta acción marca la cuenta como cancelada. Solo está permitida si no tiene pagos aplicados. Queda registrada para auditoría."
+        label="Motivo de la cancelación"
+        confirmLabel="Cancelar cuenta"
+        confirmColor="error"
+        isPending={cancelMut.isPending}
+        onClose={() => setCancelOpen(false)}
+        onConfirm={handleCancel}
+      />
+
+      <ReasonDialog
+        open={!!reversePaymentId}
+        title="Revertir pago"
+        description="El pago queda marcado como revertido (soft-delete) y se recalcula el saldo de la cuenta. Queda histórico para auditoría."
+        label="Motivo de la reversa"
+        confirmLabel="Revertir pago"
+        confirmColor="error"
+        isPending={reverseMut.isPending}
+        onClose={() => setReversePaymentId(null)}
+        onConfirm={handleReverse}
+      />
     </>
   );
 }
