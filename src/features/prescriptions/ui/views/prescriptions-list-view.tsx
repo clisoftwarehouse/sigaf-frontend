@@ -15,6 +15,7 @@ import TextField from '@mui/material/TextField';
 import Container from '@mui/material/Container';
 import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
+import LinearProgress from '@mui/material/LinearProgress';
 
 import { paths } from '@/app/routes/paths';
 import { useRouter } from '@/app/routes/hooks';
@@ -99,8 +100,44 @@ export function PrescriptionsListView() {
         field: 'items',
         headerName: 'Items',
         flex: 0.5,
-        minWidth: 80,
+        minWidth: 70,
         renderCell: ({ row }) => row.items?.length ?? 0,
+      },
+      {
+        field: 'dispensedPct',
+        headerName: '% Dispensado',
+        flex: 1.2,
+        minWidth: 150,
+        sortable: false,
+        renderCell: ({ row }) => {
+          const items = row.items ?? [];
+          const totalPrescribed = items.reduce(
+            (sum, it) => sum + Number(it.quantityPrescribed || 0),
+            0,
+          );
+          const totalDispensed = items.reduce(
+            (sum, it) => sum + Number(it.quantityDispensed || 0),
+            0,
+          );
+          const pct =
+            totalPrescribed > 0 ? Math.round((totalDispensed / totalPrescribed) * 100) : 0;
+          const color = pct >= 100 ? 'info' : pct > 0 ? 'warning' : 'success';
+          return (
+            <Box sx={{ width: '100%', display: 'flex', alignItems: 'center', height: '100%', gap: 1 }}>
+              <Box sx={{ flex: 1 }}>
+                <LinearProgress
+                  variant="determinate"
+                  value={Math.min(100, pct)}
+                  color={color}
+                  sx={{ height: 6, borderRadius: 3 }}
+                />
+              </Box>
+              <Typography variant="caption" sx={{ minWidth: 32, fontFamily: 'monospace' }}>
+                {pct}%
+              </Typography>
+            </Box>
+          );
+        },
       },
       {
         field: 'status',

@@ -224,6 +224,35 @@ export function PrescriptionDetailView() {
           </Table>
         </Card>
 
+        {prescription.imageUrl && (
+          <Card sx={{ p: 3 }}>
+            <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 2 }}>
+              Foto del récipe
+            </Typography>
+            <Box
+              component="a"
+              href={prescription.imageUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              sx={{ display: 'inline-block' }}
+            >
+              <Box
+                component="img"
+                src={prescription.imageUrl}
+                alt="Récipe físico"
+                sx={{
+                  maxWidth: '100%',
+                  maxHeight: 480,
+                  borderRadius: 1,
+                  border: 1,
+                  borderColor: 'divider',
+                  cursor: 'zoom-in',
+                }}
+              />
+            </Box>
+          </Card>
+        )}
+
         {prescription.notes && (
           <Card sx={{ p: 3 }}>
             <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
