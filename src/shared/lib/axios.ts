@@ -472,6 +472,15 @@ export const endpoints = {
     suggestionsGenerate: '/v1/purchases-intelligence/suggestions/generate',
     suggestionsCreateOrders: '/v1/purchases-intelligence/suggestions/create-orders',
   },
+  accountsPayable: {
+    root: '/v1/accounts-payable',
+    byId: (id: string) => `/v1/accounts-payable/${id}`,
+    agingSummary: '/v1/accounts-payable/aging-summary',
+    cancel: (id: string) => `/v1/accounts-payable/${id}/cancel`,
+    payments: (id: string) => `/v1/accounts-payable/${id}/payments`,
+    reversePayment: (paymentId: string) =>
+      `/v1/accounts-payable/payments/${paymentId}/reverse`,
+  },
   branchGroups: resource('/v1/branch-groups'),
   claims: {
     root: '/v1/claims',

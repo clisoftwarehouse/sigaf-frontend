@@ -33,6 +33,7 @@ import { branchGroupsRoutes } from '@/features/branch-groups/routes';
 import { prescriptionsRoutes } from '@/features/prescriptions/routes';
 import { exchangeRatesRoutes } from '@/features/exchange-rates/routes';
 import { paymentsReportRoutes } from '@/features/payments-report/routes';
+import { accountsPayableRoutes } from '@/features/accounts-payable/routes';
 import { activeIngredientsRoutes } from '@/features/active-ingredients/routes';
 import { inventoryTransfersRoutes } from '@/features/inventory-transfers/routes';
 import { purchasesComparatorRoutes } from '@/features/purchases-comparator/routes';
@@ -101,6 +102,7 @@ export const dashboardRoutes: RouteObject[] = [
           ...purchasesRoutes,
           ...purchasesComparatorRoutes,
           ...purchasesIntelligenceRoutes,
+          ...accountsPayableRoutes,
         ],
       },
       ...claimsRoutes,
