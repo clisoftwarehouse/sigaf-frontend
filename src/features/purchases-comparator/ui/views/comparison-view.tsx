@@ -185,10 +185,11 @@ export function ComparisonView() {
                 <TableHead>
                   <TableRow>
                     <TableCell>Principio activo</TableCell>
-                    <TableCell>Mínimo</TableCell>
-                    <TableCell>Máximo</TableCell>
-                    <TableCell>Brecha</TableCell>
-                    <TableCell align="center" sx={{ width: 56 }} />
+                    <TableCell align="center">Laboratorios</TableCell>
+                    <TableCell align="right">Mejor precio</TableCell>
+                    <TableCell>Mejor droguería</TableCell>
+                    <TableCell align="right">Brecha</TableCell>
+                    <TableCell align="center" sx={{ width: 48 }} />
                   </TableRow>
                 </TableHead>
                 <TableBody>
