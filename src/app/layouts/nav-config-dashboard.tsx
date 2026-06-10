@@ -246,6 +246,7 @@ export const navData: NavSectionProps['data'] = [
         extraMatchPaths: [
           paths.dashboard.pos.customers.root,
           paths.dashboard.pos.prescriptions.root,
+          paths.dashboard.pos.prescribers,
           paths.dashboard.pos.cashSessions.root,
           paths.dashboard.pos.paymentsReport,
         ],
