@@ -16,6 +16,9 @@ export type Customer = {
   defaultDiscountPercent: number | string;
   creditLimitUsd: number | string;
   notes: string | null;
+  allergies: string | null;
+  chronicConditions: string | null;
+  birthDate: string | null;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -47,6 +50,9 @@ export type CreateCustomerPayload = {
   defaultDiscountPercent?: number;
   creditLimitUsd?: number;
   notes?: string | null;
+  allergies?: string | null;
+  chronicConditions?: string | null;
+  birthDate?: string | null;
   isActive?: boolean;
 };
 

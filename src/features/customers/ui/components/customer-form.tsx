@@ -41,6 +41,9 @@ export const CustomerSchema = z.object({
     .max(100, { message: 'Máximo 100%' }),
   creditLimitUsd: z.number().min(0, { message: 'No puede ser negativo' }),
   notes: z.string().optional().or(z.literal('')),
+  allergies: z.string().optional().or(z.literal('')),
+  chronicConditions: z.string().optional().or(z.literal('')),
+  birthDate: z.string().optional().or(z.literal('')),
   isActive: z.boolean(),
 });
 
@@ -64,6 +67,9 @@ const defaults = (current?: Customer): CustomerFormValues => ({
   defaultDiscountPercent: Number(current?.defaultDiscountPercent ?? 0),
   creditLimitUsd: Number(current?.creditLimitUsd ?? 0),
   notes: current?.notes ?? '',
+  allergies: current?.allergies ?? '',
+  chronicConditions: current?.chronicConditions ?? '',
+  birthDate: current?.birthDate ?? '',
   isActive: current?.isActive ?? true,
 });
 
@@ -106,6 +112,9 @@ export function CustomerForm({ current, submitting, onSubmit, onCancel }: Props)
       defaultDiscountPercent: values.defaultDiscountPercent,
       creditLimitUsd: values.creditLimitUsd,
       notes: values.notes?.trim() || null,
+      allergies: values.allergies?.trim() || null,
+      chronicConditions: values.chronicConditions?.trim() || null,
+      birthDate: values.birthDate?.trim() || null,
       isActive: values.isActive,
     };
     await onSubmit(payload);
@@ -195,6 +204,40 @@ export function CustomerForm({ current, submitting, onSubmit, onCancel }: Props)
             <Field.Text name="notes" label="Notas" multiline minRows={2} />
 
             <Field.Switch name="isActive" label="Activo" />
+          </Stack>
+        </Card>
+
+        <Card sx={{ p: 3 }}>
+          <Typography variant="subtitle2" sx={{ color: 'text.secondary', mb: 0.5 }}>
+            Ficha clínica
+          </Typography>
+          <Typography variant="caption" sx={{ color: 'text.disabled', display: 'block', mb: 2 }}>
+            Datos para la atención personalizada en caja. Las alergias y condiciones se muestran
+            como alertas al cajero.
+          </Typography>
+
+          <Stack spacing={2}>
+            <Field.Text
+              name="birthDate"
+              label="Fecha de nacimiento"
+              type="date"
+              slotProps={{ inputLabel: { shrink: true } }}
+              sx={{ width: { md: 240 } }}
+            />
+            <Field.Text
+              name="allergies"
+              label="Alergias"
+              placeholder="Penicilina, AINEs, sulfas…"
+              multiline
+              minRows={2}
+            />
+            <Field.Text
+              name="chronicConditions"
+              label="Condiciones crónicas"
+              placeholder="Diabetes, hipertensión, asma…"
+              multiline
+              minRows={2}
+            />
           </Stack>
         </Card>
       </Stack>
