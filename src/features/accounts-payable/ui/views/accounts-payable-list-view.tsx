@@ -145,7 +145,7 @@ export function AccountsPayableListView() {
           {filters.agingBucket && (
             <Box>
               <Typography variant="caption" color="text.secondary">
-                Filtro de aging activo
+                Filtro de vencimiento activo
               </Typography>
               <Box>
                 <AgingChip bucket={filters.agingBucket} />{' '}
@@ -183,7 +183,7 @@ export function AccountsPayableListView() {
                   <TableCell>Vence</TableCell>
                   <TableCell align="right">Total</TableCell>
                   <TableCell align="right">Saldo</TableCell>
-                  <TableCell align="center">Aging</TableCell>
+                  <TableCell align="center">Vencimiento</TableCell>
                   <TableCell align="center">Estado</TableCell>
                   <TableCell align="center" sx={{ width: 48 }} />
                 </TableRow>
