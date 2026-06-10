@@ -3,14 +3,18 @@ import type { ComparisonFilters } from '../../model/types';
 import { useState } from 'react';
 
 import Box from '@mui/material/Box';
-import Grid from '@mui/material/Grid';
 import Card from '@mui/material/Card';
 import Stack from '@mui/material/Stack';
 import Alert from '@mui/material/Alert';
+import Table from '@mui/material/Table';
 import Switch from '@mui/material/Switch';
 import Button from '@mui/material/Button';
 import MenuItem from '@mui/material/MenuItem';
 import Skeleton from '@mui/material/Skeleton';
+import TableRow from '@mui/material/TableRow';
+import TableBody from '@mui/material/TableBody';
+import TableHead from '@mui/material/TableHead';
+import TableCell from '@mui/material/TableCell';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import Pagination from '@mui/material/Pagination';
@@ -18,7 +22,7 @@ import FormControlLabel from '@mui/material/FormControlLabel';
 
 import { Iconify } from '@/app/components/iconify';
 
-import { ComparisonCard } from '../components/comparison-card';
+import { ComparisonRow } from '../components/comparison-row';
 import { IngredientDetailDrawer } from '../components/ingredient-detail-drawer';
 import {
   useComparisonQuery,
@@ -160,13 +164,11 @@ export function ComparisonView() {
       )}
 
       {(isLoading || (isFetching && !data)) && (
-        <Grid container spacing={2}>
-          {Array.from({ length: filters.limit ?? 24 }).map((_, idx) => (
-            <Grid key={idx} size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
-              <Skeleton variant="rounded" height={280} />
-            </Grid>
+        <Stack spacing={1}>
+          {Array.from({ length: Math.min(filters.limit ?? 24, 12) }).map((_, idx) => (
+            <Skeleton key={idx} variant="rounded" height={56} />
           ))}
-        </Grid>
+        </Stack>
       )}
 
       {data && data.data.length === 0 && (
@@ -177,16 +179,30 @@ export function ComparisonView() {
 
       {data && data.data.length > 0 && (
         <>
-          <Grid container spacing={2} sx={{ mb: 3, opacity: isFetching ? 0.6 : 1 }}>
-            {data.data.map((group) => (
-              <Grid key={group.activeIngredient} size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
-                <ComparisonCard
-                  group={group}
-                  onOpenDetail={(name) => setOpenIngredient(name)}
-                />
-              </Grid>
-            ))}
-          </Grid>
+          <Card sx={{ overflow: 'hidden', mb: 3, opacity: isFetching ? 0.6 : 1 }}>
+            <Box sx={{ overflow: 'auto' }}>
+              <Table size="small" stickyHeader>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Principio activo</TableCell>
+                    <TableCell>Mínimo</TableCell>
+                    <TableCell>Máximo</TableCell>
+                    <TableCell>Brecha</TableCell>
+                    <TableCell align="center" sx={{ width: 56 }} />
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {data.data.map((group) => (
+                    <ComparisonRow
+                      key={group.activeIngredient}
+                      group={group}
+                      onOpenDetail={(name) => setOpenIngredient(name)}
+                    />
+                  ))}
+                </TableBody>
+              </Table>
+            </Box>
+          </Card>
 
           <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={2}>
             <Typography variant="caption" color="text.secondary">
