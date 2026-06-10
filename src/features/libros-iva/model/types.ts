@@ -2,11 +2,14 @@ export type DocumentKind = 'invoice' | 'credit_note' | 'debit_note';
 
 export type LibroResumen = {
   totalOperations: number;
+  totalExemptBs: number;
+  totalTaxableBaseBs: number;
+  totalVatBs: number;
+  totalBs: number;
   totalExemptUsd: number;
   totalTaxableBaseUsd: number;
   totalVatUsd: number;
   totalUsd: number;
-  totalBs: number;
 };
 
 export type LibroVentasRow = {
@@ -16,12 +19,15 @@ export type LibroVentasRow = {
   controlNumber: string | null;
   customerRif: string | null;
   customerName: string;
-  totalUsd: number;
+  exchangeRate: number;
+  exemptBs: number;
+  taxableBaseBs: number;
+  vatBs: number;
   totalBs: number;
   exemptUsd: number;
   taxableBaseUsd: number;
   vatUsd: number;
-  exchangeRate: number;
+  totalUsd: number;
   byFiscalMachine: boolean;
   isContribuyente: boolean;
 };
@@ -33,12 +39,15 @@ export type LibroComprasRow = {
   controlNumber: string | null;
   supplierRif: string;
   supplierName: string;
-  totalUsd: number;
+  exchangeRate: number | null;
+  exemptBs: number;
+  taxableBaseBs: number;
+  vatBs: number;
   totalBs: number;
   exemptUsd: number;
   taxableBaseUsd: number;
   vatUsd: number;
-  exchangeRate: number | null;
+  totalUsd: number;
   generatesCredit: boolean;
   complianceWarnings: string[];
 };

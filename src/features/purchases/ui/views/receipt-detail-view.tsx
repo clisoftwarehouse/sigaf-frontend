@@ -417,6 +417,14 @@ export function ReceiptDetailView() {
                   {receipt.supplierInvoiceNumber ?? '—'}
                 </Typography>
               </Box>
+              <Box>
+                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                  Nº de control (SENIAT)
+                </Typography>
+                <Typography variant="body1" sx={{ fontFamily: 'monospace' }}>
+                  {receipt.supplierControlNumber ?? '—'}
+                </Typography>
+              </Box>
               {receipt.nativeCurrency === 'VES' && (
                 <Box>
                   <Typography variant="caption" sx={{ color: 'text.secondary' }}>

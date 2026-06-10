@@ -136,6 +136,7 @@ const ReceiptSchema = z
     supplierId: z.string().uuid({ message: 'Selecciona un proveedor' }),
     purchaseOrderIds: z.array(z.string().uuid()),
     supplierInvoiceNumber: z.string().max(50).optional().or(z.literal('')),
+    supplierControlNumber: z.string().max(50).optional().or(z.literal('')),
     receiptType: z.enum(['purchase', 'consignment']),
     taxPct: pctString,
     igtfPct: pctString,
@@ -229,6 +230,7 @@ export function ReceiptCreateView() {
       supplierId: '',
       purchaseOrderIds: [],
       supplierInvoiceNumber: '',
+      supplierControlNumber: '',
       receiptType: 'purchase',
       taxPct: '',
       igtfPct: '',
@@ -469,6 +471,7 @@ export function ReceiptCreateView() {
       branchId: values.branchId,
       supplierId: values.supplierId,
       supplierInvoiceNumber: values.supplierInvoiceNumber?.trim() || undefined,
+      supplierControlNumber: values.supplierControlNumber?.trim() || undefined,
       receiptType: values.receiptType,
       taxPct: values.taxPct ? Number(values.taxPct) : undefined,
       igtfPct: values.igtfPct ? Number(values.igtfPct) : undefined,
@@ -1444,6 +1447,13 @@ export function ReceiptCreateView() {
               <Field.Text
                 name="supplierInvoiceNumber"
                 label="Nº factura del proveedor"
+                slotProps={{ inputLabel: { shrink: true } }}
+                sx={{ flex: 1 }}
+              />
+              <Field.Text
+                name="supplierControlNumber"
+                label="Nº de control (SENIAT)"
+                helperText="Necesario para el crédito fiscal en el Libro de Compras"
                 slotProps={{ inputLabel: { shrink: true } }}
                 sx={{ flex: 1 }}
               />

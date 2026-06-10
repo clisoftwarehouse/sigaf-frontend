@@ -183,6 +183,7 @@ export type GoodsReceipt = {
   receiptDate: string;
   receiptType: ReceiptType;
   supplierInvoiceNumber: string | null;
+  supplierControlNumber: string | null;
   notes: string | null;
   subtotalUsd: number | string;
   totalDiscountUsd: number | string;
@@ -246,6 +247,7 @@ export type CreateGoodsReceiptPayload = {
   branchId: string;
   supplierId: string;
   supplierInvoiceNumber?: string;
+  supplierControlNumber?: string;
   receiptType?: ReceiptType;
   taxPct?: number;
   igtfPct?: number;

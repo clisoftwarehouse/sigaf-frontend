@@ -18,41 +18,73 @@ import LinearProgress from '@mui/material/LinearProgress';
 import { Iconify } from '@/app/components/iconify';
 
 import { useLibroCompras } from '../../api/libros-iva.queries';
-import { fmtUsd, fmtDate, downloadCsv } from '../../model/format';
+import { fmtBs, fmtUsd, fmtDate, fmtRate, exportPdf, exportXlsx } from '../../model/format';
 
 export function LibroComprasView({ period, branchId }: { period: LibroPeriod; branchId?: string }) {
   const { data, isLoading, isError, error } = useLibroCompras(period.year, period.month, branchId);
 
-  const handleExport = () => {
-    if (!data) return;
-    const headers = [
-      'Fecha',
-      'Factura',
-      'Nº Control',
-      'RIF Proveedor',
-      'Proveedor',
-      'Exentas USD',
-      'Base 16% USD',
-      'IVA (Crédito) USD',
-      'Total USD',
-      'Total Bs',
-      'Genera Crédito',
-    ];
-    const rows = data.rows.map((r) => [
+  const fileBase = `libro-compras-${period.year}-${String(period.month).padStart(2, '0')}`;
+  const headers = [
+    'Fecha',
+    'Factura',
+    'Nº Control',
+    'RIF Proveedor',
+    'Proveedor',
+    'Tasa BCV',
+    'Exentas Bs',
+    'Base 16% Bs',
+    'IVA Crédito Bs',
+    'Total Bs',
+    'Total USD (ref)',
+    'Genera Crédito',
+  ];
+
+  const buildRows = (): (string | number)[][] => {
+    if (!data) return [];
+    return data.rows.map((r) => [
       fmtDate(r.date),
       r.documentNumber ?? '',
       r.controlNumber ?? '',
       r.supplierRif,
       r.supplierName,
-      fmtUsd(r.exemptUsd),
-      fmtUsd(r.taxableBaseUsd),
-      fmtUsd(r.vatUsd),
+      fmtRate(r.exchangeRate),
+      fmtBs(r.exemptBs),
+      fmtBs(r.taxableBaseBs),
+      fmtBs(r.vatBs),
+      fmtBs(r.totalBs),
       fmtUsd(r.totalUsd),
-      fmtUsd(r.totalBs),
       r.generatesCredit ? 'Sí' : `No (${r.complianceWarnings.join('; ')})`,
     ]);
-    downloadCsv(`libro-compras-${period.year}-${String(period.month).padStart(2, '0')}.csv`, headers, rows);
   };
+
+  const footerRow = (): (string | number)[] => {
+    if (!data) return [];
+    return [
+      'RESUMEN',
+      '',
+      '',
+      '',
+      `${data.resumen.totalOperations} facturas`,
+      '',
+      fmtBs(data.resumen.totalExemptBs),
+      fmtBs(data.resumen.totalTaxableBaseBs),
+      fmtBs(data.resumen.totalVatBs),
+      fmtBs(data.resumen.totalBs),
+      fmtUsd(data.resumen.totalUsd),
+      '',
+    ];
+  };
+
+  const handleExcel = () => exportXlsx(`${fileBase}.xlsx`, 'Libro Compras', headers, [...buildRows(), footerRow()]);
+  const handlePdf = () =>
+    exportPdf(
+      `${fileBase}.pdf`,
+      'Libro de Compras — IVA',
+      `Período ${data?.period.label ?? ''} · Montos en Bolívares (Bs.)`,
+      headers,
+      buildRows(),
+      footerRow(),
+    );
 
   if (isLoading) return <LinearProgress />;
   if (isError) return <Alert severity="error">{(error as Error)?.message ?? 'Error'}</Alert>;
@@ -62,17 +94,30 @@ export function LibroComprasView({ period, branchId }: { period: LibroPeriod; br
     <Stack spacing={2}>
       <Stack direction="row" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={1}>
         <Typography variant="body2" color="text.secondary">
-          Período <strong>{data.period.label}</strong> · {data.resumen.totalOperations} facturas
+          Período <strong>{data.period.label}</strong> · {data.resumen.totalOperations} facturas ·
+          montos en <strong>Bolívares</strong>
         </Typography>
-        <Button
-          variant="outlined"
-          size="small"
-          startIcon={<Iconify icon="solar:export-bold" />}
-          onClick={handleExport}
-          disabled={data.rows.length === 0}
-        >
-          Exportar CSV
-        </Button>
+        <Stack direction="row" spacing={1}>
+          <Button
+            variant="outlined"
+            size="small"
+            startIcon={<Iconify icon="solar:file-text-bold" />}
+            onClick={handleExcel}
+            disabled={data.rows.length === 0}
+          >
+            Excel
+          </Button>
+          <Button
+            variant="outlined"
+            size="small"
+            color="error"
+            startIcon={<Iconify icon="solar:file-corrupted-bold-duotone" />}
+            onClick={handlePdf}
+            disabled={data.rows.length === 0}
+          >
+            PDF
+          </Button>
+        </Stack>
       </Stack>
 
       {data.nonDeductibleVatUsd > 0 && (
@@ -95,20 +140,18 @@ export function LibroComprasView({ period, branchId }: { period: LibroPeriod; br
                   <TableCell>Factura</TableCell>
                   <TableCell>RIF</TableCell>
                   <TableCell>Proveedor</TableCell>
-                  <TableCell align="right">Exentas</TableCell>
-                  <TableCell align="right">Base 16%</TableCell>
-                  <TableCell align="right">IVA Crédito</TableCell>
+                  <TableCell align="right">Tasa</TableCell>
+                  <TableCell align="right">Exentas Bs</TableCell>
+                  <TableCell align="right">Base 16% Bs</TableCell>
+                  <TableCell align="right">IVA Bs</TableCell>
+                  <TableCell align="right">Total Bs</TableCell>
                   <TableCell align="right">Total USD</TableCell>
-                  <TableCell align="center">Crédito</TableCell>
+                  <TableCell align="center">Créd.</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {data.rows.map((r, idx) => (
-                  <TableRow
-                    key={idx}
-                    hover
-                    sx={{ bgcolor: r.generatesCredit ? undefined : 'error.lighter' }}
-                  >
+                  <TableRow key={idx} hover sx={{ bgcolor: r.generatesCredit ? undefined : 'error.lighter' }}>
                     <TableCell>{fmtDate(r.date)}</TableCell>
                     <TableCell sx={{ fontFamily: 'monospace', fontSize: '0.78rem' }}>
                       {r.documentNumber ?? '—'}
@@ -121,21 +164,27 @@ export function LibroComprasView({ period, branchId }: { period: LibroPeriod; br
                     <TableCell sx={{ fontFamily: 'monospace', fontSize: '0.78rem' }}>
                       {r.supplierRif}
                     </TableCell>
-                    <TableCell sx={{ maxWidth: 200 }}>
+                    <TableCell sx={{ maxWidth: 180 }}>
                       <Typography variant="body2" noWrap title={r.supplierName}>
                         {r.supplierName}
                       </Typography>
                     </TableCell>
-                    <TableCell align="right" sx={{ fontFamily: 'monospace' }}>
-                      {fmtUsd(r.exemptUsd)}
+                    <TableCell align="right" sx={{ fontFamily: 'monospace', fontSize: '0.75rem' }}>
+                      {fmtRate(r.exchangeRate)}
                     </TableCell>
                     <TableCell align="right" sx={{ fontFamily: 'monospace' }}>
-                      {fmtUsd(r.taxableBaseUsd)}
+                      {fmtBs(r.exemptBs)}
                     </TableCell>
                     <TableCell align="right" sx={{ fontFamily: 'monospace' }}>
-                      {fmtUsd(r.vatUsd)}
+                      {fmtBs(r.taxableBaseBs)}
+                    </TableCell>
+                    <TableCell align="right" sx={{ fontFamily: 'monospace' }}>
+                      {fmtBs(r.vatBs)}
                     </TableCell>
                     <TableCell align="right" sx={{ fontFamily: 'monospace', fontWeight: 700 }}>
+                      {fmtBs(r.totalBs)}
+                    </TableCell>
+                    <TableCell align="right" sx={{ fontFamily: 'monospace', color: 'text.disabled' }}>
                       {fmtUsd(r.totalUsd)}
                     </TableCell>
                     <TableCell align="center">
@@ -154,17 +203,20 @@ export function LibroComprasView({ period, branchId }: { period: LibroPeriod; br
               </TableBody>
               <TableFooter>
                 <TableRow sx={{ '& td': { fontWeight: 700, bgcolor: 'action.hover' } }}>
-                  <TableCell colSpan={4}>RESUMEN DEL PERÍODO</TableCell>
+                  <TableCell colSpan={5}>RESUMEN DEL PERÍODO</TableCell>
                   <TableCell align="right" sx={{ fontFamily: 'monospace' }}>
-                    {fmtUsd(data.resumen.totalExemptUsd)}
+                    {fmtBs(data.resumen.totalExemptBs)}
                   </TableCell>
                   <TableCell align="right" sx={{ fontFamily: 'monospace' }}>
-                    {fmtUsd(data.resumen.totalTaxableBaseUsd)}
+                    {fmtBs(data.resumen.totalTaxableBaseBs)}
                   </TableCell>
                   <TableCell align="right" sx={{ fontFamily: 'monospace' }}>
-                    {fmtUsd(data.resumen.totalVatUsd)}
+                    {fmtBs(data.resumen.totalVatBs)}
                   </TableCell>
                   <TableCell align="right" sx={{ fontFamily: 'monospace' }}>
+                    {fmtBs(data.resumen.totalBs)}
+                  </TableCell>
+                  <TableCell align="right" sx={{ fontFamily: 'monospace', color: 'text.disabled' }}>
                     {fmtUsd(data.resumen.totalUsd)}
                   </TableCell>
                   <TableCell />
