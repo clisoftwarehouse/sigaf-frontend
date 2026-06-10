@@ -57,7 +57,7 @@ export function AccountsPayableListView() {
   return (
     <>
       <Grid container spacing={2} sx={{ mb: 2 }}>
-        <Grid size={{ xs: 12, md: 4 }}>
+        <Grid size={{ xs: 12, md: 6 }}>
           <Card sx={{ p: 2 }}>
             <Typography variant="caption" color="text.secondary">
               Total abierto
@@ -70,7 +70,7 @@ export function AccountsPayableListView() {
             </Typography>
           </Card>
         </Grid>
-        <Grid size={{ xs: 12, md: 4 }}>
+        <Grid size={{ xs: 12, md: 6 }}>
           <Card sx={{ p: 2 }}>
             <Typography variant="caption" color="text.secondary">
               Total vencido
@@ -80,17 +80,6 @@ export function AccountsPayableListView() {
             </Typography>
             <Typography variant="caption" color="text.disabled">
               {aging?.totalOverdueCount ?? 0} cuentas vencidas
-            </Typography>
-          </Card>
-        </Grid>
-        <Grid size={{ xs: 12, md: 4 }}>
-          <Card sx={{ p: 2, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-            <Typography variant="caption" color="text.secondary">
-              Tip
-            </Typography>
-            <Typography variant="body2" sx={{ mt: 0.5 }}>
-              Click en un bucket para filtrar la tabla. Recepciones aprobadas crean CxP
-              automáticamente.
             </Typography>
           </Card>
         </Grid>
