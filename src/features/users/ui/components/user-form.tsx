@@ -15,6 +15,7 @@ import Typography from '@mui/material/Typography';
 import { FormFooter } from '@/shared/ui/form-footer';
 import { Form, Field } from '@/app/components/hook-form';
 import { useRolesQuery } from '@/features/roles/api/roles.queries';
+import { useBranchOptions } from '@/features/branches/api/branches.options';
 
 // ----------------------------------------------------------------------
 
@@ -51,6 +52,7 @@ export const CreateUserSchema = z.object({
   email: optionalEmail,
   phone: optionalPhone,
   roleId: z.string().optional().or(z.literal('')),
+  authorizedBranchIds: z.array(z.string()),
 });
 
 export const UpdateUserSchema = z.object({
@@ -64,6 +66,7 @@ export const UpdateUserSchema = z.object({
   email: optionalEmail,
   phone: optionalPhone,
   roleId: z.string().optional().or(z.literal('')),
+  authorizedBranchIds: z.array(z.string()),
   isActive: z.boolean(),
 });
 
@@ -89,16 +92,33 @@ type EditProps = {
 
 export function UserForm(props: CreateProps | EditProps) {
   const { data: roles = [], isLoading: loadingRoles } = useRolesQuery();
+  const { data: branchOpts = [] } = useBranchOptions();
+  const branchOptions = branchOpts.map((b) => ({ value: b.id, label: b.label }));
 
   if (props.mode === 'create') {
-    return <CreateUserForm {...props} roles={roles} loadingRoles={loadingRoles} />;
+    return (
+      <CreateUserForm
+        {...props}
+        roles={roles}
+        loadingRoles={loadingRoles}
+        branchOptions={branchOptions}
+      />
+    );
   }
-  return <EditUserForm {...props} roles={roles} loadingRoles={loadingRoles} />;
+  return (
+    <EditUserForm
+      {...props}
+      roles={roles}
+      loadingRoles={loadingRoles}
+      branchOptions={branchOptions}
+    />
+  );
 }
 
 // ----------------------------------------------------------------------
 
 type RoleOption = { id: string; name?: string };
+type BranchOption = { value: string; label: string };
 
 function CreateUserForm({
   submitting,
@@ -106,7 +126,8 @@ function CreateUserForm({
   onCancel,
   roles,
   loadingRoles,
-}: CreateProps & { roles: RoleOption[]; loadingRoles: boolean }) {
+  branchOptions,
+}: CreateProps & { roles: RoleOption[]; loadingRoles: boolean; branchOptions: BranchOption[] }) {
   const methods = useForm<CreateUserFormValues>({
     mode: 'onBlur',
     resolver: zodResolver(CreateUserSchema),
@@ -118,6 +139,7 @@ function CreateUserForm({
       email: '',
       phone: '',
       roleId: '',
+      authorizedBranchIds: [],
     },
   });
 
@@ -130,6 +152,7 @@ function CreateUserForm({
       email: values.email?.trim() || null,
       phone: values.phone?.trim() || null,
       role: values.roleId ? { id: values.roleId } : null,
+      authorizedBranchIds: values.authorizedBranchIds,
     });
   });
 
@@ -197,6 +220,12 @@ function CreateUserForm({
             ))}
           </Field.Select>
 
+          <Field.MultiSelect
+            name="authorizedBranchIds"
+            label="Sucursales autorizadas"
+            options={branchOptions}
+            helperText="Sucursales donde puede iniciar sesión (POS). Vacío = todas."
+          />
         </Stack>
       </Card>
 
@@ -223,7 +252,8 @@ function EditUserForm({
   onCancel,
   roles,
   loadingRoles,
-}: EditProps & { roles: RoleOption[]; loadingRoles: boolean }) {
+  branchOptions,
+}: EditProps & { roles: RoleOption[]; loadingRoles: boolean; branchOptions: BranchOption[] }) {
   const methods = useForm<UpdateUserFormValues>({
     mode: 'onBlur',
     resolver: zodResolver(UpdateUserSchema),
@@ -234,6 +264,7 @@ function EditUserForm({
       email: current.email ?? '',
       phone: current.phone ?? '',
       roleId: current.role?.id ?? '',
+      authorizedBranchIds: current.authorizedBranches?.map((b) => b.id) ?? [],
       isActive: current.isActive,
     },
   });
@@ -246,6 +277,7 @@ function EditUserForm({
       email: current.email ?? '',
       phone: current.phone ?? '',
       roleId: current.role?.id ?? '',
+      authorizedBranchIds: current.authorizedBranches?.map((b) => b.id) ?? [],
       isActive: current.isActive,
     });
   }, [current, methods]);
@@ -258,6 +290,7 @@ function EditUserForm({
       email: values.email?.trim() || null,
       phone: values.phone?.trim() || null,
       role: values.roleId ? { id: values.roleId } : null,
+      authorizedBranchIds: values.authorizedBranchIds,
       isActive: values.isActive,
     });
   });
@@ -314,6 +347,13 @@ function EditUserForm({
               </MenuItem>
             ))}
           </Field.Select>
+
+          <Field.MultiSelect
+            name="authorizedBranchIds"
+            label="Sucursales autorizadas"
+            options={branchOptions}
+            helperText="Sucursales donde puede iniciar sesión (POS). Vacío = todas."
+          />
 
           <Divider sx={{ borderStyle: 'dashed' }} />
 

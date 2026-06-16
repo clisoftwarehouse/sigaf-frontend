@@ -17,6 +17,8 @@ export type SigafUser = {
    * usuario recién creado sin rol). Se refresca con cada hidratación de /me.
    */
   permissions?: string[];
+  /** Sucursales donde puede iniciar sesión (vacío/ausente = todas). QA 153. */
+  authorizedBranches?: { id: string; name?: string }[];
   isActive: boolean;
   lastLoginAt?: string | null;
   createdAt?: string;
@@ -31,6 +33,7 @@ export type CreateUserPayload = {
   email?: string | null;
   phone?: string | null;
   role?: { id: string } | null;
+  authorizedBranchIds?: string[];
 };
 
 export type UpdateUserPayload = {
@@ -41,6 +44,7 @@ export type UpdateUserPayload = {
   phone?: string | null;
   role?: { id: string } | null;
   isActive?: boolean;
+  authorizedBranchIds?: string[];
 };
 
 export type UserFilters = {
