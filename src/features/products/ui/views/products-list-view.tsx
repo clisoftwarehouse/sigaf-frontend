@@ -120,14 +120,14 @@ export function ProductsListView() {
         renderCell: ({ row }) => (
           <Box>
             <Stack direction="row" alignItems="center" spacing={1}>
-              <Typography variant="subtitle2">
-                {displayName(row.shortName ?? row.description)}
-              </Typography>
+              {/* Principal = nombre genérico autogenerado (QA 139). El nombre
+                  comercial va de subtítulo. */}
+              <Typography variant="subtitle2">{displayName(row.description)}</Typography>
               {!row.isActive && <Chip size="small" variant="outlined" label="Inactivo" />}
             </Stack>
             {row.shortName && (
               <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                {displayName(row.description)}
+                {displayName(row.shortName)}
               </Typography>
             )}
           </Box>
