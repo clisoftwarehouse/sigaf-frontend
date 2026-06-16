@@ -20,12 +20,9 @@ import Divider from '@mui/material/Divider';
 import MenuItem from '@mui/material/MenuItem';
 import Checkbox from '@mui/material/Checkbox';
 import TextField from '@mui/material/TextField';
-import Accordion from '@mui/material/Accordion';
 import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
 import Autocomplete from '@mui/material/Autocomplete';
-import AccordionDetails from '@mui/material/AccordionDetails';
-import AccordionSummary from '@mui/material/AccordionSummary';
 import FormControlLabel from '@mui/material/FormControlLabel';
 
 import { Iconify } from '@/app/components/iconify';
@@ -341,7 +338,6 @@ function composeProductName(input: {
 
   const dosage = (input.dosageForm || '').toUpperCase();
   const pkg = (input.packaging || '').toUpperCase();
-  const commercial = (input.commercialName || '').toUpperCase();
   const brand = (input.brandName || '').toUpperCase();
 
   const parts: string[] = [];
@@ -352,14 +348,12 @@ function composeProductName(input: {
     if (line) parts.push(line);
     if (variant) parts.push(variant);
     if (pkg) parts.push(pkg);
-  } else if (commercial) {
-    // Médico con nombre comercial: comercial + activos + forma + empaque
-    parts.push(commercial);
-    if (activos) parts.push(activos);
-    if (dosage) parts.push(dosage);
-    if (pkg) parts.push(pkg);
   } else {
-    // Médico genérico (sin nombre comercial): activos + forma + lab + empaque
+    // Médico: SIEMPRE formato genérico autogenerado — activo(s) + concentración
+    // + forma + laboratorio + empaque. El nombre comercial (shortName) NO
+    // encabeza el nombre del producto; se guarda aparte. Así todos los
+    // productos quedan consistentes (ej. "Rivotril" → "CLONAZEPAM 2MG
+    // COMPRIMIDO ROCHE …") en vez de aparecer con la marca.
     if (activos) parts.push(activos);
     if (dosage) parts.push(dosage);
     if (brand) parts.push(brand);
@@ -509,7 +503,16 @@ export function ProductForm({
       presentation: presentation || undefined,
       categoryId: values.categoryId,
       brandId: values.brandId || undefined,
-      productType: values.productType,
+      // El tipo debe ser CONSISTENTE con la condición de venta (antes quedaba
+      // siempre 'otc' para medicamentos aunque fueran controlados/con récipe).
+      // Para consumo masivo se respeta el tipo elegido (miscelláneos/víveres…).
+      productType: isConsumer
+        ? values.productType
+        : values.isControlled
+          ? 'controlled'
+          : values.requiresRecipe
+            ? 'pharmaceutical'
+            : 'otc',
       taxType: values.taxType,
       isControlled: values.isControlled,
       isAntibiotic: values.isAntibiotic,
@@ -866,6 +869,15 @@ export function ProductForm({
                   />
                 </Stack>
 
+                {/* "Antibiótico" vive en la sección médica (sujeto a control de
+                   resistencia antimicrobiana). El resto de la "configuración
+                   avanzada" se quitó (QA 136). */}
+                <Field.Switch
+                  name="isAntibiotic"
+                  label="Antibiótico"
+                  helperText="Sujeto a control de resistencia antimicrobiana."
+                />
+
                 {/* Composición Farmacológica (principios activos):
                    - En CREATE: usamos field array embebido (los principios
                      viajan junto al POST del producto).
@@ -1097,17 +1109,20 @@ export function ProductForm({
                     control={control}
                     render={({ field }) => (
                       <Autocomplete
+                        freeSolo
                         fullWidth
                         options={DOSAGE_FORM_OPTIONS.map((o) => o.value)}
-                        value={field.value || null}
+                        value={field.value || ''}
                         onChange={(_e, next) => field.onChange(next ?? '')}
+                        onInputChange={(_e, next) => field.onChange(next)}
                         getOptionLabel={(opt) => opt}
                         isOptionEqualToValue={(a, b) => a === b}
                         renderInput={(params) => (
                           <TextField
                             {...params}
-                            label="Selecciona la forma"
-                            placeholder="Buscar forma farmacéutica…"
+                            label="Selecciona o escribe la forma"
+                            placeholder="Buscar o escribir forma farmacéutica…"
+                            helperText="Si no está en la lista, escríbela."
                             slotProps={{ inputLabel: { shrink: true } }}
                           />
                         )}
@@ -1139,9 +1154,11 @@ export function ProductForm({
                     control={control}
                     render={({ field }) => (
                       <Autocomplete
+                        freeSolo
                         options={PACKAGING_TYPE_OPTIONS.map((o) => o.value)}
-                        value={field.value || null}
+                        value={field.value || ''}
                         onChange={(_e, next) => field.onChange(next ?? '')}
+                        onInputChange={(_e, next) => field.onChange(next)}
                         getOptionLabel={(opt) => opt}
                         isOptionEqualToValue={(a, b) => a === b}
                         sx={{ flex: 1, minWidth: 160 }}
@@ -1149,7 +1166,7 @@ export function ProductForm({
                           <TextField
                             {...params}
                             label="Tipo"
-                            placeholder="Buscar tipo…"
+                            placeholder="Buscar o escribir tipo…"
                             slotProps={{ inputLabel: { shrink: true } }}
                           />
                         )}
@@ -1182,97 +1199,6 @@ export function ProductForm({
               </Box>
             </Stack>
           </Box>
-
-          {/* ──────────────── Configuración avanzada (colapsable) ──────────────── */}
-          <Accordion
-            disableGutters
-            sx={{
-              bgcolor: 'background.neutral',
-              '&::before': { display: 'none' },
-              boxShadow: 'none',
-              border: (theme) => `solid 1px ${theme.vars.palette.divider}`,
-              borderRadius: 1,
-              // El theme global pone padding lateral 0 en summary/details cuando
-              // disableGutters está activo. Lo restauramos para esta sección.
-              '& .MuiAccordionSummary-root': { px: 2.5, py: 1, minHeight: 56 },
-              '& .MuiAccordionDetails-root': { px: 2.5, pt: 1, pb: 2.5 },
-            }}
-          >
-            <AccordionSummary expandIcon={<Iconify icon="eva:arrow-ios-downward-fill" />}>
-              <Typography variant="subtitle2">Configuración avanzada</Typography>
-              <Typography
-                variant="caption"
-                sx={{ color: 'text.secondary', ml: 1.5, alignSelf: 'center' }}
-              >
-                PMVP, regulación, stock
-              </Typography>
-            </AccordionSummary>
-            <AccordionDetails>
-              <Stack spacing={2.5} sx={{ pt: 1 }}>
-                <Field.Text
-                  name="pmvp"
-                  label="PMVP — Precio Máximo de Venta al Público (opcional)"
-                  placeholder="Ej. 5.50"
-                  helperText="Regulado por SUNDDE para medicamentos."
-                  slotProps={{ inputLabel: { shrink: true } }}
-                />
-                <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700 }}>
-                  Regulación
-                </Typography>
-                <Stack spacing={1}>
-                  {/* QA #95: el flag "isControlled" pasa a manejarse desde
-                     el selector de "Condición de venta" en la sección
-                     médica. Aquí dejamos solo flags ortogonales (antibiótico
-                     y producto importado). */}
-                  <Field.Switch
-                    name="isAntibiotic"
-                    label="Antibiótico"
-                    helperText="Sujeto a control de resistencia antimicrobiana."
-                  />
-                  <Field.Switch
-                    name="isImported"
-                    label="Producto importado"
-                    helperText="Puede activar aprobación especial en OCs."
-                  />
-                </Stack>
-                <Divider sx={{ borderStyle: 'dashed' }} />
-                <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700 }}>
-                  Inventario
-                </Typography>
-                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-                  <Field.Text
-                    name="stockMin"
-                    label="Stock mínimo"
-                    placeholder="Ej. 10"
-                    slotProps={{ inputLabel: { shrink: true } }}
-                    sx={{ flex: 1 }}
-                  />
-                  <Field.Text
-                    name="stockMax"
-                    label="Stock máximo (opcional)"
-                    slotProps={{ inputLabel: { shrink: true } }}
-                    sx={{ flex: 1 }}
-                  />
-                </Stack>
-                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-                  <Field.Text
-                    name="reorderPoint"
-                    label="Punto de reorden"
-                    placeholder="Ej. 20"
-                    slotProps={{ inputLabel: { shrink: true } }}
-                    sx={{ flex: 1 }}
-                  />
-                  <Field.Text
-                    name="leadTimeDays"
-                    label="Lead time (días)"
-                    placeholder="Ej. 3"
-                    slotProps={{ inputLabel: { shrink: true } }}
-                    sx={{ flex: 1 }}
-                  />
-                </Stack>
-              </Stack>
-            </AccordionDetails>
-          </Accordion>
 
           {/* -------- Códigos de barras (solo create) -------- */}
           {!isEdit && (
