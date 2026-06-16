@@ -29,6 +29,7 @@ import { PageHeader } from '@/shared/ui/page-header';
 import { DataTable } from '@/app/components/data-table';
 import { useBranchOptions } from '@/features/branches/api/branches.options';
 import { useProductOptions } from '@/features/products/api/products.options';
+import { useWarehouseOptions } from '@/features/warehouses/api/warehouses.options';
 
 import { COUNT_TYPE_LABEL, COUNT_STATUS_COLOR, COUNT_STATUS_LABEL } from '../../model/counts-types';
 import {
@@ -66,6 +67,11 @@ export function CountDetailView() {
   const branchName = useMemo(
     () => branchOpts.find((b) => b.id === count?.branchId)?.label ?? count?.branchId ?? '—',
     [branchOpts, count]
+  );
+  const { data: warehouseOpts = [] } = useWarehouseOptions();
+  const warehouseNameById = useMemo(
+    () => new Map((warehouseOpts ?? []).map((o) => [o.id, o.label] as const)),
+    [warehouseOpts]
   );
 
   const [approveOpen, setApproveOpen] = useState(false);
@@ -196,6 +202,14 @@ export function CountDetailView() {
           (productNameById.get(a) ?? '').localeCompare(productNameById.get(b) ?? ''),
       },
       {
+        field: 'locationId',
+        headerName: 'Almacén',
+        flex: 1,
+        minWidth: 150,
+        valueGetter: (value: string | null) =>
+          value ? (warehouseNameById.get(value) ?? value) : '—',
+      },
+      {
         field: 'expectedLotNumber',
         headerName: 'Lote esperado',
         flex: 1,
@@ -272,7 +286,7 @@ export function CountDetailView() {
           ) : null,
       },
     ],
-    [productNameById, canEditItems]
+    [productNameById, warehouseNameById, canEditItems]
   );
 
   return (

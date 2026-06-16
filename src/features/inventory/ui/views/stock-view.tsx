@@ -21,6 +21,7 @@ import { PageHeader } from '@/shared/ui/page-header';
 import { useBranchOptions } from '@/features/branches/api/branches.options';
 import { useProductOptions } from '@/features/products/api/products.options';
 import { DataTable, createFkFilterOperators } from '@/app/components/data-table';
+import { useWarehouseOptions } from '@/features/warehouses/api/warehouses.options';
 
 import { useStockQuery } from '../../api/inventory.queries';
 import { LotPickerDialog } from '../components/lot-picker-dialog';
@@ -31,6 +32,7 @@ import { AdjustmentDialog } from '../components/adjustment-dialog';
 type StockRow = {
   productId: string;
   branchId: string;
+  locationId?: string | null;
   totalQuantity: number | string;
   quantityReserved?: number | string | null;
   lotCount: number;
@@ -47,6 +49,7 @@ export function StockView() {
   const [adjustmentLot, setAdjustmentLot] = useState<InventoryLot | null>(null);
 
   const { data, isLoading, isError, error, refetch } = useStockQuery({
+    byLocation: true,
     page: 1,
     limit: 1000,
   });
@@ -54,9 +57,14 @@ export function StockView() {
 
   const { data: branchOpts = [] } = useBranchOptions();
   const { data: productOpts = [] } = useProductOptions();
+  const { data: warehouseOpts = [] } = useWarehouseOptions();
   const branchNameById = useMemo(
     () => new Map(branchOpts.map((o) => [o.id, o.label] as const)),
     [branchOpts]
+  );
+  const warehouseNameById = useMemo(
+    () => new Map((warehouseOpts ?? []).map((o) => [o.id, o.label] as const)),
+    [warehouseOpts]
   );
   const productNameById = useMemo(
     () => new Map(productOpts.map((o) => [o.id, o.label] as const)),
@@ -73,7 +81,7 @@ export function StockView() {
   );
 
   const rowsWithId = useMemo(
-    () => rows.map((r) => ({ ...r, id: `${r.productId}-${r.branchId}` })),
+    () => rows.map((r) => ({ ...r, id: `${r.productId}-${r.branchId}-${r.locationId ?? 'none'}` })),
     [rows]
   );
 
@@ -107,6 +115,20 @@ export function StockView() {
         valueFormatter: (value: string) => branchNameById.get(value) ?? value,
         sortComparator: (a, b) =>
           (branchNameById.get(a) ?? '').localeCompare(branchNameById.get(b) ?? ''),
+      },
+      {
+        field: 'locationId',
+        headerName: 'Almacén',
+        flex: 1.5,
+        minWidth: 160,
+        renderCell: ({ row }) =>
+          row.locationId ? (
+            (warehouseNameById.get(row.locationId) ?? row.locationId)
+          ) : (
+            <Typography variant="body2" sx={{ color: 'text.disabled' }}>
+              Sin almacén
+            </Typography>
+          ),
       },
       {
         field: 'totalQuantity',
@@ -207,14 +229,21 @@ export function StockView() {
         ),
       },
     ],
-    [router, branchFilterOperators, productFilterOperators, branchNameById, productNameById]
+    [
+      router,
+      branchFilterOperators,
+      productFilterOperators,
+      branchNameById,
+      warehouseNameById,
+      productNameById,
+    ]
   );
 
   return (
     <Container maxWidth="xl">
       <PageHeader
         title="Stock agregado"
-        subtitle="Totales por producto y sucursal sumando todos los lotes disponibles."
+        subtitle="Existencia por producto, sucursal y almacén sumando los lotes disponibles."
         crumbs={[{ label: 'Inventario' }, { label: 'Stock' }]}
       />
 

@@ -25,6 +25,7 @@ type KardexRow = {
   id: string;
   productId: string;
   branchId: string;
+  locationName?: string | null;
   movementType: string;
   quantity: number | string;
   balanceAfter: number | string;
@@ -96,6 +97,13 @@ export function KardexView() {
         valueFormatter: (value: string) => branchNameById.get(value) ?? value,
         sortComparator: (a, b) =>
           (branchNameById.get(a) ?? '').localeCompare(branchNameById.get(b) ?? ''),
+      },
+      {
+        field: 'locationName',
+        headerName: 'Almacén',
+        flex: 1.2,
+        minWidth: 150,
+        valueGetter: (value: string | null | undefined) => value ?? '—',
       },
       {
         field: 'movementType',

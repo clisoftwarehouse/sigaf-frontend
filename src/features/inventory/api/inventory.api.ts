@@ -56,6 +56,8 @@ export async function fetchStock(
   const params: Record<string, string> = {};
   if (filters.productId) params.productId = filters.productId;
   if (filters.branchId) params.branchId = filters.branchId;
+  if (filters.locationId) params.locationId = filters.locationId;
+  if (filters.byLocation) params.byLocation = 'true';
   if (filters.categoryId) params.categoryId = filters.categoryId;
   if (filters.stockStatus) params.stockStatus = filters.stockStatus;
   params.page = String(filters.page ?? 1);

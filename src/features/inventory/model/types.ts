@@ -65,6 +65,8 @@ export type LotFilters = {
 export type StockSummary = {
   productId: string;
   branchId: string;
+  /** Presente sólo cuando se consulta con byLocation. QA 164. */
+  locationId?: string | null;
   totalQuantity: number;
   quantityReserved?: number;
   quantitySold?: number;
@@ -79,6 +81,8 @@ export type StockSummary = {
 export type StockFilters = {
   productId?: string;
   branchId?: string;
+  locationId?: string;
+  byLocation?: boolean;
   categoryId?: string;
   stockStatus?: StockStatus;
   page?: number;
@@ -115,6 +119,9 @@ export type KardexEntry = {
   userId: string;
   terminalId: string | null;
   createdAt: string;
+  /** Almacén del lote del movimiento (QA 164). */
+  locationId?: string | null;
+  locationName?: string | null;
 };
 
 export type KardexFilters = {

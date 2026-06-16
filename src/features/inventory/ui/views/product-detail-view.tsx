@@ -28,6 +28,7 @@ import { PRODUCT_TYPE_LABEL } from '@/features/products/model/constants';
 import { useProductQuery } from '@/features/products/api/products.queries';
 import { useBranchOptions } from '@/features/branches/api/branches.options';
 import { useCategoriesQuery } from '@/features/categories/api/categories.queries';
+import { useWarehouseOptions } from '@/features/warehouses/api/warehouses.options';
 
 import { AdjustmentDialog } from '../components/adjustment-dialog';
 import { QuarantineDialog } from '../components/quarantine-dialog';
@@ -67,6 +68,11 @@ export function InventoryProductDetailView() {
     () => new Map(branchOpts.map((o) => [o.id, o.label] as const)),
     [branchOpts]
   );
+  const { data: warehouseOpts = [] } = useWarehouseOptions();
+  const warehouseNameById = useMemo(
+    () => new Map((warehouseOpts ?? []).map((o) => [o.id, o.label] as const)),
+    [warehouseOpts]
+  );
 
   const categoryName = useMemo(
     () => (product ? (categories.find((c) => c.id === product.categoryId)?.name ?? '—') : '—'),
@@ -82,6 +88,95 @@ export function InventoryProductDetailView() {
   const branchRows = useMemo(
     () => branchBreakdown.map((r) => ({ ...r, id: `${r.productId}-${r.branchId}` })),
     [branchBreakdown]
+  );
+
+  // Existencia por almacén (warehouse_location): agrupamos los lotes
+  // disponibles (FEFO) por sucursal + almacén. Un nivel más fino que el
+  // desglose por sucursal. QA 164.
+  type LocationRow = {
+    id: string;
+    branchId: string;
+    locationId: string | null;
+    totalQuantity: number;
+    lotCount: number;
+    nearestExpiration: string | null;
+  };
+  const locationRows = useMemo<LocationRow[]>(() => {
+    const map = new Map<string, LocationRow>();
+    for (const lot of fefoLots) {
+      const key = `${lot.branchId}__${lot.locationId ?? 'none'}`;
+      const qty = Number(lot.quantityAvailable) || 0;
+      const existing = map.get(key);
+      if (existing) {
+        existing.totalQuantity += qty;
+        existing.lotCount += 1;
+        if (
+          lot.expirationDate &&
+          (!existing.nearestExpiration || lot.expirationDate < existing.nearestExpiration)
+        ) {
+          existing.nearestExpiration = lot.expirationDate;
+        }
+      } else {
+        map.set(key, {
+          id: key,
+          branchId: lot.branchId,
+          locationId: lot.locationId,
+          totalQuantity: qty,
+          lotCount: 1,
+          nearestExpiration: lot.expirationDate ?? null,
+        });
+      }
+    }
+    return Array.from(map.values());
+  }, [fefoLots]);
+
+  const locationColumns = useMemo<GridColDef<LocationRow>[]>(
+    () => [
+      {
+        field: 'branchId',
+        headerName: 'Sucursal',
+        flex: 1.5,
+        minWidth: 180,
+        valueFormatter: (value: string) => branchNameById.get(value) ?? value,
+      },
+      {
+        field: 'locationId',
+        headerName: 'Almacén',
+        flex: 1.5,
+        minWidth: 180,
+        renderCell: ({ row }) =>
+          row.locationId ? (
+            warehouseNameById.get(row.locationId) ?? row.locationId
+          ) : (
+            <Typography variant="body2" sx={{ color: 'text.disabled' }}>
+              Sin almacén
+            </Typography>
+          ),
+      },
+      {
+        field: 'totalQuantity',
+        headerName: 'Cantidad',
+        type: 'number',
+        flex: 1,
+        minWidth: 120,
+      },
+      {
+        field: 'lotCount',
+        headerName: 'Lotes',
+        type: 'number',
+        flex: 1,
+        minWidth: 100,
+      },
+      {
+        field: 'nearestExpiration',
+        headerName: 'Próximo vencimiento',
+        type: 'date',
+        flex: 1,
+        minWidth: 180,
+        valueGetter: (value: string | null) => (value ? new Date(value) : null),
+      },
+    ],
+    [branchNameById, warehouseNameById]
   );
 
   // Precios vigentes por sucursal (+ global). Cada fila calcula su propia
@@ -244,6 +339,20 @@ export function InventoryProductDetailView() {
         valueFormatter: (value: string) => branchNameById.get(value) ?? value,
       },
       {
+        field: 'locationId',
+        headerName: 'Almacén',
+        flex: 1.5,
+        minWidth: 160,
+        renderCell: ({ row }) =>
+          row.locationId ? (
+            warehouseNameById.get(row.locationId) ?? row.locationId
+          ) : (
+            <Typography variant="body2" sx={{ color: 'text.disabled' }}>
+              —
+            </Typography>
+          ),
+      },
+      {
         field: 'expirationDate',
         headerName: 'Vencimiento',
         type: 'date',
@@ -321,7 +430,7 @@ export function InventoryProductDetailView() {
         ),
       },
     ],
-    [branchNameById, router]
+    [branchNameById, warehouseNameById, router]
   );
 
   return (
@@ -467,6 +576,28 @@ export function InventoryProductDetailView() {
                 <DataTable
                   columns={branchColumns}
                   rows={branchRows}
+                  disableRowSelectionOnClick
+                  autoHeight
+                />
+              </Box>
+            </Card>
+          )}
+
+          {locationRows.length > 0 && (
+            <Card>
+              <Box sx={{ p: 2.5 }}>
+                <Typography variant="subtitle2" sx={{ color: 'text.secondary' }}>
+                  Stock por almacén
+                </Typography>
+                <Typography variant="caption" sx={{ color: 'text.disabled' }}>
+                  Existencia disponible desglosada por almacén (ubicación física) dentro de cada
+                  sucursal.
+                </Typography>
+              </Box>
+              <Box sx={{ width: '100%' }}>
+                <DataTable
+                  columns={locationColumns}
+                  rows={locationRows}
                   disableRowSelectionOnClick
                   autoHeight
                 />
