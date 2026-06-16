@@ -861,11 +861,15 @@ export function ReceiptCreateView() {
     // - OC con sobrante: "excess".
     // - OC con faltante: "expired" como punto de partida (operador puede
     //   cambiar a defectuoso, dañado, etc.).
-    const defaultReason: DiscrepancyReason = isAdditional
-      ? 'sample'
-      : isExcess
-        ? 'excess'
-        : 'expired';
+    // La razón por defecto depende de la DIRECCIÓN de la diferencia: si faltó
+    // mercancía (recibí menos que lo facturado) la causa es negativa; si sobró,
+    // positiva. Antes dependía de isAdditional, lo que ofrecía razones positivas
+    // (muestras/regalos) en faltantes (bug QA 151).
+    const defaultReason: DiscrepancyReason = isExcess
+      ? isAdditional
+        ? 'sample'
+        : 'excess'
+      : 'missing';
 
     return (
       <Box
@@ -951,7 +955,11 @@ export function ReceiptCreateView() {
                     slotProps={{ inputLabel: { shrink: true } }}
                     sx={{ flex: 1.5, minWidth: 220 }}
                   >
-                    {isAdditional
+                    {/* Las razones dependen de la DIRECCIÓN: sobrante → causas
+                        positivas (muestra/regalo/sustituto/sobrante); faltante
+                        → causas negativas. Antes dependía de isAdditional, lo
+                        que mostraba positivas en faltantes (bug QA 151). */}
+                    {isExcess
                       ? [
                           <MenuItem key="sample" value="sample">
                             Muestras
