@@ -2,8 +2,8 @@ import type { DiscrepancyReason, CreateGoodsReceiptPayload } from '../../model/t
 
 import * as z from 'zod';
 import { toast } from 'sonner';
-import { useQueries } from '@tanstack/react-query';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useQuery, useQueries } from '@tanstack/react-query';
 import { useRef, useMemo, useState, useEffect } from 'react';
 import { useForm, useWatch, useFieldArray } from 'react-hook-form';
 
@@ -29,6 +29,7 @@ import { useBranchesQuery } from '@/features/branches/api/branches.queries';
 import { useProductsQuery } from '@/features/products/api/products.queries';
 import { useConfigQuery } from '@/features/config-global/api/config.queries';
 import { useSuppliersQuery } from '@/features/suppliers/api/suppliers.queries';
+import { fetchSupplierProducts } from '@/features/suppliers/api/suppliers.api';
 import { useWarehousesQuery } from '@/features/warehouses/api/warehouses.queries';
 import { useLatestExchangeRateQuery } from '@/features/exchange-rates/api/exchange-rates.queries';
 
@@ -120,14 +121,8 @@ const ItemSchema = z
         });
       }
     }
-    // Productos adicionales (sin OC) deben declarar su causa.
-    if (!data.purchaseOrderId && Number(data.quantity) > 0 && !data.additionReason) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: 'Selecciona una causa',
-        path: ['additionReason'],
-      });
-    }
+    // QA 148: la causa de producto adicional es OPCIONAL (antes era obligatoria
+    // y aparecía en todos los productos de una recepción sin OC, confundiendo).
   });
 
 const ReceiptSchema = z
@@ -146,6 +141,8 @@ const ReceiptSchema = z
     headerDiscountPct: pctString,
     volumeDiscountPct: pctString,
     notes: z.string().max(500).optional().or(z.literal('')),
+    // QA 150: el almacén de compra es general para toda la recepción (cabecera).
+    headerLocationId: z.string().optional().or(z.literal('')),
     items: z.array(ItemSchema).min(1, { message: 'Agrega al menos un ítem' }),
     nativeCurrency: z.enum(['USD', 'VES']),
     // Strings (los inputs trabajan con texto) — convertimos a number en submit.
@@ -237,6 +234,7 @@ export function ReceiptCreateView() {
       headerDiscountPct: '',
       volumeDiscountPct: '',
       notes: '',
+      headerLocationId: '',
       // Vacío por default: el usuario debe explícitamente "Agregar ítem" o
       // seleccionar una OC. Evita la fricción de tener que eliminar una fila
       // vacía que nadie pidió.
@@ -252,6 +250,24 @@ export function ReceiptCreateView() {
   const selectedBranchId = watch('branchId');
   const selectedSupplierId = watch('supplierId');
   const selectedOrderIds = watch('purchaseOrderIds');
+
+  // QA 147: si el proveedor tiene catálogo (supplier_products), el buscador de
+  // producto se limita a ese catálogo; si no hay catálogo configurado, se
+  // muestran todos (no bloquear la recepción de sustitutos/adicionales).
+  const { data: supplierCatalog = [] } = useQuery({
+    queryKey: ['supplier-products', selectedSupplierId],
+    queryFn: () => fetchSupplierProducts(selectedSupplierId),
+    enabled: Boolean(selectedSupplierId),
+  });
+  const catalogProductIds = useMemo(
+    () => new Set(supplierCatalog.map((sp) => sp.productId)),
+    [supplierCatalog]
+  );
+  const selectableProducts = useMemo(
+    () =>
+      catalogProductIds.size > 0 ? products.filter((p) => catalogProductIds.has(p.id)) : products,
+    [products, catalogProductIds]
+  );
 
   // Cuando llega la config global, llenamos IGTF (si aún está vacío —
   // respetamos override manual). IVA NO se setea aquí: se calcula como
@@ -509,7 +525,8 @@ export function ReceiptCreateView() {
         discountPct: i.discountPct ? Number(i.discountPct) : undefined,
         // El precio de venta NO se fija desde la recepción: lo gestiona el
         // módulo de Precios. El backend acepta el campo undefined.
-        locationId: i.locationId || undefined,
+        // QA 150: el almacén es general (cabecera) y se aplica a cada ítem.
+        locationId: values.headerLocationId || undefined,
         // Solo para productos adicionales (sin OC): la causa que justifica
         // que llegue fuera de OC. El backend rechaza la recepción si falta.
         additionReason:
@@ -1094,7 +1111,7 @@ export function ReceiptCreateView() {
                 label="Producto"
                 placeholder="Buscar producto…"
                 disabled={fromOrder}
-                options={products.map((p) => ({
+                options={selectableProducts.map((p) => ({
                   id: p.id,
                   label: p.shortName ?? p.description,
                   secondaryLabel: p.internalCode ?? null,
@@ -1296,19 +1313,8 @@ export function ReceiptCreateView() {
                  único lugar donde el operador puede justificar QUÉ pasó
                  (vencido, dañado, etc.) y disparar el reclamo automático. */}
               <Box sx={{ opacity: 1 }}>{renderDiscrepancyPanel(idx)}</Box>
-              <Field.Select
-                name={`items.${idx}.locationId`}
-                label="Almacén (opcional)"
-                disabled={isNotReceived}
-                slotProps={{ inputLabel: { shrink: true } }}
-              >
-                <MenuItem value="">— Sin almacén —</MenuItem>
-                {warehouses.map((w) => (
-                  <MenuItem key={w.id} value={w.id}>
-                    {w.name ?? w.locationCode}
-                  </MenuItem>
-                ))}
-              </Field.Select>
+              {/* QA 150: el almacén ya no es por producto; es general en la
+                  cabecera (headerLocationId). */}
             </Stack>
           </Box>
           {!fromOrder && (
@@ -1466,6 +1472,21 @@ export function ReceiptCreateView() {
                 sx={{ flex: 1 }}
               />
             </Stack>
+
+            {/* QA 150: almacén de compra general para toda la recepción. */}
+            <Field.Select
+              name="headerLocationId"
+              label="Almacén de compra"
+              helperText="Destino de toda la mercancía recibida en esta recepción."
+              slotProps={{ inputLabel: { shrink: true } }}
+            >
+              <MenuItem value="">— Sin almacén —</MenuItem>
+              {warehouses.map((w) => (
+                <MenuItem key={w.id} value={w.id}>
+                  {w.name ?? w.locationCode}
+                </MenuItem>
+              ))}
+            </Field.Select>
 
             {/* Fase D — Moneda original de la factura. Si VES, capturamos el
                 total en Bs. y la tasa BCV (auto-llena con la última registrada). */}
@@ -1656,14 +1677,6 @@ export function ReceiptCreateView() {
                   </Typography>
                 )}
               </Box>
-              <Button
-                size="small"
-                variant="outlined"
-                startIcon={<Iconify icon="solar:add-circle-bold" />}
-                onClick={() => append(emptyItem)}
-              >
-                Agregar ítem
-              </Button>
             </Stack>
 
             {additionalFieldEntries.length === 0 && (
@@ -1691,6 +1704,19 @@ export function ReceiptCreateView() {
                 )}
               </Box>
             ))}
+
+            {/* QA 149: el botón de agregar va ABAJO (como en las OCs) para no
+                tener que subir al header cada vez que se agrega un producto. */}
+            <Stack direction="row" justifyContent="flex-start">
+              <Button
+                size="small"
+                variant="outlined"
+                startIcon={<Iconify icon="solar:add-circle-bold" />}
+                onClick={() => append(emptyItem)}
+              >
+                Agregar ítem
+              </Button>
+            </Stack>
           </Stack>
         </Card>
 
