@@ -7,12 +7,14 @@ import type {
 import * as z from 'zod';
 import { toast } from 'sonner';
 import { useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm, useWatch, Controller, useFieldArray } from 'react-hook-form';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Stack from '@mui/material/Stack';
+import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
 import Divider from '@mui/material/Divider';
 import MenuItem from '@mui/material/MenuItem';
@@ -30,6 +32,7 @@ import { Form, Field } from '@/app/components/hook-form';
 import { useBranchesQuery } from '@/features/branches/api/branches.queries';
 import { useProductsQuery } from '@/features/products/api/products.queries';
 import { useSuppliersQuery } from '@/features/suppliers/api/suppliers.queries';
+import { fetchSupplierProducts } from '@/features/suppliers/api/suppliers.api';
 
 import { ORDER_TYPE_OPTIONS } from '../../model/constants';
 import { useCreateOrderMutation, useUpdateOrderMutation } from '../../api/purchases.queries';
@@ -130,10 +133,36 @@ export function OrderCreateView({ editingOrder }: Props = {}) {
         },
   });
 
-  const { control } = methods;
+  const { control, setValue } = methods;
   const { fields, append, remove } = useFieldArray({ control, name: 'items' });
 
   const watchedItems = useWatch({ control, name: 'items' }) ?? [];
+  const watchedSupplierId = useWatch({ control, name: 'supplierId' });
+
+  // QA 145: costos negociados del proveedor seleccionado, para pre-cargar el
+  // costo al elegir un producto (el usuario puede sobreescribirlo).
+  const { data: supplierProducts = [] } = useQuery({
+    queryKey: ['supplier-products', watchedSupplierId],
+    queryFn: () => fetchSupplierProducts(watchedSupplierId),
+    enabled: Boolean(watchedSupplierId),
+  });
+  const supplierCostByProduct = useMemo(
+    () => new Map(supplierProducts.map((sp) => [sp.productId, sp] as const)),
+    [supplierProducts]
+  );
+
+  // QA 146: si algún artículo pertenece a una categoría sensible, avisamos que
+  // la orden requerirá aprobación especial (el backend lo exige al aprobar).
+  const sensitiveFlags = new Set<string>();
+  for (const it of watchedItems) {
+    const p = it?.productId ? productById.get(it.productId) : undefined;
+    if (!p) continue;
+    if (p.isControlled) sensitiveFlags.add('Controlados/Psicotrópicos');
+    if (p.isAntibiotic) sensitiveFlags.add('Antibióticos');
+    if (p.conservationType === 'cold_chain') sensitiveFlags.add('Cadena de frío');
+    if (p.isImported) sensitiveFlags.add('Importados');
+  }
+  const sensitiveCategories = [...sensitiveFlags];
 
   const submit = methods.handleSubmit(async (values) => {
     try {
@@ -287,7 +316,20 @@ export function OrderCreateView({ editingOrder }: Props = {}) {
                               <Autocomplete
                                 options={products}
                                 value={value}
-                                onChange={(_e, next) => f.onChange(next?.id ?? '')}
+                                onChange={(_e, next) => {
+                                  f.onChange(next?.id ?? '');
+                                  // Pre-carga el costo negociado del proveedor
+                                  // para este producto (editable). QA 145.
+                                  if (next) {
+                                    const sp = supplierCostByProduct.get(next.id);
+                                    const cost = sp?.costUsd ?? sp?.lastCostUsd;
+                                    if (cost != null && cost !== '') {
+                                      setValue(`items.${idx}.unitCost`, String(Number(cost)), {
+                                        shouldValidate: true,
+                                      });
+                                    }
+                                  }
+                                }}
                                 getOptionLabel={(option) => option.shortName ?? option.description}
                                 isOptionEqualToValue={(a, b) => a.id === b.id}
                                 filterOptions={(opts, state) => {
@@ -456,6 +498,15 @@ export function OrderCreateView({ editingOrder }: Props = {}) {
             {fmtUsd(watchedItems.reduce((sum, it) => sum + lineSubtotalUsd(it), 0))}
           </Typography>
         </Box>
+
+        {sensitiveCategories.length > 0 && (
+          <Alert severity="warning">
+            Esta orden incluye artículos de categorías sensibles (
+            <strong>{sensitiveCategories.join(', ')}</strong>) y requerirá{' '}
+            <strong>aprobación especial</strong> de los roles designados antes de cambiar de
+            estatus.
+          </Alert>
+        )}
 
         <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1.5 }}>
           <Button
