@@ -36,14 +36,25 @@ import { useCreateOrderMutation, useUpdateOrderMutation } from '../../api/purcha
 
 // ----------------------------------------------------------------------
 
-// QA: la OC solo solicita unidades. Costo y descuento se capturan en la
-// recepción cuando el proveedor emite factura — el schema acá ya no los pide.
+// QA 143: la OC vuelve a solicitar el costo unitario negociado por artículo
+// (el costo real se ajusta luego en la recepción contra la factura). El
+// descuento comercial es opcional.
 const ItemSchema = z.object({
   productId: z.string().uuid({ message: 'Selecciona un producto' }),
   quantity: z
     .string()
     .min(1, { message: 'Obligatoria' })
     .refine((v) => /^\d+(\.\d+)?$/.test(v) && Number(v) > 0, { message: '> 0' }),
+  unitCost: z
+    .string()
+    .min(1, { message: 'Obligatorio' })
+    .refine((v) => /^\d+(\.\d+)?$/.test(v) && Number(v) >= 0, { message: '>= 0' }),
+  discountPct: z
+    .string()
+    .optional()
+    .refine((v) => !v || (/^\d+(\.\d+)?$/.test(v) && Number(v) >= 0 && Number(v) <= 100), {
+      message: '0–100',
+    }),
 });
 
 const OrderSchema = z.object({
@@ -56,6 +67,16 @@ const OrderSchema = z.object({
 });
 
 type FormValues = z.infer<typeof OrderSchema>;
+
+const fmtUsd = (n: number) => `$${(Number.isFinite(n) ? n : 0).toFixed(2)}`;
+
+/** Subtotal de una línea: cantidad × costo × (1 − descuento%). */
+function lineSubtotalUsd(item?: { quantity?: string; unitCost?: string; discountPct?: string }): number {
+  const q = Number(item?.quantity) || 0;
+  const c = Number(item?.unitCost) || 0;
+  const d = Number(item?.discountPct) || 0;
+  return q * c * (1 - d / 100);
+}
 
 // ----------------------------------------------------------------------
 
@@ -95,7 +116,9 @@ export function OrderCreateView({ editingOrder }: Props = {}) {
             editingOrder.items?.map((i) => ({
               productId: i.productId,
               quantity: String(Number(i.quantity)),
-            })) ?? [{ productId: '', quantity: '' }],
+              unitCost: String(Number(i.unitCostUsd ?? 0)),
+              discountPct: i.discountPct != null ? String(Number(i.discountPct)) : '',
+            })) ?? [{ productId: '', quantity: '', unitCost: '', discountPct: '' }],
         }
       : {
           branchId: '',
@@ -103,7 +126,7 @@ export function OrderCreateView({ editingOrder }: Props = {}) {
           orderType: 'purchase',
           expectedDate: '',
           notes: '',
-          items: [{ productId: '', quantity: '' }],
+          items: [{ productId: '', quantity: '', unitCost: '', discountPct: '' }],
         },
   });
 
@@ -121,6 +144,8 @@ export function OrderCreateView({ editingOrder }: Props = {}) {
           items: values.items.map((i) => ({
             productId: i.productId,
             quantity: Number(i.quantity),
+            unitCostUsd: Number(i.unitCost),
+            discountPct: i.discountPct ? Number(i.discountPct) : 0,
           })),
         };
         await updateMutation.mutateAsync({ id: editingOrder.id, payload: updatePayload });
@@ -136,6 +161,8 @@ export function OrderCreateView({ editingOrder }: Props = {}) {
           items: values.items.map((i) => ({
             productId: i.productId,
             quantity: Number(i.quantity),
+            unitCostUsd: Number(i.unitCost),
+            discountPct: i.discountPct ? Number(i.discountPct) : 0,
           })),
         };
         const created = await createMutation.mutateAsync(createPayload);
@@ -342,16 +369,52 @@ export function OrderCreateView({ editingOrder }: Props = {}) {
                           </Stack>
                         )}
 
-                        {/* QA: una OC sólo solicita unidades. El costo unitario
-                            y el descuento comercial se capturan en la recepción
-                            (cuando llega la factura del proveedor). */}
-                        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                        {/* QA 143/144: cantidad + costo unitario negociado +
+                            descuento; el subtotal por línea se calcula en vivo
+                            y alimenta el total que dispara la matriz de
+                            aprobación por monto. */}
+                        <Stack
+                          direction={{ xs: 'column', sm: 'row' }}
+                          spacing={2}
+                          alignItems="flex-start"
+                        >
                           <Field.Text
                             name={`items.${idx}.quantity`}
                             label="Cantidad"
-                            slotProps={{ inputLabel: { shrink: true } }}
-                            sx={{ flex: 1, maxWidth: 240 }}
+                            slotProps={{
+                              inputLabel: { shrink: true },
+                              htmlInput: { inputMode: 'decimal' },
+                            }}
+                            sx={{ flex: 1, minWidth: 110 }}
                           />
+                          <Field.Text
+                            name={`items.${idx}.unitCost`}
+                            label="Costo unit. (USD)"
+                            placeholder="0.00"
+                            slotProps={{
+                              inputLabel: { shrink: true },
+                              htmlInput: { inputMode: 'decimal' },
+                            }}
+                            sx={{ flex: 1, minWidth: 140 }}
+                          />
+                          <Field.Text
+                            name={`items.${idx}.discountPct`}
+                            label="Desc. % (opc.)"
+                            placeholder="0"
+                            slotProps={{
+                              inputLabel: { shrink: true },
+                              htmlInput: { inputMode: 'decimal' },
+                            }}
+                            sx={{ flex: 1, minWidth: 110 }}
+                          />
+                          <Box sx={{ minWidth: 120, pt: 0.5 }}>
+                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                              Subtotal
+                            </Typography>
+                            <Typography variant="subtitle2" sx={{ fontFamily: 'monospace' }}>
+                              {fmtUsd(lineSubtotalUsd(current))}
+                            </Typography>
+                          </Box>
                         </Stack>
                       </Stack>
                     </Box>
@@ -377,13 +440,22 @@ export function OrderCreateView({ editingOrder }: Props = {}) {
                 size="small"
                 variant="outlined"
                 startIcon={<Iconify icon="solar:add-circle-bold" />}
-                onClick={() => append({ productId: '', quantity: '' })}
+                onClick={() => append({ productId: '', quantity: '', unitCost: '', discountPct: '' })}
               >
                 Agregar ítem
               </Button>
             </Stack>
           </Stack>
         </Card>
+
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'baseline', gap: 1.5 }}>
+          <Typography variant="subtitle1" sx={{ color: 'text.secondary' }}>
+            Total de la orden:
+          </Typography>
+          <Typography variant="h6" sx={{ fontFamily: 'monospace' }}>
+            {fmtUsd(watchedItems.reduce((sum, it) => sum + lineSubtotalUsd(it), 0))}
+          </Typography>
+        </Box>
 
         <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1.5 }}>
           <Button

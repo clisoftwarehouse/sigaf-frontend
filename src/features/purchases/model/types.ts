@@ -57,6 +57,8 @@ export type CreatePurchaseOrderPayload = {
 export type UpdatePurchaseOrderItemPayload = {
   productId: string;
   quantity: number;
+  unitCostUsd?: number;
+  discountPct?: number;
 };
 
 export type UpdatePurchaseOrderPayload = {
