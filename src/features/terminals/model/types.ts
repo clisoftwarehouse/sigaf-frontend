@@ -25,4 +25,6 @@ export type UpdateTerminalPayload = Partial<CreateTerminalPayload>;
 
 export type TerminalFilters = {
   branchId?: string;
+  /** true = solo activos (default), false = solo desactivados. */
+  isActive?: boolean;
 };

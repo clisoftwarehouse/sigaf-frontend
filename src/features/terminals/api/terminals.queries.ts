@@ -8,6 +8,7 @@ import {
   deleteTerminal,
   fetchTerminals,
   updateTerminal,
+  restoreTerminal,
 } from './terminals.api';
 
 // ----------------------------------------------------------------------
@@ -57,6 +58,14 @@ export function useDeleteTerminalMutation() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => deleteTerminal(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: terminalKeys.all }),
+  });
+}
+
+export function useRestoreTerminalMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => restoreTerminal(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: terminalKeys.all }),
   });
 }

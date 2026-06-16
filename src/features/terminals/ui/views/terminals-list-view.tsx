@@ -7,11 +7,14 @@ import { useMemo, useState } from 'react';
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Alert from '@mui/material/Alert';
+import Stack from '@mui/material/Stack';
+import Switch from '@mui/material/Switch';
 import Button from '@mui/material/Button';
 import Tooltip from '@mui/material/Tooltip';
 import Container from '@mui/material/Container';
 import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
+import FormControlLabel from '@mui/material/FormControlLabel';
 
 import { paths } from '@/app/routes/paths';
 import { useRouter } from '@/app/routes/hooks';
@@ -21,16 +24,39 @@ import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
 import { useBranchOptions } from '@/features/branches/api/branches.options';
 import { DataTable, createFkFilterOperators } from '@/app/components/data-table';
 
-import { useTerminalsQuery, useDeleteTerminalMutation } from '../../api/terminals.queries';
+import {
+  useTerminalsQuery,
+  useDeleteTerminalMutation,
+  useRestoreTerminalMutation,
+} from '../../api/terminals.queries';
 
 // ----------------------------------------------------------------------
 
 export function TerminalsListView() {
   const router = useRouter();
   const [toDelete, setToDelete] = useState<{ id: string; name: string } | null>(null);
+  // Cuando está activo, la lista muestra los terminales DESACTIVADOS (para
+  // reactivarlos). Por defecto muestra los activos.
+  const [viewInactive, setViewInactive] = useState(false);
 
-  const { data: terminals = [], isLoading, isError, error, refetch } = useTerminalsQuery();
+  const {
+    data: terminals = [],
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = useTerminalsQuery({ isActive: !viewInactive });
   const deleteMutation = useDeleteTerminalMutation();
+  const restoreMutation = useRestoreTerminalMutation();
+
+  const handleRestore = async (row: { id: string; code: string }) => {
+    try {
+      await restoreMutation.mutateAsync(row.id);
+      toast.success(`Terminal "${row.code}" reactivado`);
+    } catch (err) {
+      toast.error((err as Error).message);
+    }
+  };
 
   const { data: branchOpts = [] } = useBranchOptions();
   const branchNameById = useMemo(
@@ -106,27 +132,35 @@ export function TerminalsListView() {
         width: 110,
         align: 'right',
         headerAlign: 'right',
-        renderCell: ({ row }) => (
-          <>
-            <Tooltip title="Editar">
-              <IconButton
-                onClick={() => router.push(paths.dashboard.organization.terminals.edit(row.id))}
-              >
-                <Iconify icon="solar:pen-bold" />
+        renderCell: ({ row }) =>
+          row.isActive ? (
+            <>
+              <Tooltip title="Editar">
+                <IconButton
+                  onClick={() => router.push(paths.dashboard.organization.terminals.edit(row.id))}
+                >
+                  <Iconify icon="solar:pen-bold" />
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="Eliminar">
+                <IconButton
+                  color="error"
+                  onClick={() => setToDelete({ id: row.id, name: row.code })}
+                >
+                  <Iconify icon="solar:trash-bin-trash-bold" />
+                </IconButton>
+              </Tooltip>
+            </>
+          ) : (
+            <Tooltip title="Reactivar">
+              <IconButton color="success" onClick={() => handleRestore(row)}>
+                <Iconify icon="solar:restart-bold" />
               </IconButton>
             </Tooltip>
-            <Tooltip title="Eliminar">
-              <IconButton
-                color="error"
-                onClick={() => setToDelete({ id: row.id, name: row.code })}
-              >
-                <Iconify icon="solar:trash-bin-trash-bold" />
-              </IconButton>
-            </Tooltip>
-          </>
-        ),
+          ),
       },
     ],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [router, branchFilterOperators, branchNameById]
   );
 
@@ -162,6 +196,18 @@ export function TerminalsListView() {
             </Alert>
           </Box>
         )}
+
+        <Stack direction="row" justifyContent="flex-end" sx={{ px: 2, pt: 1.5 }}>
+          <FormControlLabel
+            control={
+              <Switch
+                checked={viewInactive}
+                onChange={(e) => setViewInactive(e.target.checked)}
+              />
+            }
+            label="Mostrar desactivados"
+          />
+        </Stack>
 
         <Box sx={{ width: '100%' }}>
           <DataTable

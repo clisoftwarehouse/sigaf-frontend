@@ -12,6 +12,7 @@ import axios, { endpoints } from '@/shared/lib/axios';
 export async function fetchTerminals(filters: TerminalFilters = {}): Promise<Terminal[]> {
   const params: Record<string, string> = {};
   if (filters.branchId) params.branchId = filters.branchId;
+  if (filters.isActive !== undefined) params.isActive = String(filters.isActive);
   const res = await axios.get<Terminal[]>(endpoints.terminals.root, { params });
   return res.data;
 }
@@ -36,4 +37,9 @@ export async function updateTerminal(
 
 export async function deleteTerminal(id: string): Promise<void> {
   await axios.delete(endpoints.terminals.byId(id));
+}
+
+export async function restoreTerminal(id: string): Promise<Terminal> {
+  const res = await axios.patch<Terminal>(`${endpoints.terminals.byId(id)}/restore`);
+  return res.data;
 }

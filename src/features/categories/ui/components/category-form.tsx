@@ -8,7 +8,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import Card from '@mui/material/Card';
 import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
-import MenuItem from '@mui/material/MenuItem';
 
 import { FormFooter } from '@/shared/ui/form-footer';
 import { Form, Field } from '@/app/components/hook-form';
@@ -87,14 +86,13 @@ export function CategoryForm({ current, parents, submitting, onSubmit, onCancel 
             slotProps={{ inputLabel: { shrink: true } }}
           />
 
-          <Field.Select name="parentId" label="Categoría padre (opcional)">
-            <MenuItem value="">— Ninguna (raíz) —</MenuItem>
-            {parentOptions.map((c) => (
-              <MenuItem key={c.id} value={c.id}>
-                {c.name}
-              </MenuItem>
-            ))}
-          </Field.Select>
+          <Field.IdAutocomplete
+            name="parentId"
+            label="Categoría padre (opcional)"
+            placeholder="Buscar categoría por nombre…"
+            helperText="Déjalo vacío para una categoría raíz."
+            options={parentOptions.map((c) => ({ id: c.id, label: c.name }))}
+          />
 
           <Field.Switch name="isPharmaceutical" label="Es categoría farmacéutica" />
         </Stack>
