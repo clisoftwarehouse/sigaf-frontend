@@ -2,19 +2,21 @@ import type { CreateSupplierPayload } from '../../model/types';
 
 import { toast } from 'sonner';
 import { useState } from 'react';
-import { useParams } from 'react-router';
+import { useParams, useSearchParams } from 'react-router';
 
 import Box from '@mui/material/Box';
 import Tab from '@mui/material/Tab';
 import Card from '@mui/material/Card';
 import Tabs from '@mui/material/Tabs';
 import Alert from '@mui/material/Alert';
+import Button from '@mui/material/Button';
 import Container from '@mui/material/Container';
 import Typography from '@mui/material/Typography';
 import CircularProgress from '@mui/material/CircularProgress';
 
 import { paths } from '@/app/routes/paths';
 import { useRouter } from '@/app/routes/hooks';
+import { Iconify } from '@/app/components/iconify';
 
 import { SupplierForm } from '../components/supplier-form';
 import { SupplierContactsTab } from '../components/supplier-contacts-tab';
@@ -25,10 +27,17 @@ import { useSupplierQuery, useUpdateSupplierMutation } from '../../api/suppliers
 
 type TabKey = 'data' | 'contacts' | 'products';
 
+const TAB_KEYS: TabKey[] = ['data', 'contacts', 'products'];
+
 export function SupplierEditView() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const [tab, setTab] = useState<TabKey>('data');
+  const [searchParams] = useSearchParams();
+  // Atajo desde la lista (?tab=products) abre directo en el tab indicado.
+  const requestedTab = searchParams.get('tab') as TabKey | null;
+  const [tab, setTab] = useState<TabKey>(
+    requestedTab && TAB_KEYS.includes(requestedTab) ? requestedTab : 'data'
+  );
 
   const { data: supplier, isLoading, isError, error } = useSupplierQuery(id);
   const mutation = useUpdateSupplierMutation();
@@ -45,6 +54,15 @@ export function SupplierEditView() {
 
   return (
     <Container maxWidth="xl">
+      <Button
+        color="inherit"
+        size="small"
+        startIcon={<Iconify icon="eva:arrow-ios-back-fill" />}
+        onClick={() => router.push(paths.dashboard.catalog.suppliers.root)}
+        sx={{ mb: 2 }}
+      >
+        Volver a proveedores
+      </Button>
       <Box sx={{ mb: 3 }}>
         <Typography variant="h4">Editar proveedor</Typography>
         {supplier && (

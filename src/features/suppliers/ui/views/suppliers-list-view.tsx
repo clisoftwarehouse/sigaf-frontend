@@ -115,11 +115,20 @@ export function SuppliersListView() {
         field: 'actions',
         type: 'actions',
         headerName: 'Acciones',
-        width: 110,
+        width: 150,
         align: 'right',
         headerAlign: 'right',
         renderCell: ({ row }) => (
           <>
+            <Tooltip title="Asociar productos">
+              <IconButton
+                onClick={() =>
+                  router.push(`${paths.dashboard.catalog.suppliers.edit(row.id)}?tab=products`)
+                }
+              >
+                <Iconify icon="solar:box-minimalistic-bold" />
+              </IconButton>
+            </Tooltip>
             <Tooltip title="Editar">
               <IconButton
                 onClick={() => router.push(paths.dashboard.catalog.suppliers.edit(row.id))}
