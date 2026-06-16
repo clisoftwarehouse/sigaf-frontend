@@ -92,10 +92,7 @@ export function TerminalForm({ current, submitting, onSubmit, onBulkSubmit, onCa
   };
 
   return (
-    <Form
-      methods={methods}
-      onSubmit={isEdit ? submitSingle : () => void submitBulk()}
-    >
+    <Form methods={methods} onSubmit={submitSingle}>
       <Card sx={{ p: 3 }}>
         <Stack spacing={3}>
           {isEdit ? (
@@ -164,7 +161,7 @@ export function TerminalForm({ current, submitting, onSubmit, onBulkSubmit, onCa
             Guardar cambios
           </Button>
         ) : (
-          <Button type="submit" variant="contained" loading={submitting}>
+          <Button type="button" variant="contained" loading={submitting} onClick={submitBulk}>
             {branchIds.length > 1 ? `Crear en ${branchIds.length} sucursales` : 'Crear terminal'}
           </Button>
         )}
