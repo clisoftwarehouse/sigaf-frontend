@@ -529,6 +529,18 @@ export const endpoints = {
     ventas: '/v1/libros-iva/ventas',
     compras: '/v1/libros-iva/compras',
   },
+  igtf: {
+    percepcion: '/v1/igtf/percepcion',
+  },
+  rentabilidad: {
+    root: '/v1/rentabilidad',
+  },
+  libroInventario: {
+    root: '/v1/libro-inventario',
+  },
+  controlados: {
+    root: '/v1/controlados',
+  },
   fiscalZReports: {
     root: '/v1/fiscal-z-reports',
   },

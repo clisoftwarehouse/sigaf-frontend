@@ -27,6 +27,10 @@ const ICONS = {
   accountsPayable: <Iconify icon="solar:wad-of-money-bold" width={22} />,
   prescribers: <Iconify icon="solar:user-id-bold" width={22} />,
   librosIva: <Iconify icon="solar:bill-list-bold-duotone" width={22} />,
+  igtf: <Iconify icon="solar:wad-of-money-bold" width={22} />,
+  rentabilidad: <Iconify icon="solar:chart-square-outline" width={22} />,
+  inventarioLibro: <Iconify icon="solar:box-minimalistic-bold" width={22} />,
+  controlados: <Iconify icon="solar:shield-keyhole-bold-duotone" width={22} />,
   purchases: <Iconify icon="solar:cart-plus-bold" width={22} />,
   orders: <Iconify icon="solar:bill-list-bold-duotone" width={22} />,
   receipts: <Iconify icon="solar:inbox-in-bold-duotone" width={22} />,
@@ -360,6 +364,26 @@ export const navData: NavSectionProps['data'] = [
         title: 'Libros de IVA',
         path: paths.dashboard.admin.librosIva,
         icon: ICONS.librosIva,
+      },
+      {
+        title: 'Percepción IGTF',
+        path: paths.dashboard.admin.igtf,
+        icon: ICONS.igtf,
+      },
+      {
+        title: 'Rentabilidad',
+        path: paths.dashboard.admin.rentabilidad,
+        icon: ICONS.rentabilidad,
+      },
+      {
+        title: 'Libro de Inventario',
+        path: paths.dashboard.admin.libroInventario,
+        icon: ICONS.inventarioLibro,
+      },
+      {
+        title: 'Controlados (SACS)',
+        path: paths.dashboard.admin.controlados,
+        icon: ICONS.controlados,
       },
       {
         title: 'Reporte Z',

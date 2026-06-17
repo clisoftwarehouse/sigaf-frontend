@@ -5,6 +5,7 @@ import { Outlet, Navigate } from 'react-router';
 
 import { paths } from '@/app/routes/paths';
 import { CONFIG } from '@/app/global-config';
+import { igtfRoutes } from '@/features/igtf/routes';
 import { AuthGuard } from '@/features/auth/ui/guard';
 import { auditRoutes } from '@/features/audit/routes';
 import { usersRoutes } from '@/features/users/routes';
@@ -28,14 +29,17 @@ import { warehousesRoutes } from '@/features/warehouses/routes';
 import { categoriesRoutes } from '@/features/categories/routes';
 import { promotionsRoutes } from '@/features/promotions/routes';
 import { LoadingScreen } from '@/app/components/loading-screen';
+import { controladosRoutes } from '@/features/controlados/routes';
 import { permissionsRoutes } from '@/features/permissions/routes';
 import { prescribersRoutes } from '@/features/prescribers/routes';
+import { rentabilidadRoutes } from '@/features/rentabilidad/routes';
 import { consignmentsRoutes } from '@/features/consignments/routes';
 import { cashSessionsRoutes } from '@/features/cash-sessions/routes';
 import { branchGroupsRoutes } from '@/features/branch-groups/routes';
 import { prescriptionsRoutes } from '@/features/prescriptions/routes';
 import { exchangeRatesRoutes } from '@/features/exchange-rates/routes';
 import { paymentsReportRoutes } from '@/features/payments-report/routes';
+import { libroInventarioRoutes } from '@/features/libro-inventario/routes';
 import { accountsPayableRoutes } from '@/features/accounts-payable/routes';
 import { activeIngredientsRoutes } from '@/features/active-ingredients/routes';
 import { inventoryTransfersRoutes } from '@/features/inventory-transfers/routes';
@@ -158,6 +162,10 @@ export const dashboardRoutes: RouteObject[] = [
           ...auditRoutes,
           ...importsRoutes,
           ...librosIvaRoutes,
+          ...igtfRoutes,
+          ...rentabilidadRoutes,
+          ...libroInventarioRoutes,
+          ...controladosRoutes,
           ...reporteZRoutes,
         ],
       },
