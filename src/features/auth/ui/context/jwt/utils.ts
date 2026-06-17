@@ -17,35 +17,35 @@ export type SessionTokens = {
 };
 
 export function isSessionValid(): boolean {
-  const token = sessionStorage.getItem(JWT_STORAGE_KEY);
+  const token = localStorage.getItem(JWT_STORAGE_KEY);
   if (!token) return false;
 
-  const expiresAt = Number(sessionStorage.getItem(JWT_EXPIRES_AT_KEY) ?? 0);
+  const expiresAt = Number(localStorage.getItem(JWT_EXPIRES_AT_KEY) ?? 0);
   if (!expiresAt) return true;
   return expiresAt > Date.now();
 }
 
 export function setSession(tokens: SessionTokens | null) {
   if (!tokens) {
-    sessionStorage.removeItem(JWT_STORAGE_KEY);
-    sessionStorage.removeItem(JWT_REFRESH_STORAGE_KEY);
-    sessionStorage.removeItem(JWT_EXPIRES_AT_KEY);
+    localStorage.removeItem(JWT_STORAGE_KEY);
+    localStorage.removeItem(JWT_REFRESH_STORAGE_KEY);
+    localStorage.removeItem(JWT_EXPIRES_AT_KEY);
     delete axios.defaults.headers.common.Authorization;
     return;
   }
 
-  sessionStorage.setItem(JWT_STORAGE_KEY, tokens.token);
+  localStorage.setItem(JWT_STORAGE_KEY, tokens.token);
   if (tokens.refreshToken) {
-    sessionStorage.setItem(JWT_REFRESH_STORAGE_KEY, tokens.refreshToken);
+    localStorage.setItem(JWT_REFRESH_STORAGE_KEY, tokens.refreshToken);
   }
   if (tokens.tokenExpires) {
-    sessionStorage.setItem(JWT_EXPIRES_AT_KEY, String(tokens.tokenExpires));
+    localStorage.setItem(JWT_EXPIRES_AT_KEY, String(tokens.tokenExpires));
   }
   // Tras un login exitoso, descartamos cualquier banner residual de sesión expirada.
-  sessionStorage.removeItem(SESSION_EXPIRED_REASON_KEY);
+  localStorage.removeItem(SESSION_EXPIRED_REASON_KEY);
   axios.defaults.headers.common.Authorization = `Bearer ${tokens.token}`;
 }
 
 export function getRefreshToken(): string | null {
-  return sessionStorage.getItem(JWT_REFRESH_STORAGE_KEY);
+  return localStorage.getItem(JWT_REFRESH_STORAGE_KEY);
 }

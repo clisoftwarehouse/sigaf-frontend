@@ -58,10 +58,10 @@ export function JwtSignInView() {
   // Lee y limpia la razón de expiración guardada por el axios interceptor o
   // el idle timer. Solo se muestra una vez: al volver a iniciar sesión, queda limpio.
   useEffect(() => {
-    const reason = sessionStorage.getItem(SESSION_EXPIRED_REASON_KEY);
+    const reason = localStorage.getItem(SESSION_EXPIRED_REASON_KEY);
     if (reason && reason in EXPIRED_REASON_MESSAGE) {
       setExpiredReason(EXPIRED_REASON_MESSAGE[reason as SessionExpiredReason]);
-      sessionStorage.removeItem(SESSION_EXPIRED_REASON_KEY);
+      localStorage.removeItem(SESSION_EXPIRED_REASON_KEY);
     }
   }, []);
 

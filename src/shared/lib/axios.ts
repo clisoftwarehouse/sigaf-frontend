@@ -27,7 +27,7 @@ const axiosInstance = axios.create({
 // Render free el reactivo puede sumar varios segundos extra al usuario).
 const PROACTIVE_REFRESH_MS = 60_000;
 
-// Inject Bearer token on each request from sessionStorage so the header
+// Inject Bearer token on each request from localStorage so the header
 // survives full page reloads (the in-memory default header is set on login).
 // Además dispara refresh PROACTIVO si el access token está por expirar.
 axiosInstance.interceptors.request.use(async (config) => {
@@ -36,9 +36,9 @@ axiosInstance.interceptors.request.use(async (config) => {
 
   // No interferir con los propios endpoints de auth (evita recursión).
   if (!isAuthEndpoint) {
-    const token = sessionStorage.getItem(JWT_STORAGE_KEY);
-    const expiresAtStr = sessionStorage.getItem(JWT_EXPIRES_AT_KEY);
-    const refreshAvailable = !!sessionStorage.getItem(JWT_REFRESH_STORAGE_KEY);
+    const token = localStorage.getItem(JWT_STORAGE_KEY);
+    const expiresAtStr = localStorage.getItem(JWT_EXPIRES_AT_KEY);
+    const refreshAvailable = !!localStorage.getItem(JWT_REFRESH_STORAGE_KEY);
     const expiresAt = expiresAtStr ? Number(expiresAtStr) : null;
     const isExpiringSoon =
       token && expiresAt && Number.isFinite(expiresAt)
@@ -60,7 +60,7 @@ axiosInstance.interceptors.request.use(async (config) => {
     }
   }
 
-  const token = sessionStorage.getItem(JWT_STORAGE_KEY);
+  const token = localStorage.getItem(JWT_STORAGE_KEY);
   if (token && !config.headers.Authorization) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -284,24 +284,24 @@ const REFRESH_URL = '/v1/auth/refresh';
 const LOGIN_URL = '/v1/auth/email/login';
 
 function clearSession(): void {
-  sessionStorage.removeItem(JWT_STORAGE_KEY);
-  sessionStorage.removeItem(JWT_REFRESH_STORAGE_KEY);
-  sessionStorage.removeItem(JWT_EXPIRES_AT_KEY);
+  localStorage.removeItem(JWT_STORAGE_KEY);
+  localStorage.removeItem(JWT_REFRESH_STORAGE_KEY);
+  localStorage.removeItem(JWT_EXPIRES_AT_KEY);
   delete axiosInstance.defaults.headers.common.Authorization;
 }
 
 /**
  * Dispara el evento global de sesión expirada con la razón. AuthProvider lo
  * escucha para limpiar el estado y AuthGuard se encarga de redirigir al login.
- * El sign-in view lee la razón de sessionStorage para mostrar un banner.
+ * El sign-in view lee la razón de localStorage para mostrar un banner.
  */
 export function notifySessionExpired(reason: SessionExpiredReason): void {
-  sessionStorage.setItem(SESSION_EXPIRED_REASON_KEY, reason);
+  localStorage.setItem(SESSION_EXPIRED_REASON_KEY, reason);
   window.dispatchEvent(new CustomEvent(SESSION_EXPIRED_EVENT, { detail: { reason } }));
 }
 
 async function performRefresh(): Promise<string> {
-  const refreshToken = sessionStorage.getItem(JWT_REFRESH_STORAGE_KEY);
+  const refreshToken = localStorage.getItem(JWT_REFRESH_STORAGE_KEY);
   if (!refreshToken) throw new Error('Sin refresh token');
 
   // Llamada con axios crudo (no la instancia) para evitar entrar al interceptor.
@@ -314,9 +314,9 @@ async function performRefresh(): Promise<string> {
   const { token, refreshToken: newRefresh, tokenExpires } = res.data;
   if (!token) throw new Error('Refresh sin token');
 
-  sessionStorage.setItem(JWT_STORAGE_KEY, token);
-  if (newRefresh) sessionStorage.setItem(JWT_REFRESH_STORAGE_KEY, newRefresh);
-  if (tokenExpires) sessionStorage.setItem(JWT_EXPIRES_AT_KEY, String(tokenExpires));
+  localStorage.setItem(JWT_STORAGE_KEY, token);
+  if (newRefresh) localStorage.setItem(JWT_REFRESH_STORAGE_KEY, newRefresh);
+  if (tokenExpires) localStorage.setItem(JWT_EXPIRES_AT_KEY, String(tokenExpires));
   axiosInstance.defaults.headers.common.Authorization = `Bearer ${token}`;
   return token;
 }
@@ -331,8 +331,8 @@ axiosInstance.interceptors.response.use(
     const url = originalRequest?.url ?? '';
 
     const isAuthEndpoint = url.endsWith(REFRESH_URL) || url.endsWith(LOGIN_URL);
-    const hasRefresh = !!sessionStorage.getItem(JWT_REFRESH_STORAGE_KEY);
-    const hadSession = !!sessionStorage.getItem(JWT_STORAGE_KEY);
+    const hasRefresh = !!localStorage.getItem(JWT_REFRESH_STORAGE_KEY);
+    const hadSession = !!localStorage.getItem(JWT_STORAGE_KEY);
 
     // 1) Auto-refresh sobre 401 cuando hay refresh token disponible.
     if (

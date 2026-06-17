@@ -28,7 +28,7 @@ export function AuthProvider({ children }: Props) {
 
   const checkUserSession = useCallback(async () => {
     try {
-      const token = sessionStorage.getItem(JWT_STORAGE_KEY);
+      const token = localStorage.getItem(JWT_STORAGE_KEY);
 
       if (!token || !isSessionValid()) {
         setSession(null);
