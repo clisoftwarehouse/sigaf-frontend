@@ -36,6 +36,7 @@ import { rentabilidadRoutes } from '@/features/rentabilidad/routes';
 import { consignmentsRoutes } from '@/features/consignments/routes';
 import { cashSessionsRoutes } from '@/features/cash-sessions/routes';
 import { branchGroupsRoutes } from '@/features/branch-groups/routes';
+import { salesReportsRoutes } from '@/features/sales-reports/routes';
 import { prescriptionsRoutes } from '@/features/prescriptions/routes';
 import { exchangeRatesRoutes } from '@/features/exchange-rates/routes';
 import { paymentsReportRoutes } from '@/features/payments-report/routes';
@@ -168,6 +169,7 @@ export const dashboardRoutes: RouteObject[] = [
           ...libroInventarioRoutes,
           ...controladosRoutes,
           ...inventoryReportsRoutes,
+          ...salesReportsRoutes,
           ...reporteZRoutes,
         ],
       },

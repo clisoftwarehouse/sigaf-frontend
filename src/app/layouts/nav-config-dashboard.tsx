@@ -283,6 +283,11 @@ export const navData: NavSectionProps['data'] = [
         children: [
           { title: 'Reporte de pagos', path: paths.dashboard.pos.paymentsReport, icon: ICONS.paymentsReport },
           { title: 'Rentabilidad', path: paths.dashboard.admin.rentabilidad, icon: ICONS.rentabilidad },
+          { title: 'Transacciones', path: paths.dashboard.admin.reportes.transacciones, icon: ICONS.kardex },
+          { title: 'Devoluciones', path: paths.dashboard.admin.reportes.devoluciones, icon: ICONS.consignmentReturn },
+          { title: 'Ticket promedio', path: paths.dashboard.admin.reportes.ticketPromedio, icon: ICONS.comparator },
+          { title: 'Productividad cajero', path: paths.dashboard.admin.reportes.productividad, icon: ICONS.users },
+          { title: 'Reporte X', path: paths.dashboard.admin.reportes.reporteX, icon: ICONS.cashSessions },
         ],
       },
       {

@@ -117,6 +117,11 @@ export const paths = {
       controlados: `${admin}/controlados`,
       reporteZ: `${admin}/reporte-z`,
       reportes: {
+        reporteX: `${admin}/reportes/reporte-x`,
+        devoluciones: `${admin}/reportes/devoluciones`,
+        transacciones: `${admin}/reportes/transacciones`,
+        ticketPromedio: `${admin}/reportes/ticket-promedio`,
+        productividad: `${admin}/reportes/productividad`,
         riesgo: `${admin}/reportes/riesgo`,
         merma: `${admin}/reportes/merma`,
         diasInventario: `${admin}/reportes/dias-inventario`,
