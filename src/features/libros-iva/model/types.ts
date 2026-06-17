@@ -28,7 +28,6 @@ export type LibroVentasRow = {
   taxableBaseUsd: number;
   vatUsd: number;
   totalUsd: number;
-  byFiscalMachine: boolean;
   isContribuyente: boolean;
 };
 
@@ -58,8 +57,6 @@ export type LibroVentasResult = {
   rows: LibroVentasRow[];
   resumen: LibroResumen;
   breakdown: {
-    byFiscalMachineUsd: number;
-    byElectronicMeansUsd: number;
     contribuyentesUsd: number;
     noContribuyentesUsd: number;
   };

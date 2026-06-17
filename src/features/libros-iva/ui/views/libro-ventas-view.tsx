@@ -121,22 +121,15 @@ export function LibroVentasView({ period, branchId }: { period: LibroPeriod; bra
       </Stack>
 
       <Stack direction="row" spacing={1} flexWrap="wrap" gap={1}>
-        <Chip size="small" variant="outlined" label={`Máquina fiscal: USD ${fmtUsd(data.breakdown.byFiscalMachineUsd)}`} />
-        <Chip size="small" variant="outlined" label={`Medios electrónicos: USD ${fmtUsd(data.breakdown.byElectronicMeansUsd)}`} />
         <Chip size="small" variant="outlined" color="info" label={`Contribuyentes: USD ${fmtUsd(data.breakdown.contribuyentesUsd)}`} />
         <Chip size="small" variant="outlined" label={`No contribuyentes: USD ${fmtUsd(data.breakdown.noContribuyentesUsd)}`} />
       </Stack>
 
-      {data.breakdown.byElectronicMeansUsd > 0 && data.breakdown.byFiscalMachineUsd === 0 && (
-        <Alert severity="warning" variant="outlined">
-          Todas las ventas son por medios electrónicos (sin máquina fiscal). El libro será totalmente
-          conforme cuando la impresora fiscal HKA esté operativa y los tickets tengan número de
-          control fiscal.
-        </Alert>
-      )}
-
       {data.rows.length === 0 ? (
-        <Alert severity="info">No hay ventas registradas en este período.</Alert>
+        <Alert severity="info">
+          No hay ventas con factura fiscal en este período. El libro registra únicamente las ventas
+          facturadas con la máquina fiscal.
+        </Alert>
       ) : (
         <Card sx={{ overflow: 'hidden' }}>
           <Box sx={{ overflow: 'auto' }}>
