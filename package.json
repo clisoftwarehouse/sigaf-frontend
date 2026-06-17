@@ -1,6 +1,5 @@
 {
-  "name": "@minimal-kit/starter-vite-ts",
-  "author": "Minimals",
+  "name": "sigaf-frontend",
   "version": "7.6.1",
   "description": "Vite Starter & TypeScript",
   "private": true,
