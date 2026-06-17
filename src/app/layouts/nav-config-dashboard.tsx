@@ -303,6 +303,16 @@ export const navData: NavSectionProps['data'] = [
           { title: 'Transferencias', path: paths.dashboard.admin.reportes.transferencias, icon: ICONS.transfers },
         ],
       },
+      {
+        title: 'Compras',
+        path: paths.dashboard.admin.reportes.saldosProveedores,
+        icon: ICONS.purchases,
+        children: [
+          { title: 'Saldos a proveedores', path: paths.dashboard.admin.reportes.saldosProveedores, icon: ICONS.accountsPayable },
+          { title: 'Variación de precios', path: paths.dashboard.admin.reportes.variacionPrecios, icon: ICONS.prices },
+          { title: 'Nivel de servicio', path: paths.dashboard.admin.reportes.nivelServicio, icon: ICONS.comparator },
+        ],
+      },
     ],
   },
   {

@@ -541,6 +541,11 @@ export const endpoints = {
   controlados: {
     root: '/v1/controlados',
   },
+  purchaseReports: {
+    variacionPrecios: '/v1/purchase-reports/variacion-precios',
+    nivelServicio: '/v1/purchase-reports/nivel-servicio',
+    saldosProveedores: '/v1/purchase-reports/saldos-proveedores',
+  },
   salesReports: {
     reporteX: '/v1/sales-reports/reporte-x',
     devoluciones: '/v1/sales-reports/devoluciones',
