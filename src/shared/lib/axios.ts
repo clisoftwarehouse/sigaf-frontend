@@ -541,6 +541,14 @@ export const endpoints = {
   controlados: {
     root: '/v1/controlados',
   },
+  inventoryReports: {
+    riesgo: '/v1/inventory-reports/riesgo',
+    merma: '/v1/inventory-reports/merma',
+    diasInventario: '/v1/inventory-reports/dias-inventario',
+    capitalEstancado: '/v1/inventory-reports/capital-estancado',
+    pareto: '/v1/inventory-reports/pareto',
+    transferencias: '/v1/inventory-reports/transferencias',
+  },
   fiscalZReports: {
     root: '/v1/fiscal-z-reports',
   },

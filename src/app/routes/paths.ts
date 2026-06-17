@@ -116,6 +116,14 @@ export const paths = {
       libroInventario: `${admin}/libro-inventario`,
       controlados: `${admin}/controlados`,
       reporteZ: `${admin}/reporte-z`,
+      reportes: {
+        riesgo: `${admin}/reportes/riesgo`,
+        merma: `${admin}/reportes/merma`,
+        diasInventario: `${admin}/reportes/dias-inventario`,
+        capitalEstancado: `${admin}/reportes/capital-estancado`,
+        pareto: `${admin}/reportes/pareto`,
+        transferencias: `${admin}/reportes/transferencias`,
+      },
     },
   },
 };

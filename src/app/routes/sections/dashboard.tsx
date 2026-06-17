@@ -41,6 +41,7 @@ import { exchangeRatesRoutes } from '@/features/exchange-rates/routes';
 import { paymentsReportRoutes } from '@/features/payments-report/routes';
 import { libroInventarioRoutes } from '@/features/libro-inventario/routes';
 import { accountsPayableRoutes } from '@/features/accounts-payable/routes';
+import { inventoryReportsRoutes } from '@/features/inventory-reports/routes';
 import { activeIngredientsRoutes } from '@/features/active-ingredients/routes';
 import { inventoryTransfersRoutes } from '@/features/inventory-transfers/routes';
 import { purchasesComparatorRoutes } from '@/features/purchases-comparator/routes';
@@ -166,6 +167,7 @@ export const dashboardRoutes: RouteObject[] = [
           ...rentabilidadRoutes,
           ...libroInventarioRoutes,
           ...controladosRoutes,
+          ...inventoryReportsRoutes,
           ...reporteZRoutes,
         ],
       },
