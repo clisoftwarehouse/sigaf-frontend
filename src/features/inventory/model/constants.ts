@@ -118,6 +118,7 @@ export const KARDEX_MOVEMENT_LABEL: Record<string, string> = {
   adjustment_out: 'Ajuste (salida)',
   transfer_in: 'Transferencia (entrada)',
   transfer_out: 'Transferencia (salida)',
+  warehouse_transfer: 'Traslado entre almacenes',
   expiry_write_off: 'Baja por vencimiento',
   damage: 'Daño',
 };
