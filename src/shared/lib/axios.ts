@@ -529,6 +529,9 @@ export const endpoints = {
     ventas: '/v1/libros-iva/ventas',
     compras: '/v1/libros-iva/compras',
   },
+  fiscalZReports: {
+    root: '/v1/fiscal-z-reports',
+  },
   prices: {
     root: '/v1/prices',
     byId: (id: string) => `/v1/prices/${id}`,

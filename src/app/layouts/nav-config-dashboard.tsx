@@ -361,6 +361,11 @@ export const navData: NavSectionProps['data'] = [
         path: paths.dashboard.admin.librosIva,
         icon: ICONS.librosIva,
       },
+      {
+        title: 'Reporte Z',
+        path: paths.dashboard.admin.reporteZ,
+        icon: ICONS.librosIva,
+      },
     ],
   },
 ];

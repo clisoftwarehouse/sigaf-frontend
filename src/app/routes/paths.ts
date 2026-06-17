@@ -111,6 +111,7 @@ export const paths = {
       auditLog: `${admin}/audit-log`,
       imports: `${admin}/imports`,
       librosIva: `${admin}/libros-iva`,
+      reporteZ: `${admin}/reporte-z`,
     },
   },
 };

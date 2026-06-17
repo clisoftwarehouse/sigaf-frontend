@@ -16,6 +16,7 @@ import { importsRoutes } from '@/features/imports/routes';
 import { DashboardLayout } from '@/app/layouts/dashboard';
 import { productsRoutes } from '@/features/products/routes';
 import { branchesRoutes } from '@/features/branches/routes';
+import { reporteZRoutes } from '@/features/reporte-z/routes';
 import { inventoryRoutes } from '@/features/inventory/routes';
 import { suppliersRoutes } from '@/features/suppliers/routes';
 import { terminalsRoutes } from '@/features/terminals/routes';
@@ -157,6 +158,7 @@ export const dashboardRoutes: RouteObject[] = [
           ...auditRoutes,
           ...importsRoutes,
           ...librosIvaRoutes,
+          ...reporteZRoutes,
         ],
       },
     ],
