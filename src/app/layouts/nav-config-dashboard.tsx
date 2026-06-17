@@ -155,6 +155,7 @@ export const navData: NavSectionProps['data'] = [
           paths.dashboard.inventory.counts.root,
           paths.dashboard.inventory.transfers.root,
           paths.dashboard.inventory.cyclicSchedules,
+          paths.dashboard.inventory.kardex,
         ],
         children: [
           { title: 'Stock', path: paths.dashboard.inventory.stock, icon: ICONS.stock },
@@ -172,6 +173,12 @@ export const navData: NavSectionProps['data'] = [
             title: 'Conteo cíclico',
             path: paths.dashboard.inventory.cyclicSchedules,
             icon: ICONS.cyclic,
+          },
+          {
+            title: 'Kardex',
+            path: paths.dashboard.inventory.kardex,
+            icon: ICONS.kardex,
+            allowedRoles: ['administrador'],
           },
         ],
       },
@@ -242,62 +249,72 @@ export const navData: NavSectionProps['data'] = [
     ],
   },
   {
-    subheader: 'Punto de venta',
+    subheader: 'Caja y clientes',
     items: [
       {
-        title: 'POS',
+        title: 'Clientes',
         path: paths.dashboard.pos.customers.root,
-        icon: ICONS.pos,
-        extraMatchPaths: [
-          paths.dashboard.pos.customers.root,
-          paths.dashboard.pos.prescriptions.root,
-          paths.dashboard.pos.prescribers,
-          paths.dashboard.pos.cashSessions.root,
-          paths.dashboard.pos.paymentsReport,
-        ],
-        children: [
-          {
-            title: 'Clientes',
-            path: paths.dashboard.pos.customers.root,
-            icon: ICONS.customers,
-          },
-          {
-            title: 'Récipes',
-            path: paths.dashboard.pos.prescriptions.root,
-            icon: ICONS.prescriptions,
-          },
-          {
-            title: 'Médicos',
-            path: paths.dashboard.pos.prescribers,
-            icon: ICONS.prescribers,
-          },
-          {
-            title: 'Sesiones de caja',
-            path: paths.dashboard.pos.cashSessions.root,
-            icon: ICONS.cashSessions,
-          },
-          {
-            title: 'Reporte de pagos',
-            path: paths.dashboard.pos.paymentsReport,
-            icon: ICONS.paymentsReport,
-          },
-        ],
+        icon: ICONS.customers,
+      },
+      {
+        title: 'Récipes',
+        path: paths.dashboard.pos.prescriptions.root,
+        icon: ICONS.prescriptions,
+      },
+      {
+        title: 'Médicos',
+        path: paths.dashboard.pos.prescribers,
+        icon: ICONS.prescribers,
+      },
+      {
+        title: 'Sesiones de caja',
+        path: paths.dashboard.pos.cashSessions.root,
+        icon: ICONS.cashSessions,
       },
     ],
   },
   {
-    subheader: 'Control',
+    subheader: 'Reportes',
     items: [
       {
-        title: 'Kardex',
-        path: paths.dashboard.inventory.kardex,
-        icon: ICONS.kardex,
-        allowedRoles: ['administrador'],
+        title: 'Reporte de pagos',
+        path: paths.dashboard.pos.paymentsReport,
+        icon: ICONS.paymentsReport,
       },
       {
-        title: 'Auditoría',
-        path: paths.dashboard.admin.auditLog,
-        icon: ICONS.audit,
+        title: 'Rentabilidad',
+        path: paths.dashboard.admin.rentabilidad,
+        icon: ICONS.rentabilidad,
+      },
+    ],
+  },
+  {
+    subheader: 'Cumplimiento (SENIAT)',
+    items: [
+      {
+        title: 'Libros de IVA',
+        path: paths.dashboard.admin.librosIva,
+        icon: ICONS.librosIva,
+      },
+      {
+        title: 'Percepción IGTF',
+        path: paths.dashboard.admin.igtf,
+        icon: ICONS.igtf,
+      },
+      {
+        title: 'Reporte Z',
+        path: paths.dashboard.admin.reporteZ,
+        icon: ICONS.librosIva,
+      },
+      {
+        title: 'Libro de Inventario',
+        path: paths.dashboard.admin.libroInventario,
+        icon: ICONS.inventarioLibro,
+      },
+      {
+        title: 'Controlados (SACS)',
+        path: paths.dashboard.admin.controlados,
+        icon: ICONS.controlados,
       },
     ],
   },
@@ -361,34 +378,9 @@ export const navData: NavSectionProps['data'] = [
         ],
       },
       {
-        title: 'Libros de IVA',
-        path: paths.dashboard.admin.librosIva,
-        icon: ICONS.librosIva,
-      },
-      {
-        title: 'Percepción IGTF',
-        path: paths.dashboard.admin.igtf,
-        icon: ICONS.igtf,
-      },
-      {
-        title: 'Rentabilidad',
-        path: paths.dashboard.admin.rentabilidad,
-        icon: ICONS.rentabilidad,
-      },
-      {
-        title: 'Libro de Inventario',
-        path: paths.dashboard.admin.libroInventario,
-        icon: ICONS.inventarioLibro,
-      },
-      {
-        title: 'Controlados (SACS)',
-        path: paths.dashboard.admin.controlados,
-        icon: ICONS.controlados,
-      },
-      {
-        title: 'Reporte Z',
-        path: paths.dashboard.admin.reporteZ,
-        icon: ICONS.librosIva,
+        title: 'Auditoría',
+        path: paths.dashboard.admin.auditLog,
+        icon: ICONS.audit,
       },
     ],
   },
