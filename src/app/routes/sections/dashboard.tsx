@@ -45,6 +45,7 @@ import { libroInventarioRoutes } from '@/features/libro-inventario/routes';
 import { accountsPayableRoutes } from '@/features/accounts-payable/routes';
 import { inventoryReportsRoutes } from '@/features/inventory-reports/routes';
 import { activeIngredientsRoutes } from '@/features/active-ingredients/routes';
+import { crmFinanceReportsRoutes } from '@/features/crm-finance-reports/routes';
 import { inventoryTransfersRoutes } from '@/features/inventory-transfers/routes';
 import { purchasesComparatorRoutes } from '@/features/purchases-comparator/routes';
 import { purchasesIntelligenceRoutes } from '@/features/purchases-intelligence/routes';
@@ -172,6 +173,7 @@ export const dashboardRoutes: RouteObject[] = [
           ...inventoryReportsRoutes,
           ...salesReportsRoutes,
           ...purchaseReportsRoutes,
+          ...crmFinanceReportsRoutes,
           ...reporteZRoutes,
         ],
       },

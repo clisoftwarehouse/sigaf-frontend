@@ -313,6 +313,23 @@ export const navData: NavSectionProps['data'] = [
           { title: 'Nivel de servicio', path: paths.dashboard.admin.reportes.nivelServicio, icon: ICONS.comparator },
         ],
       },
+      {
+        title: 'Clientes',
+        path: paths.dashboard.admin.reportes.comportamientoClientes,
+        icon: ICONS.customers,
+        children: [
+          { title: 'Comportamiento', path: paths.dashboard.admin.reportes.comportamientoClientes, icon: ICONS.customers },
+          { title: 'Pacientes crónicos', path: paths.dashboard.admin.reportes.pacientesCronicos, icon: ICONS.prescriptions },
+        ],
+      },
+      {
+        title: 'Finanzas',
+        path: paths.dashboard.admin.reportes.flujoCaja,
+        icon: ICONS.prices,
+        children: [
+          { title: 'Flujo de caja', path: paths.dashboard.admin.reportes.flujoCaja, icon: ICONS.cashSessions },
+        ],
+      },
     ],
   },
   {
