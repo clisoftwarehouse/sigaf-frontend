@@ -491,6 +491,7 @@ export const endpoints = {
     entries: '/v1/consignments/entries',
     entryById: (id: string) => `/v1/consignments/entries/${id}`,
     returns: '/v1/consignments/returns',
+    returnById: (id: string) => `/v1/consignments/returns/${id}`,
     liquidations: '/v1/consignments/liquidations',
     liquidationById: (id: string) => `/v1/consignments/liquidations/${id}`,
     approveLiquidation: (id: string) => `/v1/consignments/liquidations/${id}/approve`,

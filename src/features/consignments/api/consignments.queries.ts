@@ -10,6 +10,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   fetchEntry,
   createEntry,
+  fetchReturn,
   fetchEntries,
   createReturn,
   fetchReturns,
@@ -27,6 +28,7 @@ export const consignmentKeys = {
     [...consignmentKeys.all, 'entries', filters] as const,
   entry: (id: string) => [...consignmentKeys.all, 'entry', id] as const,
   returns: (params: object) => [...consignmentKeys.all, 'returns', params] as const,
+  return: (id: string) => [...consignmentKeys.all, 'return', id] as const,
   liquidations: (params: object) =>
     [...consignmentKeys.all, 'liquidations', params] as const,
   liquidation: (id: string) => [...consignmentKeys.all, 'liquidation', id] as const,
@@ -67,6 +69,14 @@ export function useReturnsQuery(params: {
   return useQuery({
     queryKey: consignmentKeys.returns(params),
     queryFn: () => fetchReturns(params),
+  });
+}
+
+export function useReturnQuery(id: string | undefined) {
+  return useQuery({
+    queryKey: consignmentKeys.return(id ?? ''),
+    queryFn: () => fetchReturn(id as string),
+    enabled: Boolean(id),
   });
 }
 

@@ -96,12 +96,28 @@ export function ReturnsListView() {
       {
         field: 'notes',
         headerName: 'Notas',
-        flex: 2,
-        minWidth: 240,
+        flex: 1.5,
+        minWidth: 200,
         valueGetter: (value: string | null) => value ?? '—',
       },
+      {
+        field: 'actions',
+        headerName: '',
+        width: 60,
+        sortable: false,
+        filterable: false,
+        renderCell: ({ row }) => (
+          <Button
+            size="small"
+            color="inherit"
+            onClick={() => router.push(paths.dashboard.consignments.returns.detail(row.id))}
+          >
+            <Iconify icon="solar:eye-bold" width={18} />
+          </Button>
+        ),
+      },
     ],
-    [branchFilterOperators, supplierFilterOperators, branchNameById, supplierNameById]
+    [branchFilterOperators, supplierFilterOperators, branchNameById, supplierNameById, router]
   );
 
   return (

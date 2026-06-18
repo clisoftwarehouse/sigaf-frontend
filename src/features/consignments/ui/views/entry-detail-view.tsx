@@ -15,6 +15,8 @@ import CircularProgress from '@mui/material/CircularProgress';
 
 import { PageHeader } from '@/shared/ui/page-header';
 import { DataTable } from '@/app/components/data-table';
+import { useBranchOptions } from '@/features/branches/api/branches.options';
+import { useSupplierOptions } from '@/features/suppliers/api/suppliers.options';
 
 import { useEntryQuery } from '../../api/consignments.queries';
 import { CONSIGNMENT_STATUS_COLOR } from '../../model/constants';
@@ -25,8 +27,24 @@ export function EntryDetailView() {
   const { id } = useParams<{ id: string }>();
   const { data: entry, isLoading, isError, error } = useEntryQuery(id);
 
+  const { data: branchOpts = [] } = useBranchOptions();
+  const { data: supplierOpts = [] } = useSupplierOptions();
+  const branchName = branchOpts.find((o) => o.id === entry?.branchId)?.label ?? entry?.branchId;
+  const supplierName = supplierOpts.find((o) => o.id === entry?.supplierId)?.label ?? entry?.supplierId;
+
   const itemColumns = useMemo<GridColDef<ConsignmentEntryItem>[]>(
     () => [
+      {
+        field: 'productName',
+        headerName: 'Producto',
+        flex: 2,
+        minWidth: 220,
+        renderCell: ({ row }) => (
+          <Typography variant="body2" noWrap title={row.productName ?? ''}>
+            {row.productName ?? '—'}
+          </Typography>
+        ),
+      },
       {
         field: 'lotNumber',
         headerName: 'Lote',
@@ -134,17 +152,13 @@ export function EntryDetailView() {
                 <Typography variant="caption" sx={{ color: 'text.secondary' }}>
                   Sucursal
                 </Typography>
-                <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
-                  {entry.branchId}
-                </Typography>
+                <Typography variant="body2">{branchName}</Typography>
               </Box>
               <Box>
                 <Typography variant="caption" sx={{ color: 'text.secondary' }}>
                   Proveedor
                 </Typography>
-                <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
-                  {entry.supplierId}
-                </Typography>
+                <Typography variant="body2">{supplierName}</Typography>
               </Box>
             </Stack>
             {entry.notes && (

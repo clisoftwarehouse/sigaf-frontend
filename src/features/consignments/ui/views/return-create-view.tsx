@@ -33,16 +33,11 @@ import {
 // ----------------------------------------------------------------------
 
 const ItemSchema = z.object({
-  consignmentItemId: z.string().uuid({ message: 'Obligatorio' }),
-  lotId: z.string().uuid({ message: 'Obligatorio' }),
+  consignmentItemId: z.string().uuid({ message: 'Selecciona el ítem' }),
   quantity: z
     .string()
     .min(1, { message: 'Obligatoria' })
     .refine((v) => /^\d+(\.\d+)?$/.test(v) && Number(v) > 0, { message: '> 0' }),
-  costUsd: z
-    .string()
-    .min(1, { message: 'Obligatorio' })
-    .refine((v) => /^\d+(\.\d+)?$/.test(v) && Number(v) >= 0, { message: '≥ 0' }),
 });
 
 const ReturnSchema = z.object({
@@ -70,13 +65,14 @@ export function ReturnCreateView() {
       consignmentEntryId: '',
       reason: 'expired',
       notes: '',
-      items: [{ consignmentItemId: '', lotId: '', quantity: '', costUsd: '' }],
+      items: [{ consignmentItemId: '', quantity: '' }],
     },
   });
 
   const { control, watch, reset } = methods;
   const { fields, append, remove } = useFieldArray({ control, name: 'items' });
   const selectedEntryId = watch('consignmentEntryId');
+  const watchedItems = watch('items');
 
   const { data: selectedEntry } = useEntryQuery(selectedEntryId || undefined);
   const availableItems = useMemo(() => selectedEntry?.items ?? [], [selectedEntry]);
@@ -85,25 +81,38 @@ export function ReturnCreateView() {
     // When entry changes, reset items to blank (user picks fresh items from the entry).
     reset((prev) => ({
       ...prev,
-      items: [{ consignmentItemId: '', lotId: '', quantity: '', costUsd: '' }],
+      items: [{ consignmentItemId: '', quantity: '' }],
     }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedEntryId]);
 
   const submit = methods.handleSubmit(async (values) => {
     if (!selectedEntry) return;
+
+    const items: CreateConsignmentReturnPayload['items'] = [];
+    for (const i of values.items) {
+      const src = availableItems.find((a) => a.id === i.consignmentItemId);
+      if (!src || !src.lotId) {
+        toast.error('Ítem de consignación inválido');
+        return;
+      }
+      const remaining = Number(src.quantityRemaining) || 0;
+      const qty = Number(i.quantity);
+      if (qty > remaining) {
+        toast.error(`No puedes devolver más de ${remaining} del lote ${src.lotNumber ?? ''}`);
+        return;
+      }
+      // El lote y el costo salen del ítem de consignación, no se escriben a mano.
+      items.push({ consignmentItemId: i.consignmentItemId, lotId: src.lotId, quantity: qty, costUsd: Number(src.costUsd) || 0 });
+    }
+
     const payload: CreateConsignmentReturnPayload = {
       consignmentEntryId: values.consignmentEntryId,
       branchId: selectedEntry.branchId,
       supplierId: selectedEntry.supplierId,
       reason: values.reason,
       notes: values.notes?.trim() || undefined,
-      items: values.items.map((i) => ({
-        consignmentItemId: i.consignmentItemId,
-        lotId: i.lotId,
-        quantity: Number(i.quantity),
-        costUsd: Number(i.costUsd),
-      })),
+      items,
     };
 
     try {
@@ -178,7 +187,7 @@ export function ReturnCreateView() {
                 startIcon={<Iconify icon="solar:add-circle-bold" />}
                 disabled={!selectedEntry}
                 onClick={() =>
-                  append({ consignmentItemId: '', lotId: '', quantity: '', costUsd: '' })
+                  append({ consignmentItemId: '', quantity: '' })
                 }
               >
                 Agregar ítem
@@ -199,36 +208,29 @@ export function ReturnCreateView() {
                       <Stack spacing={2}>
                         <Field.Select
                           name={`items.${idx}.consignmentItemId`}
-                          label="Ítem original"
+                          label="Producto / lote a devolver"
                           slotProps={{ inputLabel: { shrink: true } }}
                         >
                           <MenuItem value="">— Selecciona —</MenuItem>
                           {availableItems.map((i) => (
                             <MenuItem key={i.id} value={i.id}>
-                              {i.lotNumber} · restante {Number(i.quantityRemaining) || 0}
+                              {i.productName ?? ''} · {i.lotNumber} · restante {Number(i.quantityRemaining) || 0}
                             </MenuItem>
                           ))}
                         </Field.Select>
-                        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-                          <Field.Text
-                            name={`items.${idx}.lotId`}
-                            label="Lote ID (UUID)"
-                            slotProps={{ inputLabel: { shrink: true } }}
-                            sx={{ flex: 1 }}
-                          />
-                          <Field.Text
-                            name={`items.${idx}.quantity`}
-                            label="Cantidad"
-                            slotProps={{ inputLabel: { shrink: true } }}
-                            sx={{ flex: 1 }}
-                          />
-                          <Field.Text
-                            name={`items.${idx}.costUsd`}
-                            label="Costo USD"
-                            slotProps={{ inputLabel: { shrink: true } }}
-                            sx={{ flex: 1 }}
-                          />
-                        </Stack>
+                        {(() => {
+                          const sel = availableItems.find((a) => a.id === watchedItems?.[idx]?.consignmentItemId);
+                          const remaining = sel ? Number(sel.quantityRemaining) || 0 : 0;
+                          return (
+                            <Field.Text
+                              name={`items.${idx}.quantity`}
+                              label="Cantidad a devolver"
+                              slotProps={{ inputLabel: { shrink: true } }}
+                              helperText={sel ? `Restante: ${remaining} · costo $${(Number(sel.costUsd) || 0).toFixed(2)}` : ' '}
+                              sx={{ maxWidth: 280 }}
+                            />
+                          );
+                        })()}
                       </Stack>
                     </Box>
                     <IconButton

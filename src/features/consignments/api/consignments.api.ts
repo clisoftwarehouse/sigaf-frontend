@@ -56,7 +56,14 @@ export async function fetchReturns(params: {
   supplierId?: string;
   consignmentEntryId?: string;
 }): Promise<ConsignmentReturn[]> {
-  const res = await axios.get<ConsignmentReturn[]>(endpoints.consignments.returns, { params });
+  const res = await axios.get<PaginatedResponse<ConsignmentReturn>>(endpoints.consignments.returns, {
+    params,
+  });
+  return res.data.data;
+}
+
+export async function fetchReturn(id: string): Promise<ConsignmentReturn> {
+  const res = await axios.get<ConsignmentReturn>(endpoints.consignments.returnById(id));
   return res.data;
 }
 

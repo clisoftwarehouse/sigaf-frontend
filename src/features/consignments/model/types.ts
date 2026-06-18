@@ -7,12 +7,16 @@ export type ConsignmentEntryItem = {
   id: string;
   consignmentEntryId: string;
   productId: string;
-  lotNumber: string;
-  expirationDate: string;
+  productName: string | null;
+  lotId: string | null;
+  lotNumber: string | null;
+  expirationDate: string | null;
   quantity: number | string;
+  quantitySold: number | string;
+  quantityReturned: number | string;
   quantityRemaining: number | string;
   costUsd: number | string;
-  salePrice: number | string;
+  salePrice: number | string | null;
 };
 
 export type ConsignmentEntry = {
@@ -60,6 +64,7 @@ export type ConsignmentReturn = {
   consignmentEntryId: string;
   branchId: string;
   supplierId: string;
+  returnNumber: string;
   reason: string;
   notes: string | null;
   createdAt: string;
