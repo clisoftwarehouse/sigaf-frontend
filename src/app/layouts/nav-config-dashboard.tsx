@@ -280,6 +280,17 @@ export const navData: NavSectionProps['data'] = [
         title: 'Ventas',
         path: paths.dashboard.pos.paymentsReport,
         icon: ICONS.paymentsReport,
+        deepMatch: false,
+        extraMatchPaths: [
+          paths.dashboard.pos.paymentsReport,
+          paths.dashboard.admin.rentabilidad,
+          paths.dashboard.admin.reportes.transacciones,
+          paths.dashboard.admin.reportes.devoluciones,
+          paths.dashboard.admin.reportes.ticketPromedio,
+          paths.dashboard.admin.reportes.productividad,
+          paths.dashboard.admin.reportes.efectividadPromos,
+          paths.dashboard.admin.reportes.reporteX,
+        ],
         children: [
           { title: 'Reporte de pagos', path: paths.dashboard.pos.paymentsReport, icon: ICONS.paymentsReport },
           { title: 'Rentabilidad', path: paths.dashboard.admin.rentabilidad, icon: ICONS.rentabilidad },
@@ -295,6 +306,15 @@ export const navData: NavSectionProps['data'] = [
         title: 'Inventario',
         path: paths.dashboard.admin.reportes.riesgo,
         icon: ICONS.inventory,
+        deepMatch: false,
+        extraMatchPaths: [
+          paths.dashboard.admin.reportes.riesgo,
+          paths.dashboard.admin.reportes.merma,
+          paths.dashboard.admin.reportes.diasInventario,
+          paths.dashboard.admin.reportes.capitalEstancado,
+          paths.dashboard.admin.reportes.pareto,
+          paths.dashboard.admin.reportes.transferencias,
+        ],
         children: [
           { title: 'Riesgo de vencimiento', path: paths.dashboard.admin.reportes.riesgo, icon: ICONS.claims },
           { title: 'Merma', path: paths.dashboard.admin.reportes.merma, icon: ICONS.consignmentReturn },
@@ -308,6 +328,12 @@ export const navData: NavSectionProps['data'] = [
         title: 'Compras',
         path: paths.dashboard.admin.reportes.saldosProveedores,
         icon: ICONS.purchases,
+        deepMatch: false,
+        extraMatchPaths: [
+          paths.dashboard.admin.reportes.saldosProveedores,
+          paths.dashboard.admin.reportes.variacionPrecios,
+          paths.dashboard.admin.reportes.nivelServicio,
+        ],
         children: [
           { title: 'Saldos a proveedores', path: paths.dashboard.admin.reportes.saldosProveedores, icon: ICONS.accountsPayable },
           { title: 'Variación de precios', path: paths.dashboard.admin.reportes.variacionPrecios, icon: ICONS.prices },
@@ -318,6 +344,11 @@ export const navData: NavSectionProps['data'] = [
         title: 'Clientes',
         path: paths.dashboard.admin.reportes.comportamientoClientes,
         icon: ICONS.customers,
+        deepMatch: false,
+        extraMatchPaths: [
+          paths.dashboard.admin.reportes.comportamientoClientes,
+          paths.dashboard.admin.reportes.pacientesCronicos,
+        ],
         children: [
           { title: 'Comportamiento', path: paths.dashboard.admin.reportes.comportamientoClientes, icon: ICONS.customers },
           { title: 'Pacientes crónicos', path: paths.dashboard.admin.reportes.pacientesCronicos, icon: ICONS.prescriptions },
@@ -327,6 +358,8 @@ export const navData: NavSectionProps['data'] = [
         title: 'Finanzas',
         path: paths.dashboard.admin.reportes.flujoCaja,
         icon: ICONS.prices,
+        deepMatch: false,
+        extraMatchPaths: [paths.dashboard.admin.reportes.flujoCaja],
         children: [
           { title: 'Flujo de caja', path: paths.dashboard.admin.reportes.flujoCaja, icon: ICONS.cashSessions },
         ],
