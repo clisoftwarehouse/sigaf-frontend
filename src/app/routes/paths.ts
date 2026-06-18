@@ -122,6 +122,7 @@ export const paths = {
         transacciones: `${admin}/reportes/transacciones`,
         ticketPromedio: `${admin}/reportes/ticket-promedio`,
         productividad: `${admin}/reportes/productividad`,
+        efectividadPromos: `${admin}/reportes/efectividad-promociones`,
         variacionPrecios: `${admin}/reportes/variacion-precios`,
         nivelServicio: `${admin}/reportes/nivel-servicio`,
         saldosProveedores: `${admin}/reportes/saldos-proveedores`,

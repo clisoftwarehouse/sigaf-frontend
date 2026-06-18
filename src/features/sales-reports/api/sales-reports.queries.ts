@@ -4,6 +4,7 @@ import type {
   ProductividadResult,
   TransaccionesResult,
   TicketPromedioResult,
+  EfectividadPromosResult,
 } from '../model/types';
 
 import { useQuery } from '@tanstack/react-query';
@@ -33,3 +34,5 @@ export const useTicketPromedio = (params: RangeParams) =>
   useReportQuery<TicketPromedioResult>('ticket-promedio', endpoints.salesReports.ticketPromedio, params);
 export const useProductividad = (params: RangeParams) =>
   useReportQuery<ProductividadResult>('productividad', endpoints.salesReports.productividad, params);
+export const useEfectividadPromos = (params: RangeParams) =>
+  useReportQuery<EfectividadPromosResult>('efectividad-promos', endpoints.salesReports.efectividadPromos, params);

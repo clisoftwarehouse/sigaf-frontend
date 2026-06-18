@@ -557,6 +557,7 @@ export const endpoints = {
     transacciones: '/v1/sales-reports/transacciones',
     ticketPromedio: '/v1/sales-reports/ticket-promedio',
     productividad: '/v1/sales-reports/productividad',
+    efectividadPromos: '/v1/sales-reports/efectividad-promociones',
   },
   inventoryReports: {
     riesgo: '/v1/inventory-reports/riesgo',

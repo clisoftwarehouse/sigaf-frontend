@@ -82,3 +82,17 @@ export type ProductividadResult = {
   rows: ProductividadRow[];
   resumen: { cashiers: number; tickets: number; totalUsd: number };
 };
+
+export type EfectividadPromoRow = {
+  promotionName: string;
+  promotionType: string;
+  lines: number;
+  units: number;
+  soldUsd: number;
+  discountUsd: number;
+};
+export type EfectividadPromosResult = {
+  range: { from: string; to: string };
+  rows: EfectividadPromoRow[];
+  resumen: { promos: number; totalSoldUsd: number; totalDiscountUsd: number };
+};

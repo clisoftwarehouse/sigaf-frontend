@@ -287,6 +287,7 @@ export const navData: NavSectionProps['data'] = [
           { title: 'Devoluciones', path: paths.dashboard.admin.reportes.devoluciones, icon: ICONS.consignmentReturn },
           { title: 'Ticket promedio', path: paths.dashboard.admin.reportes.ticketPromedio, icon: ICONS.comparator },
           { title: 'Productividad cajero', path: paths.dashboard.admin.reportes.productividad, icon: ICONS.users },
+          { title: 'Efectividad de promos', path: paths.dashboard.admin.reportes.efectividadPromos, icon: ICONS.promotions },
           { title: 'Reporte X', path: paths.dashboard.admin.reportes.reporteX, icon: ICONS.cashSessions },
         ],
       },
