@@ -120,6 +120,16 @@ export function OrderDetailView() {
         valueGetter: (value: number | string) => Number(value) || 0,
       },
       {
+        field: 'unitCostUsd',
+        headerName: 'Costo unit. USD',
+        type: 'number',
+        flex: 1,
+        minWidth: 130,
+        valueGetter: (value: number | string) => Number(value) || 0,
+        valueFormatter: (value: number) =>
+          value.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+      },
+      {
         field: 'quantityReceived',
         headerName: 'Recibido',
         type: 'number',
@@ -146,6 +156,16 @@ export function OrderDetailView() {
           const color = pct >= 100 ? 'success' : pct > 0 ? 'warning' : 'default';
           return <Chip size="small" color={color} variant="outlined" label={`${pct}%`} />;
         },
+      },
+      {
+        field: 'subtotalUsd',
+        headerName: 'Subtotal USD',
+        type: 'number',
+        flex: 1,
+        minWidth: 130,
+        valueGetter: (value: number | string) => Number(value) || 0,
+        valueFormatter: (value: number) =>
+          value.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
       },
     ],
     [productNameById]
