@@ -25,6 +25,12 @@ import { useReceiptsQuery } from '@/features/purchases/api/purchases.queries';
 import { useSuppliersQuery } from '@/features/suppliers/api/suppliers.queries';
 import { useLotsQuery, useStockQuery } from '@/features/inventory/api/inventory.queries';
 
+import { useDashboardSummary } from '../../api/dashboard.queries';
+
+const fmtUsd = (n: number): string =>
+  `$${(Number(n) || 0).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const fmtPct = (n: number): string => `${(Number(n) || 0).toLocaleString('es-VE', { maximumFractionDigits: 1 })}%`;
+
 // ----------------------------------------------------------------------
 
 const metadata = { title: `Dashboard · ${CONFIG.appName}` };
@@ -230,6 +236,38 @@ export default function Page() {
 
   const { data: receipts, isLoading: loadingReceipts } = useReceiptsQuery();
 
+  // KPIs agregados (ventas, rentabilidad, finanzas, inventario).
+  const { data: summary, isLoading: loadingSummary } = useDashboardSummary();
+
+  // ── Área: tendencia de ventas (30 días) ─────────────────────────────
+  const salesTrendOptions = useChart({
+    chart: { type: 'area' },
+    colors: [theme.palette.success.main],
+    stroke: { width: 3, curve: 'smooth' },
+    fill: { type: 'gradient', gradient: { opacityFrom: 0.4, opacityTo: 0, stops: [0, 100] } },
+    xaxis: { type: 'datetime', categories: (summary?.sales.trend ?? []).map((p) => p.date) },
+    yaxis: { labels: { formatter: (v: number) => `$${Math.round(v)}` } },
+    tooltip: { x: { format: 'dd MMM' }, y: { formatter: (v: number) => fmtUsd(v) } },
+    legend: { show: false },
+  });
+  const salesTrendSeries = [
+    { name: 'Ventas', data: (summary?.sales.trend ?? []).map((p) => p.totalUsd) },
+  ];
+
+  // ── Barras: flujo de caja proyectado (4 semanas) ────────────────────
+  const cashflowOptions = useChart({
+    chart: { type: 'bar' },
+    colors: [theme.palette.info.main],
+    plotOptions: { bar: { columnWidth: '45%', borderRadius: 4 } },
+    xaxis: { categories: (summary?.finance.cashflow ?? []).map((w) => w.weekStart.slice(5)) },
+    yaxis: { labels: { formatter: (v: number) => `$${Math.round(v)}` } },
+    tooltip: { y: { formatter: (v: number) => fmtUsd(v) } },
+    legend: { show: false },
+  });
+  const cashflowSeries = [
+    { name: 'Neto', data: (summary?.finance.cashflow ?? []).map((w) => w.netUsd) },
+  ];
+
   // ── Donut: stock por estado ─────────────────────────────────────────
   const stockDonutSeries = useMemo(
     () => [stockNormal?.total ?? 0, stockLow?.total ?? 0, stockOut?.total ?? 0],
@@ -402,6 +440,166 @@ export default function Page() {
             )}
           </Stack>
         </Card>
+
+        <SectionHeader title="Ventas del negocio" subtitle="Desempeño comercial del día y del mes" />
+
+        <Grid container spacing={3} sx={{ mb: 4 }}>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <KpiCard
+              label="Ventas de hoy"
+              value={fmtUsd(summary?.sales.todayUsd ?? 0)}
+              hint={`${summary?.sales.todayTickets ?? 0} tickets`}
+              icon="solar:cart-3-bold"
+              color="success"
+              loading={loadingSummary}
+            />
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <KpiCard
+              label="Ventas del mes"
+              value={fmtUsd(summary?.sales.monthUsd ?? 0)}
+              hint={
+                summary?.sales.momChangePct != null
+                  ? `${summary.sales.momChangePct >= 0 ? '▲' : '▼'} ${fmtPct(Math.abs(summary.sales.momChangePct))} vs mes anterior`
+                  : 'Sin mes anterior'
+              }
+              icon="solar:wad-of-money-bold"
+              color="primary"
+              loading={loadingSummary}
+            />
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <KpiCard
+              label="Ticket promedio"
+              value={fmtUsd(summary?.sales.avgTicketUsd ?? 0)}
+              hint="Mes en curso"
+              icon="solar:tag-horizontal-bold-duotone"
+              color="info"
+              loading={loadingSummary}
+            />
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <KpiCard
+              label="Margen bruto del mes"
+              value={fmtUsd(summary?.profit.monthMarginUsd ?? 0)}
+              hint={`${fmtPct(summary?.profit.monthMarginPct ?? 0)} sobre venta`}
+              icon="solar:chart-square-outline"
+              color="success"
+              loading={loadingSummary}
+            />
+          </Grid>
+        </Grid>
+
+        <Grid container spacing={3} sx={{ mb: 4 }}>
+          <Grid size={{ xs: 12, md: 8 }}>
+            <Card sx={{ p: 3, height: '100%' }}>
+              <Typography variant="subtitle2">Ventas (últimos 30 días)</Typography>
+              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                Monto vendido por día (USD)
+              </Typography>
+              <Box sx={{ mt: 2 }}>
+                {loadingSummary ? (
+                  <Skeleton variant="rounded" height={280} />
+                ) : (
+                  <Chart type="area" series={salesTrendSeries} options={salesTrendOptions} height={280} />
+                )}
+              </Box>
+            </Card>
+          </Grid>
+          <Grid size={{ xs: 12, md: 4 }}>
+            <Card sx={{ p: 3, height: '100%' }}>
+              <Typography variant="subtitle2">Top productos del mes</Typography>
+              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                Por monto vendido
+              </Typography>
+              <Stack spacing={1.5} sx={{ mt: 2 }}>
+                {loadingSummary ? (
+                  <Skeleton variant="rounded" height={240} />
+                ) : (summary?.profit.topProducts ?? []).length === 0 ? (
+                  <Typography variant="caption" color="text.disabled">Sin ventas este mes.</Typography>
+                ) : (
+                  (summary?.profit.topProducts ?? []).map((p, i) => (
+                    <Stack key={i} direction="row" justifyContent="space-between" alignItems="center" spacing={1}>
+                      <Stack direction="row" spacing={1} alignItems="center" sx={{ minWidth: 0 }}>
+                        <Typography variant="caption" sx={{ fontWeight: 800, color: 'text.disabled', width: 16 }}>
+                          {i + 1}
+                        </Typography>
+                        <Typography variant="body2" noWrap title={p.name}>{p.name}</Typography>
+                      </Stack>
+                      <Typography variant="body2" sx={{ fontWeight: 700, fontFamily: 'monospace', flexShrink: 0 }}>
+                        {fmtUsd(p.salesUsd)}
+                      </Typography>
+                    </Stack>
+                  ))
+                )}
+              </Stack>
+            </Card>
+          </Grid>
+        </Grid>
+
+        <SectionHeader title="Finanzas e inventario" subtitle="Capital, deudas y proyección de caja" />
+
+        <Grid container spacing={3} sx={{ mb: 4 }}>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <KpiCard
+              label="Cuentas por pagar"
+              value={fmtUsd(summary?.finance.payablesOpenUsd ?? 0)}
+              hint={`Vencido: ${fmtUsd(summary?.finance.payablesOverdueUsd ?? 0)}`}
+              icon="solar:bill-list-bold"
+              color={summary && summary.finance.payablesOverdueUsd > 0 ? 'error' : 'warning'}
+              href={paths.dashboard.purchases.accountsPayable}
+              loading={loadingSummary}
+            />
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <KpiCard
+              label="Valor del inventario"
+              value={fmtUsd(summary?.inventory.inventoryValueUsd ?? 0)}
+              hint="Existencias al costo"
+              icon="solar:box-minimalistic-bold"
+              color="primary"
+              loading={loadingSummary}
+            />
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <KpiCard
+              label="Capital estancado"
+              value={fmtUsd(summary?.inventory.stalledCapitalUsd ?? 0)}
+              hint="> 90 días sin venderse"
+              icon="solar:lock-password-outline"
+              color="warning"
+              loading={loadingSummary}
+            />
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <KpiCard
+              label="Diferencia de caja (hoy)"
+              value={fmtUsd(summary?.finance.cashDiffTodayUsd ?? 0)}
+              hint="Cierres del día"
+              icon="solar:shield-keyhole-bold-duotone"
+              color={summary && summary.finance.cashDiffTodayUsd > 0.01 ? 'error' : 'success'}
+              loading={loadingSummary}
+            />
+          </Grid>
+        </Grid>
+
+        <Grid container spacing={3} sx={{ mb: 4 }}>
+          <Grid size={{ xs: 12 }}>
+            <Card sx={{ p: 3 }}>
+              <Typography variant="subtitle2">Flujo de caja proyectado (4 semanas)</Typography>
+              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                Ingreso estimado (venta diaria prom.) menos cuentas por pagar que vencen
+              </Typography>
+              <Box sx={{ mt: 2 }}>
+                {loadingSummary ? (
+                  <Skeleton variant="rounded" height={260} />
+                ) : (
+                  <Chart type="bar" series={cashflowSeries} options={cashflowOptions} height={260} />
+                )}
+              </Box>
+            </Card>
+          </Grid>
+        </Grid>
 
         <SectionHeader title="Resumen del sistema" subtitle="Datos maestros y catálogos" />
 

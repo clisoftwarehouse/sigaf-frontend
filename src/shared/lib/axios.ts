@@ -542,6 +542,9 @@ export const endpoints = {
   controlados: {
     root: '/v1/controlados',
   },
+  dashboard: {
+    summary: '/v1/dashboard/summary',
+  },
   crmFinanceReports: {
     pacientesCronicos: '/v1/crm-finance-reports/pacientes-cronicos',
     comportamientoClientes: '/v1/crm-finance-reports/comportamiento-clientes',
