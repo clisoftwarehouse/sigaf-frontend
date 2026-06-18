@@ -1243,8 +1243,27 @@ export function ProductForm({
                     <Field.Text
                       name={`barcodes.${idx}.barcode`}
                       label="Código"
-                      placeholder="7501234567890"
+                      placeholder="7501234567890 (o escanéalo)"
                       slotProps={{ inputLabel: { shrink: true } }}
+                      onKeyDown={(e) => {
+                        // El lector cierra con Enter; lo interceptamos para que
+                        // no envíe el formulario y autodetectamos el tipo por
+                        // longitud del código.
+                        if (e.key !== 'Enter') return;
+                        e.preventDefault();
+                        const code = String(
+                          methods.getValues(`barcodes.${idx}.barcode`) ?? ''
+                        ).trim();
+                        const type =
+                          code.length === 13
+                            ? 'ean13'
+                            : code.length === 8
+                              ? 'ean8'
+                              : code.length === 12
+                                ? 'upc'
+                                : 'internal';
+                        setValue(`barcodes.${idx}.barcodeType`, type, { shouldDirty: true });
+                      }}
                     />
                     <Stack
                       direction="row"
