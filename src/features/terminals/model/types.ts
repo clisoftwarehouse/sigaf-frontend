@@ -14,7 +14,8 @@ export type Terminal = {
 
 export type CreateTerminalPayload = {
   branchId: string;
-  code: string;
+  /** Opcional: si se omite, el backend genera el siguiente correlativo de la sucursal. */
+  code?: string;
   name?: string;
   fiscalPrinterConfig?: Record<string, unknown>;
   scaleConfig?: Record<string, unknown>;

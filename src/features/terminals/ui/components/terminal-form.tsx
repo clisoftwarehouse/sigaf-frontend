@@ -21,8 +21,8 @@ export const TerminalSchema = z.object({
   // Opcional acá: al CREAR la sucursal va por el selector múltiple (estado del
   // componente); en edición se valida manualmente.
   branchId: z.string().optional().or(z.literal('')),
-  // .trim() antes de min(1) para rechazar entradas que solo tienen espacios.
-  code: z.string().trim().min(1, { message: 'Código obligatorio' }).max(20),
+  // Opcional: vacío → el backend genera el siguiente correlativo de la sucursal.
+  code: z.string().trim().max(20).optional().or(z.literal('')),
   name: z.string().max(100).optional().or(z.literal('')),
 });
 
@@ -68,7 +68,8 @@ export function TerminalForm({ current, submitting, onSubmit, onBulkSubmit, onCa
 
   function commonFromValues(v: TerminalFormValues): TerminalCommon {
     return {
-      code: v.code.trim(),
+      // Vacío → undefined: el backend autogenera el correlativo por sucursal.
+      code: v.code?.trim() || undefined,
       name: v.name?.trim() || undefined,
     };
   }
@@ -124,7 +125,7 @@ export function TerminalForm({ current, submitting, onSubmit, onBulkSubmit, onCa
                   error={!!branchError}
                   helperText={
                     branchError ??
-                    'El terminal se creará con el mismo código en cada sucursal seleccionada.'
+                    'Si dejas el código vacío, cada sucursal genera su propio correlativo.'
                   }
                   slotProps={{ inputLabel: { shrink: true } }}
                 />
@@ -135,10 +136,11 @@ export function TerminalForm({ current, submitting, onSubmit, onBulkSubmit, onCa
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
             <Field.Text
               name="code"
-              label="Código"
-              placeholder="Ej. POS-01"
+              label="Código (opcional)"
+              placeholder="Auto"
+              helperText="Vacío = se genera solo"
               slotProps={{ inputLabel: { shrink: true } }}
-              sx={{ width: { xs: '100%', sm: 160 }, flexShrink: 0 }}
+              sx={{ width: { xs: '100%', sm: 200 }, flexShrink: 0 }}
             />
             <Field.Text
               name="name"
