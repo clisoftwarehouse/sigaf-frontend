@@ -15,6 +15,9 @@ services:
         source: /*
         destination: /index.html
     envVars:
+      # Evita que el script prepare (husky) corra en el build de Render.
+      - key: HUSKY
+        value: "0"
       # Ajusta a la URL real del backend en Render. El prefijo /api lo pone el
       # backend (global prefix) + versionado /v1 — verifica cómo arma las URLs
       # tu cliente axios y deja aquí la base que espera.
