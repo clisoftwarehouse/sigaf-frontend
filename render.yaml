@@ -6,7 +6,8 @@ services:
     runtime: static
     branch: main
     autoDeploy: true
-    buildCommand: yarn install --frozen-lockfile && yarn build
+    # yarn install (sin --frozen-lockfile): el yarn.lock está gitignored en este repo.
+    buildCommand: yarn install && yarn build
     staticPublishPath: ./dist
     # SPA: cualquier ruta cae a index.html (react-router).
     routes:
