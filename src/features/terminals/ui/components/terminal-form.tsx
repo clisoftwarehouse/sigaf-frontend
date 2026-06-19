@@ -83,7 +83,7 @@ export function TerminalForm({ current, submitting, onSubmit, onBulkSubmit, onCa
   });
 
   const submitBulk = async () => {
-    const ok = await trigger(['code', 'name']);
+    const ok = await trigger(['name']);
     if (!ok) return;
     if (branchIds.length === 0) {
       setBranchError('Selecciona al menos una sucursal');
@@ -125,7 +125,7 @@ export function TerminalForm({ current, submitting, onSubmit, onBulkSubmit, onCa
                   error={!!branchError}
                   helperText={
                     branchError ??
-                    'Si dejas el código vacío, cada sucursal genera su propio correlativo.'
+                    'El código de cada caja lo genera el sistema (correlativo por sucursal).'
                   }
                   slotProps={{ inputLabel: { shrink: true } }}
                 />
@@ -134,14 +134,18 @@ export function TerminalForm({ current, submitting, onSubmit, onBulkSubmit, onCa
           )}
 
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-            <Field.Text
-              name="code"
-              label="Código (opcional)"
-              placeholder="Auto"
-              helperText="Vacío = se genera solo"
-              slotProps={{ inputLabel: { shrink: true } }}
-              sx={{ width: { xs: '100%', sm: 200 }, flexShrink: 0 }}
-            />
+            {/* El código lo asigna el sistema (correlativo por sucursal). En
+                edición se muestra de solo lectura para no romper la serie. */}
+            {isEdit && current?.code && (
+              <TextField
+                label="Código"
+                value={current.code}
+                disabled
+                helperText="Asignado por el sistema"
+                slotProps={{ inputLabel: { shrink: true } }}
+                sx={{ width: { xs: '100%', sm: 160 }, flexShrink: 0 }}
+              />
+            )}
             <Field.Text
               name="name"
               label="Nombre (opcional)"

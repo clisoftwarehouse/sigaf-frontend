@@ -44,7 +44,7 @@ export function TerminalCreateView() {
       (id) => branchNameById.get(id) ?? id
     );
     if (failures.length === 0) {
-      toast.success(`Terminal "${common.code}" creado en ${okCount} sucursal(es).`);
+      toast.success(`Caja creada en ${okCount} sucursal(es).`);
       router.push(paths.dashboard.organization.terminals.root);
       return;
     }
