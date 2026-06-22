@@ -500,6 +500,8 @@ export const endpoints = {
   categories: resource('/v1/categories'),
   commercialLines: resource('/v1/commercial-lines'),
   commercialVariants: resource('/v1/commercial-variants'),
+  dosageForms: { root: '/v1/dosage-forms' },
+  packagingTypes: { root: '/v1/packaging-types' },
   activeIngredients: {
     root: '/v1/active-ingredients',
     byId: (id: string) => `/v1/active-ingredients/${id}`,

@@ -38,16 +38,21 @@ import {
 
 import { QuickCreateBrandDialog } from './quick-create-brand-dialog';
 import { QuickCreateCategoryDialog } from './quick-create-category-dialog';
+import { QuickCreateTaxonomyDialog } from './quick-create-taxonomy-dialog';
 import { QuickCreateIngredientDialog } from './quick-create-ingredient-dialog';
 import { QuickCreateCommercialTaxonomyDialog } from './quick-create-commercial-taxonomy-dialog';
 import {
   TAX_TYPE_OPTIONS,
-  DOSAGE_FORM_OPTIONS,
   BARCODE_TYPE_OPTIONS,
-  PACKAGING_TYPE_OPTIONS,
   PACKAGING_UNIT_OPTIONS,
   PRODUCT_NATURE_OPTIONS,
 } from '../../model/constants';
+import {
+  useDosageFormsQuery,
+  usePackagingTypesQuery,
+  useCreateDosageFormMutation,
+  useCreatePackagingTypeMutation,
+} from '../../api/taxonomies.queries';
 
 // ----------------------------------------------------------------------
 
@@ -379,9 +384,20 @@ export function ProductForm({
   const { data: commercialVariants = [] } = useCommercialVariantsQuery();
   const { data: ingredientsCatalog = [], isLoading: loadingIngredients } =
     useActiveIngredientsQuery();
+  const { data: dosageForms = [], isLoading: loadingDosageForms } = useDosageFormsQuery();
+  const { data: packagingTypes = [], isLoading: loadingPackagingTypes } = usePackagingTypesQuery();
+  const createDosageForm = useCreateDosageFormMutation();
+  const createPackagingType = useCreatePackagingTypeMutation();
 
   const [quickOpen, setQuickOpen] = useState<
-    'category' | 'brand' | 'ingredient' | 'commercial-line' | 'commercial-variant' | null
+    | 'category'
+    | 'brand'
+    | 'ingredient'
+    | 'commercial-line'
+    | 'commercial-variant'
+    | 'dosage-form'
+    | 'packaging-type'
+    | null
   >(null);
   const [pendingIngredientIdx, setPendingIngredientIdx] = useState<number | null>(null);
   // Auto-generamos el nombre por defecto tanto en create como en edit: si el
@@ -1102,34 +1118,50 @@ export function ProductForm({
                   >
                     FORMA FARMACÉUTICA
                   </Typography>
-                  {/* Autocomplete (en lugar de Select): el catálogo tiene
-                     269 formas farmacéuticas — un dropdown plano sería
-                     inmanejable. El usuario tipea y filtra. */}
-                  <Controller
-                    name="dosageForm"
-                    control={control}
-                    render={({ field }) => (
-                      <Autocomplete
-                        freeSolo
-                        fullWidth
-                        options={DOSAGE_FORM_OPTIONS.map((o) => o.value)}
-                        value={field.value || ''}
-                        onChange={(_e, next) => field.onChange(next ?? '')}
-                        onInputChange={(_e, next) => field.onChange(next)}
-                        getOptionLabel={(opt) => opt}
-                        isOptionEqualToValue={(a, b) => a === b}
-                        renderInput={(params) => (
-                          <TextField
-                            {...params}
-                            label="Selecciona o escribe la forma"
-                            placeholder="Buscar o escribir forma farmacéutica…"
-                            helperText="Si no está en la lista, escríbela."
-                            slotProps={{ inputLabel: { shrink: true } }}
-                          />
-                        )}
-                      />
-                    )}
-                  />
+                  {/* Catálogo maestro (dosage_forms): se selecciona de la lista;
+                     las nuevas se crean con el botón "+" y quedan como dato
+                     maestro reutilizable. El valor actual se incluye en las
+                     opciones para no romper productos viejos con formas que aún
+                     no estén en el catálogo. */}
+                  <Stack direction="row" spacing={1} alignItems="flex-start">
+                    <Controller
+                      name="dosageForm"
+                      control={control}
+                      render={({ field }) => (
+                        <Autocomplete
+                          fullWidth
+                          options={Array.from(
+                            new Set(
+                              [...dosageForms.map((d) => d.name), field.value].filter(Boolean)
+                            )
+                          )}
+                          value={field.value || null}
+                          onChange={(_e, next) => field.onChange(next ?? '')}
+                          loading={loadingDosageForms}
+                          getOptionLabel={(opt) => opt ?? ''}
+                          isOptionEqualToValue={(a, b) => a === b}
+                          renderInput={(params) => (
+                            <TextField
+                              {...params}
+                              label="Selecciona la forma"
+                              placeholder="Buscar forma farmacéutica…"
+                              helperText='Si no está en la lista, créala con el botón "+".'
+                              slotProps={{ inputLabel: { shrink: true } }}
+                            />
+                          )}
+                        />
+                      )}
+                    />
+                    <Tooltip title="Crear nueva forma farmacéutica">
+                      <IconButton
+                        color="primary"
+                        sx={{ mt: 0.5 }}
+                        onClick={() => setQuickOpen('dosage-form')}
+                      >
+                        <Iconify icon="solar:add-circle-bold" />
+                      </IconButton>
+                    </Tooltip>
+                  </Stack>
                 </Box>
               )}
               <Box sx={{ flex: 1, width: '100%' }}>
@@ -1155,25 +1187,37 @@ export function ProductForm({
                     control={control}
                     render={({ field }) => (
                       <Autocomplete
-                        freeSolo
-                        options={PACKAGING_TYPE_OPTIONS.map((o) => o.value)}
-                        value={field.value || ''}
+                        options={Array.from(
+                          new Set(
+                            [...packagingTypes.map((p) => p.name), field.value].filter(Boolean)
+                          )
+                        )}
+                        value={field.value || null}
                         onChange={(_e, next) => field.onChange(next ?? '')}
-                        onInputChange={(_e, next) => field.onChange(next)}
-                        getOptionLabel={(opt) => opt}
+                        loading={loadingPackagingTypes}
+                        getOptionLabel={(opt) => opt ?? ''}
                         isOptionEqualToValue={(a, b) => a === b}
                         sx={{ flex: 1, minWidth: 160 }}
                         renderInput={(params) => (
                           <TextField
                             {...params}
                             label="Tipo"
-                            placeholder="Buscar o escribir tipo…"
+                            placeholder="Buscar tipo de empaque…"
                             slotProps={{ inputLabel: { shrink: true } }}
                           />
                         )}
                       />
                     )}
                   />
+                  <Tooltip title="Crear nuevo tipo de empaque">
+                    <IconButton
+                      color="primary"
+                      sx={{ mt: 0.5 }}
+                      onClick={() => setQuickOpen('packaging-type')}
+                    >
+                      <Iconify icon="solar:add-circle-bold" />
+                    </IconButton>
+                  </Tooltip>
                   <Field.Text
                     name="packagingQuantity"
                     label="Cantidad"
@@ -1445,6 +1489,34 @@ export function ProductForm({
         onClose={() => setQuickOpen(null)}
         onCreated={(id) => {
           setValue('commercialVariantId', id, { shouldValidate: true, shouldDirty: true });
+          setQuickOpen(null);
+        }}
+      />
+
+      <QuickCreateTaxonomyDialog
+        open={quickOpen === 'dosage-form'}
+        title="Nueva forma farmacéutica"
+        label="Nombre"
+        placeholder="Ej. TABLETA"
+        pending={createDosageForm.isPending}
+        onClose={() => setQuickOpen(null)}
+        onCreate={(name) => createDosageForm.mutateAsync(name)}
+        onCreated={(name) => {
+          setValue('dosageForm', name, { shouldValidate: true, shouldDirty: true });
+          setQuickOpen(null);
+        }}
+      />
+
+      <QuickCreateTaxonomyDialog
+        open={quickOpen === 'packaging-type'}
+        title="Nuevo tipo de empaque"
+        label="Nombre"
+        placeholder="Ej. CAJA"
+        pending={createPackagingType.isPending}
+        onClose={() => setQuickOpen(null)}
+        onCreate={(name) => createPackagingType.mutateAsync(name)}
+        onCreated={(name) => {
+          setValue('packagingType', name, { shouldValidate: true, shouldDirty: true });
           setQuickOpen(null);
         }}
       />
