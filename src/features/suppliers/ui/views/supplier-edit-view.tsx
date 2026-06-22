@@ -47,6 +47,7 @@ export function SupplierEditView() {
     try {
       const updated = await mutation.mutateAsync({ id, payload });
       toast.success(`Proveedor "${updated.businessName}" actualizado`);
+      router.push(paths.dashboard.catalog.suppliers.root);
     } catch (err) {
       toast.error((err as Error).message);
     }
