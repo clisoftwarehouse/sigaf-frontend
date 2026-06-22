@@ -3,12 +3,18 @@ import { useState } from 'react';
 import Box from '@mui/material/Box';
 import Chip from '@mui/material/Chip';
 import Table from '@mui/material/Table';
+import Tooltip from '@mui/material/Tooltip';
 import TableRow from '@mui/material/TableRow';
 import TextField from '@mui/material/TextField';
 import TableHead from '@mui/material/TableHead';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
+import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
+
+import { paths } from '@/app/routes/paths';
+import { useRouter } from '@/app/routes/hooks';
+import { Iconify } from '@/app/components/iconify';
 
 import { useReporteX } from '../../api/sales-reports.queries';
 import { ReportLayout } from '../../../inventory-reports/ui/components/report-layout';
@@ -17,6 +23,7 @@ import { fmtBs, today, exportPdf, exportXlsx, firstOfMonth } from '../../../inve
 const fmtDT = (s: string | null): string => (s ? new Date(s).toLocaleString('es-VE') : '—');
 
 export default function ReporteXPage() {
+  const router = useRouter();
   const [from, setFrom] = useState(firstOfMonth);
   const [to, setTo] = useState(today);
   const { data, isLoading, isError, error } = useReporteX({ from, to });
@@ -68,11 +75,12 @@ export default function ReporteXPage() {
               <TableCell>Tickets</TableCell>
               <TableCell align="right">Total USD</TableCell>
               <TableCell align="right">Diferencia</TableCell>
+              <TableCell align="right" />
             </TableRow>
           </TableHead>
           <TableBody>
             {(data?.rows ?? []).map((r) => (
-              <TableRow key={r.sessionId} hover>
+              <TableRow key={r.id} hover>
                 <TableCell sx={{ fontFamily: 'monospace', fontSize: '0.78rem' }}>
                   {r.sessionId}
                   <Typography variant="caption" color="text.disabled" sx={{ display: 'block' }}>{r.terminalName ?? ''}</Typography>
@@ -84,6 +92,16 @@ export default function ReporteXPage() {
                 <TableCell align="right" sx={{ fontFamily: 'monospace', fontWeight: 700 }}>{fmtBs(r.totalSalesUsd)}</TableCell>
                 <TableCell align="right" sx={{ fontFamily: 'monospace', color: Math.abs(r.differenceUsd) > 0.01 ? 'error.main' : 'success.main' }}>
                   {fmtBs(r.differenceUsd)}
+                </TableCell>
+                <TableCell align="right" sx={{ width: 48 }}>
+                  <Tooltip title="Ver detalle de la sesión">
+                    <IconButton
+                      size="small"
+                      onClick={() => router.push(paths.dashboard.pos.cashSessions.detail(r.id))}
+                    >
+                      <Iconify icon="solar:eye-bold" />
+                    </IconButton>
+                  </Tooltip>
                 </TableCell>
               </TableRow>
             ))}

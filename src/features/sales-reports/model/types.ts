@@ -1,4 +1,6 @@
 export type ReporteXRow = {
+  /** UUID completo de la sesión, para enlazar al detalle. */
+  id: string;
   sessionId: string;
   terminalName: string | null;
   branchName: string | null;
