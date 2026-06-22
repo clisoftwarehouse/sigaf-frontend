@@ -303,17 +303,15 @@ function composePresentation(input: { type?: string; quantity?: string; unit?: s
  * seleccionada. Cada rama tiene un orden distinto definido por el layout
  * del QA:
  *
- *   - **Genérico**: <Activos> <Forma> <Laboratorio> <Empaque>
- *     Ej: ACETAMINOFEN 500MG TAB GENVEN CJA X30
+ *   - **Médico**: <NombreComercial> <Activos> <Forma> <Laboratorio> <Empaque>
+ *     Ej: RIVOTRIL CLONAZEPAM 2MG TABLETA ROCHE CAJA X30
+ *     (sin nombre comercial queda genérico: ACETAMINOFEN 500MG TAB GENVEN CJA X30)
  *
- *   - **Comercial**: <Marca/NombreCom> <Activos> <Forma> <Empaque>
- *     Ej: ATAMEL ACETAMINOFEN 500MG TAB CJA X30
- *
- *   - **Masivo**: <Marca> <Línea> <Variante> <Empaque>
+ *   - **Masivo/Misceláneo**: <Marca> <Subtítulo> <Línea> <Variante> <Empaque>
  *     Ej: COLGATE TOTAL 12 CLEAN MINT CREMA DENTAL TUB X75ML
  *
- * Cuando `commercialName` está vacío en comercial, se omite y queda solo
- * activos+forma+empaque (similar a genérico sin laboratorio).
+ * El nombre comercial / subtítulo (`commercialName`) es opcional: si está
+ * vacío se omite y el nombre queda sin esa parte.
  */
 function composeProductName(input: {
   nature: 'medical' | 'consumer';
@@ -339,21 +337,24 @@ function composeProductName(input: {
   const dosage = (input.dosageForm || '').toUpperCase();
   const pkg = (input.packaging || '').toUpperCase();
   const brand = (input.brandName || '').toUpperCase();
+  // Nombre comercial (médico: "Rivotril") / subtítulo (misceláneo). QA 166: en
+  // ambas naturalezas entra en el nombre auto-generado.
+  const commercial = (input.commercialName || '').toUpperCase();
 
   const parts: string[] = [];
   if (input.nature === 'consumer') {
-    if (brand) parts.push(brand);
     const line = (input.commercialLine || '').toUpperCase();
     const variant = (input.commercialVariant || '').toUpperCase();
+    if (brand) parts.push(brand);
+    if (commercial) parts.push(commercial);
     if (line) parts.push(line);
     if (variant) parts.push(variant);
     if (pkg) parts.push(pkg);
   } else {
-    // Médico: SIEMPRE formato genérico autogenerado — activo(s) + concentración
-    // + forma + laboratorio + empaque. El nombre comercial (shortName) NO
-    // encabeza el nombre del producto; se guarda aparte. Así todos los
-    // productos quedan consistentes (ej. "Rivotril" → "CLONAZEPAM 2MG
-    // COMPRIMIDO ROCHE …") en vez de aparecer con la marca.
+    // Médico: el nombre comercial encabeza (QA 166), seguido del formato
+    // genérico — activo(s) + concentración + forma + laboratorio + empaque.
+    // Ej: RIVOTRIL CLONAZEPAM 2MG TABLETA ROCHE CAJA X30.
+    if (commercial) parts.push(commercial);
     if (activos) parts.push(activos);
     if (dosage) parts.push(dosage);
     if (brand) parts.push(brand);
