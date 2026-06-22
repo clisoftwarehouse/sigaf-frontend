@@ -509,7 +509,6 @@ export function ProductsListView() {
                   code: false,
                   brandId: false,
                   productType: false,
-                  flags: false,
                 },
               },
             }}
