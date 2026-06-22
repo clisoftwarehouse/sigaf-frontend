@@ -27,7 +27,9 @@ type Props = {
 export function FromReceiptDialog({ open, branchId, onConfirm, onClose }: Props) {
   const [selected, setSelected] = useState<string>('');
 
-  const { data, isLoading } = useReceiptsQuery({ branchId });
+  // QA 177: solo recepciones que aún no fueron transferidas (el backend excluye
+  // las que ya tienen una transferencia no cancelada asociada).
+  const { data, isLoading } = useReceiptsQuery({ branchId, pendingTransfer: true });
 
   const eligibleReceipts = useMemo(
     () => (data?.data ?? []).filter((r) => !r.requiresReapproval).slice(0, 50),

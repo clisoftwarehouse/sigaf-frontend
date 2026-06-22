@@ -43,6 +43,7 @@ export type CreateConsignmentEntryItemPayload = {
 export type CreateConsignmentEntryPayload = {
   branchId: string;
   supplierId: string;
+  locationId?: string;
   commissionPct: number;
   notes?: string;
   items: CreateConsignmentEntryItemPayload[];

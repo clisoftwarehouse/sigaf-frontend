@@ -275,6 +275,8 @@ export type GoodsReceiptFilters = {
   purchaseOrderId?: string;
   from?: string;
   to?: string;
+  /** Solo recepciones sin transferencia asociada (para el selector de transferir). */
+  pendingTransfer?: boolean;
 };
 
 // ----------------------------------------------------------------------

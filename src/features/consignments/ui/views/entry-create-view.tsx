@@ -4,7 +4,7 @@ import * as z from 'zod';
 import { toast } from 'sonner';
 import { useMemo } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm, useFieldArray } from 'react-hook-form';
+import { useForm, useWatch, useFieldArray } from 'react-hook-form';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
@@ -24,6 +24,7 @@ import { Form, Field } from '@/app/components/hook-form';
 import { useBranchesQuery } from '@/features/branches/api/branches.queries';
 import { useProductsQuery } from '@/features/products/api/products.queries';
 import { useSuppliersQuery } from '@/features/suppliers/api/suppliers.queries';
+import { useWarehousesQuery } from '@/features/warehouses/api/warehouses.queries';
 
 import { useCreateEntryMutation } from '../../api/consignments.queries';
 
@@ -50,6 +51,7 @@ const ItemSchema = z.object({
 const EntrySchema = z.object({
   branchId: z.string().uuid({ message: 'Selecciona una sucursal' }),
   supplierId: z.string().uuid({ message: 'Selecciona un proveedor' }),
+  locationId: z.string().optional().or(z.literal('')),
   commissionPct: z
     .string()
     .min(1, { message: 'Obligatorio' })
@@ -79,6 +81,7 @@ export function EntryCreateView() {
     defaultValues: {
       branchId: '',
       supplierId: '',
+      locationId: '',
       commissionPct: '',
       notes: '',
       items: [
@@ -97,10 +100,19 @@ export function EntryCreateView() {
   const { control } = methods;
   const { fields, append, remove } = useFieldArray({ control, name: 'items' });
 
+  // QA 178: almacén destino de la mercancía consignada, filtrado por sucursal
+  // (mismo patrón que la recepción de mercancía).
+  const watchedBranchId = useWatch({ control, name: 'branchId' });
+  const { data: warehouses = [] } = useWarehousesQuery({
+    branchId: watchedBranchId || undefined,
+    isForPurchase: true,
+  });
+
   const submit = methods.handleSubmit(async (values) => {
     const payload: CreateConsignmentEntryPayload = {
       branchId: values.branchId,
       supplierId: values.supplierId,
+      locationId: values.locationId || undefined,
       commissionPct: Number(values.commissionPct),
       notes: values.notes?.trim() || undefined,
       items: values.items.map((i) => ({
@@ -171,6 +183,24 @@ export function EntryCreateView() {
                 slotProps={{ inputLabel: { shrink: true } }}
                 sx={{ width: { xs: '100%', md: 140 }, flexShrink: 0 }}
               />
+            </Stack>
+
+            <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
+              <Field.Select
+                name="locationId"
+                label="Almacén"
+                helperText="Destino de la mercancía consignada. Selecciona primero la sucursal."
+                disabled={!watchedBranchId}
+                slotProps={{ inputLabel: { shrink: true } }}
+                sx={{ flex: 1 }}
+              >
+                <MenuItem value="">— Sin almacén —</MenuItem>
+                {warehouses.map((w) => (
+                  <MenuItem key={w.id} value={w.id}>
+                    {w.name ?? w.locationCode}
+                  </MenuItem>
+                ))}
+              </Field.Select>
             </Stack>
 
             <Field.Text
