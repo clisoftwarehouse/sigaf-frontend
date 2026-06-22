@@ -72,10 +72,9 @@ function patchActionColumns(columns: readonly GridColDef[]): GridColDef[] {
         <Box
           sx={{
             display: 'flex',
-            alignItems: 'center',
+            alignItems: 'flex-start',
             justifyContent: col.align === 'right' ? 'flex-end' : 'flex-start',
             width: '100%',
-            height: '100%',
           }}
           onMouseDown={(e) => {
             if ((e.target as HTMLElement).closest('button, a')) {
@@ -105,11 +104,23 @@ const DataTable = forwardRef<HTMLDivElement, DataGridProps>((props, ref) => {
     getRowHeight: () => 'auto',
     getEstimatedRowHeight: () => 60,
     sx: {
+      // Top-align del contenido de TODAS las celdas: con getRowHeight 'auto' las
+      // filas crecen por el contenido multilínea (ej. nombre a 2 líneas) y el
+      // contenido corto (chips, flags, iconos) se veía centrado y desalineado
+      // respecto al texto. Alineado arriba queda limpio y consistente en todas
+      // las listas.
       '& .MuiDataGrid-cell': {
         py: 1,
-        alignItems: 'center',
+        alignItems: 'flex-start',
         whiteSpace: 'normal',
         lineHeight: 1.4,
+      },
+      // Patrón viejo: varios renderCell envuelven en Stack/Box con height:100%
+      // para centrar (servía con filas de alto fijo). Con getRowHeight 'auto'
+      // eso deja el contenido centrado y desalineado del texto multilínea. Los
+      // forzamos a alto natural para que top-alineen parejo en todas las listas.
+      '& .MuiDataGrid-cell > .MuiStack-root, & .MuiDataGrid-cell > .MuiBox-root': {
+        height: 'auto',
       },
       '& .MuiDataGrid-cell--textRight': {
         justifyContent: 'flex-end',

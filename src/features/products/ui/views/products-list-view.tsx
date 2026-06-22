@@ -310,7 +310,7 @@ export function ProductsListView() {
         flex: 1,
         minWidth: 130,
         renderCell: ({ row }) => (
-          <Stack direction="row" spacing={0.75} alignItems="center" sx={{ height: '100%' }}>
+          <Stack direction="row" spacing={0.75} alignItems="center">
             {row.isControlled && (
               <Tooltip title="Sustancia controlada">
                 <Iconify
