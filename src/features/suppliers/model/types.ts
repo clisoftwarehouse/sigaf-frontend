@@ -27,6 +27,8 @@ export type Supplier = {
   volumeDiscountThreshold: number | string | null;
   volumeDiscountThresholdType: 'quantity' | 'amount' | null;
   isActive: boolean;
+  /** Cantidad de productos asociados (lo calcula el backend en la lista). */
+  productsCount?: number;
   createdAt: string;
   updatedAt: string;
 };

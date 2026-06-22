@@ -7,6 +7,7 @@ import { useMemo, useState } from 'react';
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Chip from '@mui/material/Chip';
+import Stack from '@mui/material/Stack';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
 import Tooltip from '@mui/material/Tooltip';
@@ -24,6 +25,22 @@ import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
 import { useSuppliersQuery, useDeleteSupplierMutation } from '../../api/suppliers.queries';
 
 // ----------------------------------------------------------------------
+
+/** Formatea un porcentaje (acepta number|string|null). '' si no aplica. */
+function pct(v: number | string | null | undefined): string {
+  const n = Number(v);
+  return Number.isFinite(n) && n > 0 ? `${n}%` : '';
+}
+
+/** Etiquetas de los descuentos comerciales activos del proveedor. */
+function discountLabels(row: Supplier): string[] {
+  const out: string[] = [];
+  if (row.hasHeaderDiscount) out.push(`Cabecera ${pct(row.headerDiscountPct)}`.trim());
+  if (row.hasLinearDiscount) out.push(`Lineal ${pct(row.linearDiscountPct)}`.trim());
+  if (row.hasPromptPaymentDiscount) out.push(`Pronto pago ${pct(row.promptPaymentDiscountPct)}`.trim());
+  if (row.hasVolumeDiscount) out.push(`Volumen ${pct(row.volumeDiscountPct)}`.trim());
+  return out;
+}
 
 export function SuppliersListView() {
   const router = useRouter();
@@ -103,6 +120,53 @@ export function SuppliersListView() {
         flex: 1,
         minWidth: 140,
         valueGetter: (value: number | null) => value ?? null,
+      },
+      {
+        field: 'discounts',
+        headerName: 'Descuentos',
+        sortable: false,
+        filterable: false,
+        flex: 1.5,
+        minWidth: 220,
+        renderCell: ({ row }) => {
+          const labels = discountLabels(row);
+          if (labels.length === 0)
+            return (
+              <Typography variant="body2" sx={{ color: 'text.disabled' }}>
+                —
+              </Typography>
+            );
+          return (
+            <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap sx={{ py: 0.5 }}>
+              {labels.map((l) => (
+                <Chip key={l} size="small" variant="soft" color="success" label={l} />
+              ))}
+            </Stack>
+          );
+        },
+      },
+      {
+        field: 'consignmentCommissionPct',
+        headerName: 'Consignación',
+        flex: 1,
+        minWidth: 140,
+        valueGetter: (value: number | string | null) => Number(value) || 0,
+        renderCell: ({ row }) => {
+          const commission = Number(row.consignmentCommissionPct);
+          return commission > 0 ? (
+            <Chip size="small" color="warning" variant="outlined" label={`Consig. ${commission}%`} />
+          ) : (
+            <Chip size="small" variant="outlined" label="Propio" />
+          );
+        },
+      },
+      {
+        field: 'productsCount',
+        headerName: 'Productos',
+        type: 'number',
+        flex: 1,
+        minWidth: 110,
+        valueGetter: (value: number | null) => value ?? 0,
       },
       {
         field: 'isActive',
