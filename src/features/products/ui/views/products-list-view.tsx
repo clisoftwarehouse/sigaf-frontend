@@ -45,6 +45,21 @@ import {
 
 type ActiveFilter = 'active' | 'inactive';
 
+/**
+ * Naturaleza del producto para la lista (QA): medicamento vs misceláneo. Misma
+ * lógica que el form: consumer si es grocery/miscellaneous o tiene línea/
+ * variante comercial; el resto es medicamento.
+ */
+function productNatureLabel(row: Product): 'Medicamento' | 'Misceláneos' {
+  const isConsumer =
+    row.productType === 'grocery' ||
+    row.productType === 'miscellaneous' ||
+    Boolean(
+      row.commercialLine || row.commercialLineId || row.commercialVariant || row.commercialVariantId
+    );
+  return isConsumer ? 'Misceláneos' : 'Medicamento';
+}
+
 export function ProductsListView() {
   const router = useRouter();
   const [filter, setFilter] = useState<ActiveFilter>('active');
@@ -210,6 +225,26 @@ export function ProductsListView() {
                 </Tooltip>
               )}
             </Stack>
+          );
+        },
+      },
+      {
+        field: 'nature',
+        headerName: 'Naturaleza',
+        type: 'singleSelect',
+        flex: 1,
+        minWidth: 150,
+        valueOptions: ['Medicamento', 'Misceláneos'],
+        valueGetter: (_v, row) => productNatureLabel(row),
+        renderCell: ({ row }) => {
+          const n = productNatureLabel(row);
+          return (
+            <Chip
+              size="small"
+              variant="soft"
+              color={n === 'Medicamento' ? 'info' : 'default'}
+              label={n}
+            />
           );
         },
       },
