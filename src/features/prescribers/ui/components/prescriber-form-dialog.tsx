@@ -20,6 +20,8 @@ type Props = {
   open: boolean;
   prescriber: Prescriber | null;
   onClose: () => void;
+  /** Se dispara con el médico recién creado (para auto-seleccionarlo en un picker). */
+  onCreated?: (created: Prescriber) => void;
 };
 
 const EMPTY: PrescriberInput = {
@@ -35,7 +37,7 @@ const EMPTY: PrescriberInput = {
   isActive: true,
 };
 
-export function PrescriberFormDialog({ open, prescriber, onClose }: Props) {
+export function PrescriberFormDialog({ open, prescriber, onClose, onCreated }: Props) {
   const createMut = useCreatePrescriber();
   const updateMut = useUpdatePrescriber();
   const [form, setForm] = useState<PrescriberInput>(EMPTY);
@@ -79,16 +81,28 @@ export function PrescriberFormDialog({ open, prescriber, onClose }: Props) {
       notes: form.notes?.trim() || undefined,
     };
 
-    const onSuccess = () => {
-      toast.success(prescriber ? 'Médico actualizado' : 'Médico creado');
-      onClose();
-    };
     const onError = (err: Error) => toast.error(`Error: ${err.message}`);
 
     if (prescriber) {
-      updateMut.mutate({ id: prescriber.id, input: payload }, { onSuccess, onError });
+      updateMut.mutate(
+        { id: prescriber.id, input: payload },
+        {
+          onSuccess: () => {
+            toast.success('Médico actualizado');
+            onClose();
+          },
+          onError,
+        },
+      );
     } else {
-      createMut.mutate(payload, { onSuccess, onError });
+      createMut.mutate(payload, {
+        onSuccess: (created) => {
+          toast.success('Médico creado');
+          onCreated?.(created);
+          onClose();
+        },
+        onError,
+      });
     }
   };
 

@@ -1,8 +1,9 @@
 import type { CreatePrescriptionPayload } from '../../model/types';
+import type { Prescriber } from '@/features/prescribers/model/types';
 
 import * as z from 'zod';
 import { toast } from 'sonner';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm, useFieldArray } from 'react-hook-form';
 
@@ -22,6 +23,7 @@ import { FormFooter } from '@/shared/ui/form-footer';
 import { Form, Field } from '@/app/components/hook-form';
 import { useProductOptions } from '@/features/products/api/products.options';
 import { useCustomersQuery } from '@/features/customers/api/customers.queries';
+import { PrescriberPicker } from '@/features/prescribers/ui/components/prescriber-picker';
 
 import { useCreatePrescriptionMutation } from '../../api/prescriptions.queries';
 
@@ -36,8 +38,9 @@ const ItemSchema = z.object({
 
 const PrescriptionSchema = z.object({
   customerId: z.string().uuid({ message: 'Selecciona un cliente' }),
-  doctorName: z.string().min(2, { message: 'Nombre del médico obligatorio' }).max(150),
+  doctorName: z.string().min(2, { message: 'Selecciona el médico' }).max(150),
   doctorIdNumber: z.string().max(30).optional().or(z.literal('')),
+  prescriberId: z.string().optional().or(z.literal('')),
   prescriptionNumber: z.string().max(50).optional().or(z.literal('')),
   issuedAt: z.string().min(1, { message: 'Fecha de emisión obligatoria' }),
   expiresAt: z.string().optional().or(z.literal('')),
@@ -81,6 +84,7 @@ export function PrescriptionCreateView() {
       customerId: '',
       doctorName: '',
       doctorIdNumber: '',
+      prescriberId: '',
       prescriptionNumber: '',
       issuedAt: todayLocalIso(),
       expiresAt: '',
@@ -89,14 +93,17 @@ export function PrescriptionCreateView() {
     },
   });
 
-  const { handleSubmit, control } = methods;
+  const { handleSubmit, control, setValue, formState } = methods;
   const { fields, append, remove } = useFieldArray({ control, name: 'items' });
+
+  const [prescriber, setPrescriber] = useState<Prescriber | null>(null);
 
   const submit = handleSubmit(async (values) => {
     const payload: CreatePrescriptionPayload = {
       customerId: values.customerId,
       doctorName: values.doctorName.trim(),
       doctorIdNumber: values.doctorIdNumber?.trim() || undefined,
+      prescriberId: values.prescriberId || undefined,
       prescriptionNumber: values.prescriptionNumber?.trim() || undefined,
       issuedAt: new Date(values.issuedAt).toISOString(),
       expiresAt: values.expiresAt ? new Date(values.expiresAt).toISOString() : undefined,
@@ -141,10 +148,22 @@ export function PrescriptionCreateView() {
                 noOptionsText="Sin clientes activos"
               />
 
-              <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
-                <Field.Text name="doctorName" label="Nombre del médico" />
-                <Field.Text name="doctorIdNumber" label="Cédula / MPPS" />
-              </Stack>
+              <PrescriberPicker
+                value={prescriber}
+                onChange={(p) => {
+                  setPrescriber(p);
+                  setValue('prescriberId', p?.id ?? '', { shouldValidate: true });
+                  setValue('doctorName', p?.fullName ?? '', { shouldValidate: true });
+                  setValue('doctorIdNumber', p?.nationalId ?? p?.mppsNumber ?? '');
+                }}
+                error={!!formState.errors.doctorName}
+                helperText={
+                  formState.errors.doctorName?.message ??
+                  (prescriber
+                    ? `MPPS ${prescriber.mppsNumber ?? '—'} · Cédula ${prescriber.nationalId ?? '—'}`
+                    : 'Buscá por nombre, MPPS o cédula — o creá un médico nuevo')
+                }
+              />
 
               <Field.Text name="prescriptionNumber" label="Número de récipe (opcional)" />
             </Stack>

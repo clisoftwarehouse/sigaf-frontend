@@ -74,6 +74,7 @@ export type CreatePrescriptionPayload = {
   customerId: string;
   doctorName: string;
   doctorIdNumber?: string;
+  prescriberId?: string;
   prescriptionNumber?: string;
   issuedAt: string;
   expiresAt?: string;
