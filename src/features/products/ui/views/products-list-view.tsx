@@ -288,9 +288,22 @@ export function ProductsListView() {
           { value: 'btc', label: 'BTC (Detrás del mostrador)' },
           { value: 'controlled', label: 'Controlado (con récipe)' },
         ],
+        // Misceláneos no tienen condición de venta (no aplica) → en blanco.
         valueGetter: (_v, row) =>
-          row.isControlled ? 'controlled' : row.requiresRecipe ? 'btc' : 'otc',
+          productNatureLabel(row) === 'Misceláneos'
+            ? ''
+            : row.isControlled
+              ? 'controlled'
+              : row.requiresRecipe
+                ? 'btc'
+                : 'otc',
         renderCell: ({ value }) => {
+          if (!value)
+            return (
+              <Typography variant="body2" sx={{ color: 'text.disabled' }}>
+                —
+              </Typography>
+            );
           const map: Record<string, { label: string; color: 'default' | 'warning' | 'error' }> = {
             otc: { label: 'OTC', color: 'default' },
             btc: { label: 'BTC', color: 'warning' },
