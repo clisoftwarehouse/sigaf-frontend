@@ -221,31 +221,34 @@ export const navData: NavSectionProps['data'] = [
           },
         ],
       },
-      {
-        title: 'Consignaciones',
-        path: paths.dashboard.consignments.root,
-        icon: ICONS.consignments,
-        // Consignaciones es una variante de compras; solo quienes pueden ver
-        // compras necesitan acceso (no el cajero ni el farmacéutico).
-        allowedPermissions: ['purchases.view'],
-        children: [
-          {
-            title: 'Entradas',
-            path: paths.dashboard.consignments.entries.root,
-            icon: ICONS.receipts,
-          },
-          {
-            title: 'Devoluciones',
-            path: paths.dashboard.consignments.returns.root,
-            icon: ICONS.consignmentReturn,
-          },
-          {
-            title: 'Liquidaciones',
-            path: paths.dashboard.consignments.liquidations.root,
-            icon: ICONS.liquidations,
-          },
-        ],
-      },
+      // Consignaciones OCULTO temporalmente del menú (solo oculto, no eliminado).
+      // Las rutas (dashboard.tsx) y todo el código del módulo siguen intactos;
+      // para reactivarlo, descomentar este bloque.
+      // {
+      //   title: 'Consignaciones',
+      //   path: paths.dashboard.consignments.root,
+      //   icon: ICONS.consignments,
+      //   // Consignaciones es una variante de compras; solo quienes pueden ver
+      //   // compras necesitan acceso (no el cajero ni el farmacéutico).
+      //   allowedPermissions: ['purchases.view'],
+      //   children: [
+      //     {
+      //       title: 'Entradas',
+      //       path: paths.dashboard.consignments.entries.root,
+      //       icon: ICONS.receipts,
+      //     },
+      //     {
+      //       title: 'Devoluciones',
+      //       path: paths.dashboard.consignments.returns.root,
+      //       icon: ICONS.consignmentReturn,
+      //     },
+      //     {
+      //       title: 'Liquidaciones',
+      //       path: paths.dashboard.consignments.liquidations.root,
+      //       icon: ICONS.liquidations,
+      //     },
+      //   ],
+      // },
     ],
   },
   {
