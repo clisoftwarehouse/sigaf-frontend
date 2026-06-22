@@ -1138,6 +1138,8 @@ export function ProductForm({
                           value={field.value || null}
                           onChange={(_e, next) => field.onChange(next ?? '')}
                           loading={loadingDosageForms}
+                          loadingText="Cargando…"
+                          noOptionsText="Sin opciones"
                           getOptionLabel={(opt) => opt ?? ''}
                           isOptionEqualToValue={(a, b) => a === b}
                           renderInput={(params) => (
@@ -1195,6 +1197,8 @@ export function ProductForm({
                         value={field.value || null}
                         onChange={(_e, next) => field.onChange(next ?? '')}
                         loading={loadingPackagingTypes}
+                        loadingText="Cargando…"
+                        noOptionsText="Sin opciones"
                         getOptionLabel={(opt) => opt ?? ''}
                         isOptionEqualToValue={(a, b) => a === b}
                         sx={{ flex: 1, minWidth: 160 }}
