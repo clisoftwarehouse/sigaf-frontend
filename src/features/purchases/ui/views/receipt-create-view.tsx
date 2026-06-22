@@ -1125,11 +1125,13 @@ export function ReceiptCreateView() {
                 </Typography>
               )}
 
-              {/* Causa: solo aplica a productos adicionales (sin OC). Es lo que
-                  justifica que el producto esté en la recepción aunque no
-                  estuviera ordenado. Muestras/regalos comerciales fuerzan
-                  costo=0 y descuento=0 (por definición no tienen costo). */}
-              {!fromOrder && (
+              {/* Causa: solo tiene sentido cuando el ítem es un EXTRA respecto a
+                  una OC (llegó algo que no estaba ordenado). En una recepción
+                  SIN OC todos los ítems son "sin OC" y el campo aparecía en
+                  todos confundiendo (QA): por eso se exige que haya al menos una
+                  OC en la recepción para mostrarlo. Sigue siendo opcional.
+                  Muestras/regalos comerciales fuerzan costo=0 y descuento=0. */}
+              {!fromOrder && orderFieldEntries.length > 0 && (
                 <Field.Select
                   name={`items.${idx}.additionReason`}
                   label="Causa del producto adicional"
