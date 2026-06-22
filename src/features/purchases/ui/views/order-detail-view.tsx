@@ -20,6 +20,7 @@ import { useRouter } from '@/app/routes/hooks';
 import { Iconify } from '@/app/components/iconify';
 import { PageHeader } from '@/shared/ui/page-header';
 import { DataTable } from '@/app/components/data-table';
+import { usePermissions } from '@/features/auth/ui/hooks';
 import { useBranchOptions } from '@/features/branches/api/branches.options';
 import { useProductOptions } from '@/features/products/api/products.options';
 import { useSupplierOptions } from '@/features/suppliers/api/suppliers.options';
@@ -89,11 +90,13 @@ export function OrderDetailView() {
     }
   };
 
-  // El usuario puede aprobar si: (1) está en draft y (2) el motor de aprobación
-  // dice que su rol está autorizado. Mientras la consulta carga, mostramos el
-  // botón habilitado y dejamos que el backend rechace si no aplica (defensa).
-  const canApprove =
-    order?.status === 'draft' && (approvalCheck === undefined || approvalCheck.canApprove);
+  // El usuario puede aprobar si se cumplen AMBOS: (1) tiene el permiso/capacidad
+  // `purchases.approve` y (2) la gobernanza (motor de aprobación) designa su rol
+  // como aprobador de esta OC (monto + categorías). El admin pasa siempre.
+  const can = usePermissions();
+  const hasApprovePerm = can.has('purchases.approve');
+  const governanceOk = approvalCheck === undefined || approvalCheck.canApprove;
+  const canApprove = order?.status === 'draft' && governanceOk && hasApprovePerm;
 
   const itemColumns = useMemo<GridColDef<PurchaseOrderItem>[]>(
     () => [
@@ -261,13 +264,15 @@ export function OrderDetailView() {
               se ve por qué (rol esperado, monto, categorías sensibles). */}
           {order.status === 'draft' && approvalCheck && !approvalCheck.requirement.bypassed && (
             <Alert
-              severity={approvalCheck.canApprove ? 'success' : 'info'}
+              severity={approvalCheck.canApprove && hasApprovePerm ? 'success' : 'info'}
               sx={{ mb: 3 }}
               icon={<Iconify icon="solar:shield-check-bold" />}
             >
-              {approvalCheck.canApprove
-                ? `Tu rol puede aprobar esta OC. ${approvalCheck.requirement.reason}`
-                : (approvalCheck.denialReason ?? approvalCheck.requirement.reason)}
+              {!approvalCheck.canApprove
+                ? (approvalCheck.denialReason ?? approvalCheck.requirement.reason)
+                : hasApprovePerm
+                  ? `Tu rol puede aprobar esta OC. ${approvalCheck.requirement.reason}`
+                  : `Tu rol está designado como aprobador de esta OC, pero te falta el permiso "purchases.approve". Pídeselo a un administrador. ${approvalCheck.requirement.reason}`}
             </Alert>
           )}
 

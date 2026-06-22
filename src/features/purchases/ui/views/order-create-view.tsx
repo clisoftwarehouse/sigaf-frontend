@@ -151,6 +151,23 @@ export function OrderCreateView({ editingOrder }: Props = {}) {
     [supplierProducts]
   );
 
+  // QA 173: se ofrecen los productos ASOCIADOS al proveedor elegido. Mismo
+  // patrón (blando) que la recepción: si el proveedor tiene catálogo, limitamos
+  // a esos productos; si no tiene NINGUNA asociación (o aún no se eligió
+  // proveedor), mostramos todos para no bloquear sustitutos/proveedores nuevos.
+  // En edición conservamos los productos que ya están en la OC aunque el
+  // proveedor ya no los tenga asociados, para no romper líneas existentes.
+  const supplierProductOptions = useMemo(() => {
+    if (supplierCostByProduct.size === 0) return products;
+    const allowed = products.filter((p) => supplierCostByProduct.has(p.id));
+    if (!editingOrder) return allowed;
+    const allowedIds = new Set(allowed.map((p) => p.id));
+    const extras = (editingOrder.items ?? [])
+      .map((i) => productById.get(i.productId))
+      .filter((p): p is NonNullable<typeof p> => Boolean(p) && !allowedIds.has(p!.id));
+    return [...allowed, ...extras];
+  }, [products, supplierCostByProduct, editingOrder, productById]);
+
   // QA 146: si algún artículo pertenece a una categoría sensible, avisamos que
   // la orden requerirá aprobación especial (el backend lo exige al aprobar).
   const sensitiveFlags = new Set<string>();
@@ -314,7 +331,7 @@ export function OrderCreateView({ editingOrder }: Props = {}) {
                             const value = products.find((p) => p.id === f.value) ?? null;
                             return (
                               <Autocomplete
-                                options={products}
+                                options={supplierProductOptions}
                                 value={value}
                                 onChange={(_e, next) => {
                                   f.onChange(next?.id ?? '');
