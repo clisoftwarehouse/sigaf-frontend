@@ -504,6 +504,12 @@ export function ProductsListView() {
                   isWeighable: false,
                   stockMin: false,
                   isActive: false,
+                  // Secundarias ocultas por defecto para reducir el scroll
+                  // horizontal; activables desde el botón "Columnas".
+                  code: false,
+                  brandId: false,
+                  productType: false,
+                  flags: false,
                 },
               },
             }}
