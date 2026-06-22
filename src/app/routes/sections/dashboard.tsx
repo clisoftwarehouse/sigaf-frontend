@@ -6,7 +6,6 @@ import { Outlet, Navigate } from 'react-router';
 import { paths } from '@/app/routes/paths';
 import { CONFIG } from '@/app/global-config';
 import { igtfRoutes } from '@/features/igtf/routes';
-import { AuthGuard } from '@/features/auth/ui/guard';
 import { auditRoutes } from '@/features/audit/routes';
 import { usersRoutes } from '@/features/users/routes';
 import { rolesRoutes } from '@/features/roles/routes';
@@ -37,6 +36,7 @@ import { consignmentsRoutes } from '@/features/consignments/routes';
 import { cashSessionsRoutes } from '@/features/cash-sessions/routes';
 import { branchGroupsRoutes } from '@/features/branch-groups/routes';
 import { salesReportsRoutes } from '@/features/sales-reports/routes';
+import { AuthGuard, PermissionGuard } from '@/features/auth/ui/guard';
 import { prescriptionsRoutes } from '@/features/prescriptions/routes';
 import { exchangeRatesRoutes } from '@/features/exchange-rates/routes';
 import { paymentsReportRoutes } from '@/features/payments-report/routes';
@@ -151,30 +151,62 @@ export const dashboardRoutes: RouteObject[] = [
           ...prescriptionsRoutes,
           ...prescribersRoutes,
           ...cashSessionsRoutes,
-          ...paymentsReportRoutes,
+          {
+            element: (
+              <PermissionGuard permissions={['reports.view']}>
+                <Outlet />
+              </PermissionGuard>
+            ),
+            children: [...paymentsReportRoutes],
+          },
         ],
       },
       {
         path: 'admin',
         children: [
           { index: true, element: <Navigate to={paths.dashboard.admin.users.root} replace /> },
-          ...usersRoutes,
-          ...rolesRoutes,
-          ...permissionsRoutes,
-          ...configRoutes,
+          // Administración del sistema — solo gestión de usuarios (admin).
+          {
+            element: (
+              <PermissionGuard permissions={['admin.users']}>
+                <Outlet />
+              </PermissionGuard>
+            ),
+            children: [...usersRoutes, ...rolesRoutes, ...permissionsRoutes, ...configRoutes],
+          },
           ...exchangeRatesRoutes,
           ...auditRoutes,
           ...importsRoutes,
-          ...librosIvaRoutes,
-          ...igtfRoutes,
-          ...rentabilidadRoutes,
-          ...libroInventarioRoutes,
-          ...controladosRoutes,
-          ...inventoryReportsRoutes,
-          ...salesReportsRoutes,
-          ...purchaseReportsRoutes,
-          ...crmFinanceReportsRoutes,
-          ...reporteZRoutes,
+          // Cumplimiento SENIAT — gerencia.
+          {
+            element: (
+              <PermissionGuard permissions={['compliance.view']}>
+                <Outlet />
+              </PermissionGuard>
+            ),
+            children: [
+              ...librosIvaRoutes,
+              ...igtfRoutes,
+              ...libroInventarioRoutes,
+              ...controladosRoutes,
+              ...reporteZRoutes,
+            ],
+          },
+          // Reportería gerencial.
+          {
+            element: (
+              <PermissionGuard permissions={['reports.view']}>
+                <Outlet />
+              </PermissionGuard>
+            ),
+            children: [
+              ...rentabilidadRoutes,
+              ...inventoryReportsRoutes,
+              ...salesReportsRoutes,
+              ...purchaseReportsRoutes,
+              ...crmFinanceReportsRoutes,
+            ],
+          },
         ],
       },
     ],

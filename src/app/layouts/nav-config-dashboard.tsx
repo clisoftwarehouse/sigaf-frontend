@@ -255,21 +255,25 @@ export const navData: NavSectionProps['data'] = [
         title: 'Clientes',
         path: paths.dashboard.pos.customers.root,
         icon: ICONS.customers,
+        allowedPermissions: ['customers.view'],
       },
       {
         title: 'Récipes',
         path: paths.dashboard.pos.prescriptions.root,
         icon: ICONS.prescriptions,
+        allowedPermissions: ['prescriptions.view'],
       },
       {
         title: 'Médicos',
         path: paths.dashboard.pos.prescribers,
         icon: ICONS.prescribers,
+        allowedPermissions: ['prescriptions.view'],
       },
       {
         title: 'Sesiones de caja',
         path: paths.dashboard.pos.cashSessions.root,
         icon: ICONS.cashSessions,
+        allowedPermissions: ['cash.view'],
       },
     ],
   },
@@ -280,6 +284,7 @@ export const navData: NavSectionProps['data'] = [
         title: 'Ventas',
         path: paths.dashboard.pos.paymentsReport,
         icon: ICONS.paymentsReport,
+        allowedPermissions: ['reports.view'],
         deepMatch: false,
         extraMatchPaths: [
           paths.dashboard.pos.paymentsReport,
@@ -306,6 +311,7 @@ export const navData: NavSectionProps['data'] = [
         title: 'Inventario',
         path: paths.dashboard.admin.reportes.riesgo,
         icon: ICONS.inventory,
+        allowedPermissions: ['reports.view'],
         deepMatch: false,
         extraMatchPaths: [
           paths.dashboard.admin.reportes.riesgo,
@@ -328,6 +334,7 @@ export const navData: NavSectionProps['data'] = [
         title: 'Compras',
         path: paths.dashboard.admin.reportes.saldosProveedores,
         icon: ICONS.purchases,
+        allowedPermissions: ['reports.view'],
         deepMatch: false,
         extraMatchPaths: [
           paths.dashboard.admin.reportes.saldosProveedores,
@@ -344,6 +351,7 @@ export const navData: NavSectionProps['data'] = [
         title: 'Clientes',
         path: paths.dashboard.admin.reportes.comportamientoClientes,
         icon: ICONS.customers,
+        allowedPermissions: ['reports.view'],
         deepMatch: false,
         extraMatchPaths: [
           paths.dashboard.admin.reportes.comportamientoClientes,
@@ -358,6 +366,7 @@ export const navData: NavSectionProps['data'] = [
         title: 'Finanzas',
         path: paths.dashboard.admin.reportes.flujoCaja,
         icon: ICONS.prices,
+        allowedPermissions: ['reports.view'],
         deepMatch: false,
         extraMatchPaths: [paths.dashboard.admin.reportes.flujoCaja],
         children: [
@@ -373,26 +382,31 @@ export const navData: NavSectionProps['data'] = [
         title: 'Libros de IVA',
         path: paths.dashboard.admin.librosIva,
         icon: ICONS.librosIva,
+        allowedPermissions: ['compliance.view'],
       },
       {
         title: 'Percepción IGTF',
         path: paths.dashboard.admin.igtf,
         icon: ICONS.igtf,
+        allowedPermissions: ['compliance.view'],
       },
       {
         title: 'Reporte Z',
         path: paths.dashboard.admin.reporteZ,
         icon: ICONS.librosIva,
+        allowedPermissions: ['compliance.view'],
       },
       {
         title: 'Libro de Inventario',
         path: paths.dashboard.admin.libroInventario,
         icon: ICONS.inventarioLibro,
+        allowedPermissions: ['compliance.view'],
       },
       {
         title: 'Controlados (SACS)',
         path: paths.dashboard.admin.controlados,
         icon: ICONS.controlados,
+        allowedPermissions: ['compliance.view'],
       },
     ],
   },
@@ -431,6 +445,7 @@ export const navData: NavSectionProps['data'] = [
         title: 'Sistema',
         path: paths.dashboard.admin.users.root,
         icon: ICONS.system,
+        allowedPermissions: ['admin.users'],
         deepMatch: false,
         extraMatchPaths: [
           paths.dashboard.admin.users.root,
