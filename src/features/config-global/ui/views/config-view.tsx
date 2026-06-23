@@ -182,6 +182,47 @@ export function ConfigView() {
           )}
         </Stack>
       )}
+
+      {/* Barra de acción sticky: aparece al fondo cuando hay cambios, para no
+          obligar a volver al header arriba para guardar. */}
+      {dirtyCount > 0 && (
+        <Box
+          sx={(theme) => ({
+            position: 'sticky',
+            bottom: 0,
+            zIndex: theme.zIndex.appBar,
+            mt: 3,
+            mx: { xs: -2, sm: -3 },
+            px: { xs: 2, sm: 3 },
+            py: 2,
+            bgcolor: 'background.paper',
+            borderTop: `1px solid ${theme.palette.divider}`,
+            boxShadow: theme.shadows[8],
+          })}
+        >
+          <Stack
+            direction="row"
+            spacing={1.5}
+            alignItems="center"
+            justifyContent="flex-end"
+          >
+            <Typography variant="body2" sx={{ color: 'text.secondary', mr: 'auto' }}>
+              {dirtyCount} {dirtyCount === 1 ? 'cambio sin guardar' : 'cambios sin guardar'}
+            </Typography>
+            <Button variant="outlined" color="inherit" onClick={handleReset}>
+              Descartar
+            </Button>
+            <Button
+              variant="contained"
+              onClick={handleSave}
+              loading={mutation.isPending}
+              startIcon={<Iconify icon="solar:check-circle-bold" />}
+            >
+              Guardar ({dirtyCount})
+            </Button>
+          </Stack>
+        </Box>
+      )}
     </Container>
   );
 }
