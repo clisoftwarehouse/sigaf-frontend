@@ -75,6 +75,8 @@ export function PromotionFormDialog({ open, onClose }: Props) {
   const [maxUses, setMaxUses] = useState('');
   const [priority, setPriority] = useState('0');
   const [stackable, setStackable] = useState(false);
+  const [maxDiscountAmount, setMaxDiscountAmount] = useState('');
+  const [maxDiscountPercent, setMaxDiscountPercent] = useState('');
   const [effectiveFrom, setEffectiveFrom] = useState(todayISO);
   const [effectiveTo, setEffectiveTo] = useState('');
   const [scopes, setScopes] = useState<LocalScope[]>([]);
@@ -101,6 +103,8 @@ export function PromotionFormDialog({ open, onClose }: Props) {
       setMaxUses('');
       setPriority('0');
       setStackable(false);
+      setMaxDiscountAmount('');
+      setMaxDiscountPercent('');
       setEffectiveFrom(todayISO());
       setEffectiveTo('');
       setScopes([]);
@@ -165,6 +169,12 @@ export function PromotionFormDialog({ open, onClose }: Props) {
     if (maxUses && Number(maxUses) > 0) payload.maxUses = Number(maxUses);
     if (priority) payload.priority = Number(priority);
     if (stackable) payload.stackable = true;
+    if (maxDiscountAmount && Number(maxDiscountAmount) > 0) {
+      payload.maxDiscountAmount = Number(maxDiscountAmount);
+    }
+    if (maxDiscountPercent && Number(maxDiscountPercent) > 0) {
+      payload.maxDiscountPercent = Number(maxDiscountPercent);
+    }
     if (effectiveTo) payload.effectiveTo = new Date(`${effectiveTo}T23:59:59`).toISOString();
     if (scopes.length > 0) {
       payload.scopes = scopes.map(({ scopeType: t, scopeId: s }) => ({ scopeType: t, scopeId: s }));
@@ -331,6 +341,35 @@ export function PromotionFormDialog({ open, onClose }: Props) {
             }
             label="Stackable (puede combinarse con otras promociones)"
           />
+
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+            <TextField
+              label="Tope de descuento ($)"
+              type="number"
+              value={maxDiscountAmount}
+              onChange={(e) => setMaxDiscountAmount(e.target.value)}
+              slotProps={{
+                inputLabel: { shrink: true },
+                input: { endAdornment: <InputAdornment position="end">USD</InputAdornment> },
+                htmlInput: { min: 0, step: 0.01 },
+              }}
+              sx={{ flex: 1 }}
+              helperText="Máx que esta promo descuenta por línea. Vacío = sin tope"
+            />
+            <TextField
+              label="Tope de descuento (%)"
+              type="number"
+              value={maxDiscountPercent}
+              onChange={(e) => setMaxDiscountPercent(e.target.value)}
+              slotProps={{
+                inputLabel: { shrink: true },
+                input: { endAdornment: <InputAdornment position="end">%</InputAdornment> },
+                htmlInput: { min: 0, max: 100, step: 0.1 },
+              }}
+              sx={{ flex: 1 }}
+              helperText="Máx como % del valor de la línea. Vacío = sin tope"
+            />
+          </Stack>
 
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
             <TextField

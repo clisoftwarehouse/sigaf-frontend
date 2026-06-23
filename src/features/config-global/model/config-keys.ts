@@ -61,6 +61,21 @@ export const CONFIG_GROUPS: ConfigGroup[] = [
     ],
   },
   {
+    title: 'Promociones',
+    description:
+      'Límite de seguridad al combinar promociones en una misma línea del POS. Evita que un combo agresivo deje el producto casi gratis.',
+    keys: [
+      {
+        key: 'promotions_max_line_discount_pct',
+        label: 'Tope de descuento por línea',
+        description:
+          'Descuento máximo (suma de todas las promos) que puede recibir una línea, como % de su precio. Vacío = sin tope.',
+        unit: '%',
+        type: 'decimal',
+      },
+    ],
+  },
+  {
     title: 'Alertas FEFO',
     description:
       'Umbrales en días para clasificar los lotes según proximidad de vencimiento.',

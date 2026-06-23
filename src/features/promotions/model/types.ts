@@ -28,6 +28,8 @@ export interface Promotion {
   usesCount: number;
   priority: number;
   stackable: boolean;
+  maxDiscountAmount: number | string | null;
+  maxDiscountPercent: number | string | null;
   effectiveFrom: string;
   effectiveTo: string | null;
   isActive: boolean;
@@ -54,6 +56,8 @@ export interface CreatePromotionPayload {
   maxUses?: number;
   priority?: number;
   stackable?: boolean;
+  maxDiscountAmount?: number;
+  maxDiscountPercent?: number;
   effectiveFrom: string;
   effectiveTo?: string;
   scopes?: CreatePromotionScopePayload[];
