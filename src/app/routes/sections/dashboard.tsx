@@ -9,6 +9,7 @@ import { igtfRoutes } from '@/features/igtf/routes';
 import { auditRoutes } from '@/features/audit/routes';
 import { usersRoutes } from '@/features/users/routes';
 import { rolesRoutes } from '@/features/roles/routes';
+import { salesRoutes } from '@/features/sales/routes';
 import { pricesRoutes } from '@/features/prices/routes';
 import { brandsRoutes } from '@/features/brands/routes';
 import { claimsRoutes } from '@/features/claims/routes';
@@ -203,6 +204,7 @@ export const dashboardRoutes: RouteObject[] = [
               ...rentabilidadRoutes,
               ...inventoryReportsRoutes,
               ...salesReportsRoutes,
+              ...salesRoutes,
               ...purchaseReportsRoutes,
               ...crmFinanceReportsRoutes,
             ],

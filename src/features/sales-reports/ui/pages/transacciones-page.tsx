@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router';
 
 import Box from '@mui/material/Box';
 import Chip from '@mui/material/Chip';
@@ -11,11 +12,14 @@ import TableCell from '@mui/material/TableCell';
 import Typography from '@mui/material/Typography';
 import TableFooter from '@mui/material/TableFooter';
 
+import { paths } from '@/app/routes/paths';
+
 import { useTransacciones } from '../../api/sales-reports.queries';
 import { ReportLayout } from '../../../inventory-reports/ui/components/report-layout';
 import { fmtBs, today, fmtQty, fmtPct, fmtDate, exportPdf, exportXlsx, firstOfMonth } from '../../../inventory-reports/model/helpers';
 
 export default function TransaccionesPage() {
+  const navigate = useNavigate();
   const [from, setFrom] = useState(firstOfMonth);
   const [to, setTo] = useState(today);
   const { data, isLoading, isError, error } = useTransacciones({ from, to });
@@ -84,7 +88,21 @@ export default function TransaccionesPage() {
             {(data?.rows ?? []).map((r, idx) => (
               <TableRow key={idx} hover>
                 <TableCell>{fmtDate(r.date)}</TableCell>
-                <TableCell sx={{ fontFamily: 'monospace', fontSize: '0.75rem' }}>{r.ticketNumber}</TableCell>
+                <TableCell sx={{ fontFamily: 'monospace', fontSize: '0.75rem' }}>
+                  <Box
+                    component="span"
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => navigate(paths.dashboard.admin.ventaDetail(r.ticketId))}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') navigate(paths.dashboard.admin.ventaDetail(r.ticketId));
+                    }}
+                    sx={{ cursor: 'pointer', color: 'primary.main', '&:hover': { textDecoration: 'underline' } }}
+                    title="Ver la venta"
+                  >
+                    {r.ticketNumber}
+                  </Box>
+                </TableCell>
                 <TableCell sx={{ maxWidth: 240 }}>
                   <Typography variant="body2" noWrap title={r.productName}>{r.productName}</Typography>
                   <Typography variant="caption" color="text.disabled">{r.category ?? ''} {r.ean ? `· ${r.ean}` : ''}</Typography>

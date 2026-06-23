@@ -1,16 +1,20 @@
 import type { GridColDef } from '@mui/x-data-grid';
 
 import { useMemo } from 'react';
-import { useSearchParams } from 'react-router';
+import { useNavigate, useSearchParams } from 'react-router';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Chip from '@mui/material/Chip';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
+import Tooltip from '@mui/material/Tooltip';
 import Container from '@mui/material/Container';
+import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
 
+import { paths } from '@/app/routes/paths';
+import { Iconify } from '@/app/components/iconify';
 import { PageHeader } from '@/shared/ui/page-header';
 import { useBranchOptions } from '@/features/branches/api/branches.options';
 import { useProductOptions } from '@/features/products/api/products.options';
@@ -30,10 +34,13 @@ type KardexRow = {
   quantity: number | string;
   balanceAfter: number | string;
   notes: string | null;
+  referenceType: string | null;
+  referenceId: string | null;
   createdAt: string;
 };
 
 export function KardexView() {
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const productIdFilter = searchParams.get('productId') ?? undefined;
   const lotIdFilter = searchParams.get('lotId') ?? undefined;
@@ -155,8 +162,24 @@ export function KardexView() {
         minWidth: 220,
         valueGetter: (value: string | null) => value ?? '—',
       },
+      {
+        field: 'actions',
+        headerName: '',
+        width: 56,
+        sortable: false,
+        filterable: false,
+        // Las salidas/entradas por venta enlazan al detalle del ticket.
+        renderCell: ({ row }) =>
+          row.referenceType === 'sale_ticket' && row.referenceId ? (
+            <Tooltip title="Ver la venta">
+              <IconButton size="small" onClick={() => navigate(paths.dashboard.admin.ventaDetail(row.referenceId!))}>
+                <Iconify icon="solar:eye-bold" width={18} />
+              </IconButton>
+            </Tooltip>
+          ) : null,
+      },
     ],
-    [branchFilterOperators, productFilterOperators, branchNameById, productNameById]
+    [branchFilterOperators, productFilterOperators, branchNameById, productNameById, navigate]
   );
 
   return (

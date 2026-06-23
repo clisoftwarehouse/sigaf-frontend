@@ -2,6 +2,7 @@ import type { GridColDef } from '@mui/x-data-grid';
 import type { PaymentRow, PaymentMethod, PaymentsSummaryRow } from '../../model/types';
 
 import { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
@@ -16,6 +17,7 @@ import Container from '@mui/material/Container';
 import Typography from '@mui/material/Typography';
 import CardContent from '@mui/material/CardContent';
 
+import { paths } from '@/app/routes/paths';
 import { Iconify } from '@/app/components/iconify';
 import { PageHeader } from '@/shared/ui/page-header';
 import { DataTable } from '@/app/components/data-table';
@@ -123,6 +125,7 @@ function SummaryCard({ row }: { row: PaymentsSummaryRow }) {
 }
 
 export function PaymentsReportView() {
+  const navigate = useNavigate();
   // Por defecto: hoy.
   const today = new Date().toISOString().slice(0, 10);
   const [from, setFrom] = useState<string>(today);
@@ -182,7 +185,22 @@ export function PaymentsReportView() {
         width: 110,
         renderCell: ({ row }) => (
           <Stack direction="row" spacing={0.5} alignItems="center">
-            <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
+            <Typography
+              variant="body2"
+              role="button"
+              tabIndex={0}
+              onClick={() => navigate(paths.dashboard.admin.ventaDetail(row.ticketId))}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') navigate(paths.dashboard.admin.ventaDetail(row.ticketId));
+              }}
+              sx={{
+                fontFamily: 'monospace',
+                color: 'primary.main',
+                cursor: 'pointer',
+                '&:hover': { textDecoration: 'underline' },
+              }}
+              title="Ver la venta"
+            >
               #{row.ticketNumber}
             </Typography>
             {row.ticketType === 'return' && <Chip size="small" color="warning" label="DEV" />}
@@ -266,7 +284,7 @@ export function PaymentsReportView() {
         renderCell: ({ row }) => row.referenceNumber ?? row.cardLast4 ?? '—',
       },
     ],
-    []
+    [navigate]
   );
 
   return (

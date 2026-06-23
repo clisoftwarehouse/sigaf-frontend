@@ -38,6 +38,7 @@ export type DevolucionesResult = {
 
 export type TransaccionRow = {
   date: string;
+  ticketId: string;
   ticketNumber: string;
   cashierName: string;
   category: string | null;

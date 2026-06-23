@@ -116,6 +116,7 @@ export const paths = {
       libroInventario: `${admin}/libro-inventario`,
       controlados: `${admin}/controlados`,
       reporteZ: `${admin}/reporte-z`,
+      ventaDetail: (id: string) => `${admin}/ventas/${id}`,
       reportes: {
         reporteX: `${admin}/reportes/reporte-x`,
         devoluciones: `${admin}/reportes/devoluciones`,
