@@ -16,6 +16,7 @@ import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
 import Switch from '@mui/material/Switch';
 import Divider from '@mui/material/Divider';
+import { alpha } from '@mui/material/styles';
 import MenuItem from '@mui/material/MenuItem';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
@@ -262,7 +263,7 @@ export function PromotionFormDialog({ open, onClose }: Props) {
                 helperText="X unidades que paga"
               />
               <TextField
-                label="Lleva (cantidad)"
+                label="Lleva gratis (cantidad)"
                 type="number"
                 required
                 value={getQuantity}
@@ -272,6 +273,26 @@ export function PromotionFormDialog({ open, onClose }: Props) {
                 helperText="Y unidades gratis"
               />
             </Stack>
+          )}
+
+          {type === 'buy_x_get_y' && Number(buyQuantity) > 0 && Number(getQuantity) > 0 && (
+            <Box
+              sx={(theme) => ({
+                px: 1.5,
+                py: 1,
+                borderRadius: 1,
+                bgcolor: alpha(theme.palette.info.main, 0.1),
+                color: theme.palette.info.dark,
+              })}
+            >
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                Por cada {Number(buyQuantity) + Number(getQuantity)} unidades, el cliente paga{' '}
+                {buyQuantity} y lleva {getQuantity} gratis.
+              </Typography>
+              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                ¿Buscás un “3×2” clásico (lleva 3, paga 2)? → Compra 2, Lleva gratis 1.
+              </Typography>
+            </Box>
           )}
 
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>

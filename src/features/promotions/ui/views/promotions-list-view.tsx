@@ -121,10 +121,11 @@ export function PromotionsListView() {
           if (row.type === 'fixed_amount') {
             return <Typography variant="subtitle2">-{Number(row.value).toFixed(2)} USD</Typography>;
           }
-          // buy_x_get_y
+          // buy_x_get_y: "paga X, lleva Y gratis". Evitamos "X×Y" porque se
+          // confunde con el "3x2" clásico (lleva 3 paga 2).
           return (
-            <Typography variant="subtitle2">
-              {row.buyQuantity ?? '?'}×{row.getQuantity ?? '?'}
+            <Typography variant="subtitle2" noWrap title="Paga X, lleva Y gratis">
+              Paga {row.buyQuantity ?? '?'} · {row.getQuantity ?? '?'} gratis
             </Typography>
           );
         },
