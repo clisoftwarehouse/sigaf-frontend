@@ -1,4 +1,4 @@
-import type { LibroInventarioGroupBy } from '../../model/types';
+import type { LibroInventarioRow, LibroInventarioResumen } from '../../model/types';
 
 import { useState } from 'react';
 
@@ -24,56 +24,126 @@ import { Iconify } from '@/app/components/iconify';
 import { PageHeader } from '@/shared/ui/page-header';
 
 import { useLibroInventario } from '../../api/libro-inventario.queries';
-import { fmtBs, fmtUsd, fmtDate, exportPdf, exportXlsx } from '../../../libros-iva/model/format';
+import { fmtBs, exportPdf, exportXlsx } from '../../../libros-iva/model/format';
 
-const fmtQty = (n: number): string => (Number(n) || 0).toLocaleString('es-VE', { maximumFractionDigits: 3 });
+const MONTHS = [
+  'Enero',
+  'Febrero',
+  'Marzo',
+  'Abril',
+  'Mayo',
+  'Junio',
+  'Julio',
+  'Agosto',
+  'Septiembre',
+  'Octubre',
+  'Noviembre',
+  'Diciembre',
+];
+
+const SUBHEADERS = [
+  'Inicial',
+  'Compras E',
+  'Compras S',
+  'Ventas E',
+  'Ventas S',
+  'Ajustes E',
+  'Ajustes S',
+  'Auto C',
+  'Final',
+  'Anterior',
+  'Compras E',
+  'Compras S',
+  'Ventas E',
+  'Ventas S',
+  'Ajustes E',
+  'Ajustes S',
+  'Auto C',
+  'Existencia',
+];
+
+const EXPORT_HEADERS = [
+  'Código',
+  'Artículo',
+  'Inv. Inicial (U)',
+  'Compras Ent. (U)',
+  'Compras Sal. (U)',
+  'Ventas Ent. (U)',
+  'Ventas Sal. (U)',
+  'Ajustes Ent. (U)',
+  'Ajustes Sal. (U)',
+  'Auto Cons. (U)',
+  'Inv. Final (U)',
+  'Valor Anterior (Bs)',
+  'Compras Ent. (Bs)',
+  'Compras Sal. (Bs)',
+  'Ventas Ent. (Bs)',
+  'Ventas Sal. (Bs)',
+  'Ajustes Ent. (Bs)',
+  'Ajustes Sal. (Bs)',
+  'Auto Cons. (Bs)',
+  'Valor Existencia (Bs)',
+];
+
+const fmtQty = (n: number): string =>
+  (Number(n) || 0).toLocaleString('es-VE', { maximumFractionDigits: 3 });
+
+// Las 18 columnas numéricas de una fila (9 unidades + 9 bolívares), en orden.
+const numericCells = (r: LibroInventarioRow | LibroInventarioResumen): string[] => [
+  fmtQty(r.initialQty),
+  fmtQty(r.comprasInQty),
+  fmtQty(r.comprasOutQty),
+  fmtQty(r.ventasInQty),
+  fmtQty(r.ventasOutQty),
+  fmtQty(r.ajustesInQty),
+  fmtQty(r.ajustesOutQty),
+  fmtQty(r.autoConsumoQty),
+  fmtQty(r.finalQty),
+  fmtBs(r.initialBs),
+  fmtBs(r.comprasInBs),
+  fmtBs(r.comprasOutBs),
+  fmtBs(r.ventasInBs),
+  fmtBs(r.ventasOutBs),
+  fmtBs(r.ajustesInBs),
+  fmtBs(r.ajustesOutBs),
+  fmtBs(r.autoConsumoBs),
+  fmtBs(r.finalBs),
+];
+
+const now = new Date();
 
 export default function LibroInventarioPage() {
-  const [groupBy, setGroupBy] = useState<LibroInventarioGroupBy>('product');
+  const [year, setYear] = useState(now.getFullYear());
+  const [month, setMonth] = useState(now.getMonth() + 1);
 
-  const { data, isLoading, isError, error } = useLibroInventario({ groupBy });
+  const { data, isLoading, isError, error } = useLibroInventario({ year, month });
 
-  const colLabel = groupBy === 'category' ? 'Categoría' : 'Producto';
-  const fileBase = `libro-inventario-${groupBy}-${data?.asOf ?? ''}`;
-  const headers = [colLabel, 'Cantidad', 'Costo unit. USD', 'Valor USD', 'Valor Bs'];
+  const fileBase = `libro-inventario-${year}-${String(month).padStart(2, '0')}`;
 
   const buildRows = (): (string | number)[][] =>
-    (data?.rows ?? []).map((r) => [
-      r.reference ? `${r.name} (${r.reference})` : r.name,
-      fmtQty(r.quantity),
-      fmtUsd(r.unitCostUsd),
-      fmtUsd(r.valueUsd),
-      fmtBs(r.valueBs),
-    ]);
+    (data?.rows ?? []).map((r) => [r.code ?? '', r.name, ...numericCells(r)]);
 
-  const footerRow = (): (string | number)[] => {
-    if (!data) return [];
-    return [
-      'TOTAL',
-      fmtQty(data.resumen.totalQuantity),
-      '',
-      fmtUsd(data.resumen.totalValueUsd),
-      fmtBs(data.resumen.totalValueBs),
-    ];
-  };
+  const footerRow = (): (string | number)[] =>
+    data ? ['', `TOTAL GENERAL (${data.resumen.lines})`, ...numericCells(data.resumen)] : [];
 
-  const handleExcel = () => exportXlsx(`${fileBase}.xlsx`, 'Inventario', headers, [...buildRows(), footerRow()]);
+  const handleExcel = () =>
+    exportXlsx(`${fileBase}.xlsx`, 'Libro de Inventario', EXPORT_HEADERS, [...buildRows(), footerRow()]);
   const handlePdf = () =>
     exportPdf(
       `${fileBase}.pdf`,
-      'Libro de Inventario (Art. 177 ISLR)',
-      `Existencias al ${fmtDate(data?.asOf)} · Valuadas al costo${data?.bcvRate ? ` · BCV ${data.bcvRate}` : ''}`,
-      headers,
+      'Libro de Inventario — Movimiento de Unidades (Art. 177 ISLR)',
+      `${data?.period.label ?? ''}${data?.bcvRate ? ` · BCV ${data.bcvRate}` : ''}`,
+      EXPORT_HEADERS,
       buildRows(),
       footerRow(),
     );
 
   return (
-    <Container maxWidth="xl" sx={{ pb: 6 }}>
+    <Container maxWidth={false} sx={{ pb: 6 }}>
       <PageHeader
         title="Libro de Inventario"
-        subtitle="Valuación de existencias en mano al costo (Art. 177 ISLR). Foto actual del inventario, en USD y Bs."
-        crumbs={[{ label: 'Administración' }, { label: 'Libro de Inventario' }]}
+        subtitle="Relación mensual de entradas y salidas (Art. 177 ISLR). Solo movimientos fiscales; en unidades y bolívares al costo."
+        crumbs={[{ label: 'Obligaciones fiscales' }, { label: 'Libro de Inventario' }]}
       />
 
       <Stack
@@ -86,13 +156,30 @@ export default function LibroInventarioPage() {
         <TextField
           select
           size="small"
-          label="Agrupar por"
-          value={groupBy}
-          onChange={(e) => setGroupBy(e.target.value as LibroInventarioGroupBy)}
-          sx={{ minWidth: 160 }}
+          label="Mes"
+          value={month}
+          onChange={(e) => setMonth(Number(e.target.value))}
+          sx={{ minWidth: 140 }}
         >
-          <MenuItem value="product">Producto</MenuItem>
-          <MenuItem value="category">Categoría</MenuItem>
+          {MONTHS.map((m, i) => (
+            <MenuItem key={m} value={i + 1}>
+              {m}
+            </MenuItem>
+          ))}
+        </TextField>
+        <TextField
+          select
+          size="small"
+          label="Año"
+          value={year}
+          onChange={(e) => setYear(Number(e.target.value))}
+          sx={{ minWidth: 110 }}
+        >
+          {[now.getFullYear(), now.getFullYear() - 1, now.getFullYear() - 2].map((y) => (
+            <MenuItem key={y} value={y}>
+              {y}
+            </MenuItem>
+          ))}
         </TextField>
       </Stack>
 
@@ -104,15 +191,10 @@ export default function LibroInventarioPage() {
         <Stack spacing={2}>
           <Stack direction="row" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={1}>
             <Stack direction="row" spacing={1} flexWrap="wrap" gap={1}>
-              <Chip
-                size="small"
-                variant="outlined"
-                color="success"
-                label={`Valor total: USD ${fmtUsd(data.resumen.totalValueUsd)}`}
-              />
-              <Chip size="small" variant="outlined" label={`Bs ${fmtBs(data.resumen.totalValueBs)}`} />
+              <Chip size="small" variant="outlined" color="info" label={data.period.label} />
+              <Chip size="small" variant="outlined" label={`${data.resumen.lines} productos`} />
               {!data.bcvRate && (
-                <Chip size="small" variant="outlined" color="warning" label="Sin tasa BCV — solo USD" />
+                <Chip size="small" variant="outlined" color="warning" label="Sin tasa BCV — Bs en 0" />
               )}
             </Stack>
             <Stack direction="row" spacing={1}>
@@ -139,69 +221,78 @@ export default function LibroInventarioPage() {
           </Stack>
 
           {data.rows.length === 0 ? (
-            <Alert severity="info">No hay existencias en inventario.</Alert>
+            <Alert severity="info">No hay movimientos fiscales de inventario en el período.</Alert>
           ) : (
             <Card sx={{ overflow: 'hidden' }}>
               <Box sx={{ overflow: 'auto' }}>
-                <Table size="small" stickyHeader>
+                <Table size="small" stickyHeader sx={{ '& td, & th': { whiteSpace: 'nowrap' } }}>
                   <TableHead>
                     <TableRow>
-                      <TableCell>{colLabel}</TableCell>
-                      {groupBy === 'product' && <TableCell>Categoría</TableCell>}
-                      <TableCell align="right">Cantidad</TableCell>
-                      <TableCell align="right">Costo unit. USD</TableCell>
-                      <TableCell align="right">Valor USD</TableCell>
-                      <TableCell align="right">Valor Bs</TableCell>
+                      <TableCell rowSpan={2}>Código</TableCell>
+                      <TableCell rowSpan={2}>Artículo</TableCell>
+                      <TableCell colSpan={9} align="center" sx={{ borderLeft: 1, borderColor: 'divider' }}>
+                        UNIDADES
+                      </TableCell>
+                      <TableCell colSpan={9} align="center" sx={{ borderLeft: 1, borderColor: 'divider' }}>
+                        BOLÍVARES (al costo)
+                      </TableCell>
+                    </TableRow>
+                    <TableRow>
+                      {SUBHEADERS.map((h, i) => (
+                        <TableCell
+                          key={`${h}-${i}`}
+                          align="right"
+                          sx={i === 0 || i === 9 ? { borderLeft: 1, borderColor: 'divider' } : undefined}
+                        >
+                          {h}
+                        </TableCell>
+                      ))}
                     </TableRow>
                   </TableHead>
                   <TableBody>
                     {data.rows.map((r) => (
-                      <TableRow key={r.key} hover>
-                        <TableCell sx={{ maxWidth: 280 }}>
+                      <TableRow key={`${r.code ?? ''}-${r.name}`} hover>
+                        <TableCell sx={{ fontFamily: 'monospace', fontSize: '0.75rem' }}>
+                          {r.code ?? '—'}
+                        </TableCell>
+                        <TableCell sx={{ maxWidth: 240 }}>
                           <Typography variant="body2" noWrap title={r.name}>
                             {r.name}
                           </Typography>
-                          {r.reference && (
-                            <Typography variant="caption" color="text.disabled">
-                              {r.reference}
-                            </Typography>
-                          )}
                         </TableCell>
-                        {groupBy === 'product' && (
-                          <TableCell>
-                            <Typography variant="caption" color="text.secondary">
-                              {r.category ?? '—'}
-                            </Typography>
+                        {numericCells(r).map((v, i) => (
+                          <TableCell
+                            key={i}
+                            align="right"
+                            sx={{
+                              fontFamily: 'monospace',
+                              fontSize: '0.75rem',
+                              ...(i === 0 || i === 9 ? { borderLeft: 1, borderColor: 'divider' } : {}),
+                              ...(i === 8 || i === 17 ? { fontWeight: 700 } : { color: 'text.secondary' }),
+                            }}
+                          >
+                            {v}
                           </TableCell>
-                        )}
-                        <TableCell align="right" sx={{ fontFamily: 'monospace' }}>
-                          {fmtQty(r.quantity)}
-                        </TableCell>
-                        <TableCell align="right" sx={{ fontFamily: 'monospace', color: 'text.disabled' }}>
-                          {fmtUsd(r.unitCostUsd)}
-                        </TableCell>
-                        <TableCell align="right" sx={{ fontFamily: 'monospace', fontWeight: 700 }}>
-                          {fmtUsd(r.valueUsd)}
-                        </TableCell>
-                        <TableCell align="right" sx={{ fontFamily: 'monospace', color: 'text.disabled' }}>
-                          {fmtBs(r.valueBs)}
-                        </TableCell>
+                        ))}
                       </TableRow>
                     ))}
                   </TableBody>
                   <TableFooter>
                     <TableRow sx={{ '& td': { fontWeight: 700, bgcolor: 'action.hover' } }}>
-                      <TableCell colSpan={groupBy === 'product' ? 2 : 1}>TOTAL ({data.resumen.lines})</TableCell>
-                      <TableCell align="right" sx={{ fontFamily: 'monospace' }}>
-                        {fmtQty(data.resumen.totalQuantity)}
-                      </TableCell>
-                      <TableCell />
-                      <TableCell align="right" sx={{ fontFamily: 'monospace' }}>
-                        {fmtUsd(data.resumen.totalValueUsd)}
-                      </TableCell>
-                      <TableCell align="right" sx={{ fontFamily: 'monospace' }}>
-                        {fmtBs(data.resumen.totalValueBs)}
-                      </TableCell>
+                      <TableCell colSpan={2}>TOTAL GENERAL ({data.resumen.lines})</TableCell>
+                      {numericCells(data.resumen).map((v, i) => (
+                        <TableCell
+                          key={i}
+                          align="right"
+                          sx={{
+                            fontFamily: 'monospace',
+                            fontSize: '0.75rem',
+                            ...(i === 0 || i === 9 ? { borderLeft: 1, borderColor: 'divider' } : {}),
+                          }}
+                        >
+                          {v}
+                        </TableCell>
+                      ))}
                     </TableRow>
                   </TableFooter>
                 </Table>

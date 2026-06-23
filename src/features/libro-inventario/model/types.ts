@@ -1,32 +1,42 @@
-export type LibroInventarioGroupBy = 'product' | 'category';
-
 export type LibroInventarioRow = {
-  key: string;
+  code: string | null;
   name: string;
-  reference: string | null;
-  category: string | null;
-  quantity: number;
-  unitCostUsd: number;
-  valueUsd: number;
-  valueBs: number;
+  // Unidades
+  initialQty: number;
+  comprasInQty: number;
+  comprasOutQty: number;
+  ventasInQty: number;
+  ventasOutQty: number;
+  ajustesInQty: number;
+  ajustesOutQty: number;
+  autoConsumoQty: number;
+  finalQty: number;
+  // Bolívares (al costo)
+  initialBs: number;
+  comprasInBs: number;
+  comprasOutBs: number;
+  ventasInBs: number;
+  ventasOutBs: number;
+  ajustesInBs: number;
+  ajustesOutBs: number;
+  autoConsumoBs: number;
+  finalBs: number;
 };
 
-export type LibroInventarioResumen = {
+export type LibroInventarioResumen = Omit<LibroInventarioRow, 'code' | 'name'> & {
   lines: number;
-  totalQuantity: number;
-  totalValueUsd: number;
-  totalValueBs: number;
 };
 
 export type LibroInventarioResult = {
-  asOf: string;
+  period: { year: number; month: number; label: string };
   branchId: string | null;
-  groupBy: LibroInventarioGroupBy;
   bcvRate: number | null;
   rows: LibroInventarioRow[];
   resumen: LibroInventarioResumen;
 };
 
 export type LibroInventarioParams = {
-  groupBy?: LibroInventarioGroupBy;
+  year?: number;
+  month?: number;
+  branchId?: string;
 };

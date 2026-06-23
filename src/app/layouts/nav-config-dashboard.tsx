@@ -379,7 +379,7 @@ export const navData: NavSectionProps['data'] = [
     ],
   },
   {
-    subheader: 'Cumplimiento (SENIAT)',
+    subheader: 'Obligaciones fiscales',
     items: [
       {
         title: 'Libros de IVA',
