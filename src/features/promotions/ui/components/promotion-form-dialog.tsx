@@ -43,7 +43,13 @@ type Props = {
   onClose: () => void;
 };
 
-const todayISO = () => new Date().toISOString().slice(0, 10);
+// Fecha LOCAL en YYYY-MM-DD. No usar toISOString() (convierte a UTC): de noche
+// en Venezuela (UTC-4) ya sería el día siguiente, y la promo arrancaría "mañana"
+// y quedaría fuera del filtro de activas.
+const todayISO = () => {
+  const d = new Date();
+  return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+};
 
 /**
  * Dialog de creación de promoción.

@@ -193,13 +193,19 @@ export function PromotionsListView() {
         field: 'isActive',
         headerName: 'Estado',
         flex: 0.8,
-        minWidth: 110,
-        renderCell: ({ row }) =>
-          row.isActive ? (
-            <Chip size="small" color="success" variant="soft" label="Activa" />
-          ) : (
-            <Chip size="small" variant="outlined" label="Inactiva" />
-          ),
+        minWidth: 120,
+        // El estado mira el flag Y la ventana de fechas (consistente con el
+        // filtro de "activas" del backend): una promo activa pero que arranca
+        // en el futuro es "Programada", no "Activa"; una vencida es "Expirada".
+        renderCell: ({ row }) => {
+          const now = Date.now();
+          const from = row.effectiveFrom ? new Date(row.effectiveFrom).getTime() : 0;
+          const to = row.effectiveTo ? new Date(row.effectiveTo).getTime() : null;
+          if (!row.isActive) return <Chip size="small" variant="outlined" label="Inactiva" />;
+          if (from > now) return <Chip size="small" color="warning" variant="soft" label="Programada" />;
+          if (to !== null && to < now) return <Chip size="small" variant="outlined" label="Expirada" />;
+          return <Chip size="small" color="success" variant="soft" label="Activa" />;
+        },
       },
       {
         field: 'actions',
