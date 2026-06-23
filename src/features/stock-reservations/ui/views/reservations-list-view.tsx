@@ -41,7 +41,7 @@ const dt = (s: string | null) => (s ? new Date(s).toLocaleString('es-VE') : '—
 
 export function ReservationsListView() {
   const [branchId, setBranchId] = useState('');
-  const [status, setStatus] = useState<ReservationStatus | ''>('active');
+  const [status, setStatus] = useState<ReservationStatus | ''>('');
 
   const { data = [], isLoading, isError, error } = useReservationsQuery({
     branchId: branchId || undefined,
