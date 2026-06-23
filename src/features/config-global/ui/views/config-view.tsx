@@ -89,27 +89,6 @@ export function ConfigView() {
         title="Configuración global"
         subtitle="Parámetros del sistema (IVA, IGTF, tasa BCV, alertas FEFO, tolerancias de compra)."
         crumbs={[{ label: 'Administración' }, { label: 'Configuración' }]}
-        action={
-          <Stack direction="row" spacing={1.5}>
-            <Button
-              variant="outlined"
-              color="inherit"
-              onClick={handleReset}
-              disabled={dirtyCount === 0}
-            >
-              Descartar
-            </Button>
-            <Button
-              variant="contained"
-              onClick={handleSave}
-              loading={mutation.isPending}
-              disabled={dirtyCount === 0}
-              startIcon={<Iconify icon="solar:check-circle-bold" />}
-            >
-              Guardar {dirtyCount > 0 ? `(${dirtyCount})` : ''}
-            </Button>
-          </Stack>
-        }
       />
 
       {isError && (
