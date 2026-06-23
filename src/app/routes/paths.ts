@@ -56,6 +56,7 @@ export const paths = {
         new: `${inventory}/transfers/new`,
         detail: (id: string) => `${inventory}/transfers/${id}`,
       },
+      reservations: `${inventory}/reservations`,
       cyclicSchedules: `${inventory}/cyclic-schedules`,
     },
     purchases: {

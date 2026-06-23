@@ -616,6 +616,10 @@ export const endpoints = {
     xReport: (id: string) => `/v1/cash-sessions/${id}/x-report`,
     zReport: (id: string) => `/v1/cash-sessions/${id}/z-report`,
   },
+  reservations: {
+    root: '/v1/reservations',
+    cancel: (id: string) => `/v1/reservations/${id}/cancel`,
+  },
   sales: {
     tickets: '/v1/sales/tickets',
     ticketById: (id: string) => `/v1/sales/tickets/${id}`,

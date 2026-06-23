@@ -154,6 +154,7 @@ export const navData: NavSectionProps['data'] = [
           paths.dashboard.inventory.stock,
           paths.dashboard.inventory.counts.root,
           paths.dashboard.inventory.transfers.root,
+          paths.dashboard.inventory.reservations,
           paths.dashboard.inventory.cyclicSchedules,
           paths.dashboard.inventory.kardex,
         ],
@@ -167,6 +168,11 @@ export const navData: NavSectionProps['data'] = [
           {
             title: 'Transferencias',
             path: paths.dashboard.inventory.transfers.root,
+            icon: ICONS.transfers,
+          },
+          {
+            title: 'Reservas',
+            path: paths.dashboard.inventory.reservations,
             icon: ICONS.transfers,
           },
           {
