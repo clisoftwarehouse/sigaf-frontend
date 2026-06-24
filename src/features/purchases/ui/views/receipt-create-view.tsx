@@ -1502,21 +1502,15 @@ export function ReceiptCreateView() {
               />
             </Stack>
 
-            {/* Datos fiscales para la retención de IVA (contribuyente especial). */}
+            {/* Datos fiscales para la retención de IVA (contribuyente especial).
+                El monto exento NO es un campo: se deriva de los ítems exentos y
+                se muestra en el Resumen. */}
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
               <Field.Text
                 name="supplierInvoiceDate"
                 label="Fecha de la factura"
                 type="date"
                 slotProps={{ inputLabel: { shrink: true } }}
-                sx={{ flex: 1 }}
-              />
-              <Field.Text
-                name="exemptAmountUsd"
-                label="Monto exento (USD)"
-                placeholder="0"
-                helperText="Calculado de los ítems exentos de IVA"
-                slotProps={{ inputLabel: { shrink: true }, input: { readOnly: true } }}
                 sx={{ flex: 1 }}
               />
               <Field.Select
@@ -1862,6 +1856,14 @@ export function ReceiptCreateView() {
                       Descuento volumen ({Number(watchedVolumeDiscPct) || 0}%)
                     </Typography>
                     {renderAmount(totals.volumeDiscount, { negative: true })}
+                  </Stack>
+                )}
+                {totals.exemptUsd > 0 && (
+                  <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
+                    <Typography variant="body2" color="text.secondary">
+                      Exento de IVA
+                    </Typography>
+                    {renderAmount(totals.exemptUsd)}
                   </Stack>
                 )}
                 {totals.taxGeneral > 0 && (
