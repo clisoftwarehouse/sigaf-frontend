@@ -23,6 +23,8 @@ export type AccountsPayable = {
   originalAmountNative: number;
   exchangeRateAtCreation: number | null;
   paidAmountUsd: number;
+  /** IVA retenido al proveedor (contribuyente especial). Descontado del balance. */
+  ivaRetentionUsd?: number;
   balanceUsd: number;
   status: CxpStatus;
   paymentTermsDays: number;

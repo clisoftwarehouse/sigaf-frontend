@@ -538,6 +538,7 @@ export const endpoints = {
   ivaRetentions: {
     root: '/v1/iva-retentions',
     exportTxt: '/v1/iva-retentions/export-txt',
+    byReceipt: (receiptId: string) => `/v1/iva-retentions/by-receipt/${receiptId}`,
     voidOne: (id: string) => `/v1/iva-retentions/${id}/void`,
   },
   rentabilidad: {

@@ -1,3 +1,5 @@
+import type { IvaRetention } from '@/features/iva-retentions/model/types';
+
 import { toast } from 'sonner';
 import { useState } from 'react';
 
@@ -19,6 +21,8 @@ import IconButton from '@mui/material/IconButton';
 import CircularProgress from '@mui/material/CircularProgress';
 
 import { Iconify } from '@/app/components/iconify';
+import axios, { endpoints } from '@/shared/lib/axios';
+import { generateComprobantePdf } from '@/features/iva-retentions/model/comprobante-pdf';
 
 import { AgingChip } from './aging-chip';
 import { PayDialog } from './pay-dialog';
@@ -39,8 +43,28 @@ export function CxpDetailDrawer({ cxpId, onClose }: Props) {
   const [payOpen, setPayOpen] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
   const [reversePaymentId, setReversePaymentId] = useState<string | null>(null);
+  const [loadingComprobante, setLoadingComprobante] = useState(false);
 
   const cxp = data ?? null;
+
+  const downloadComprobante = async () => {
+    if (!cxp?.sourceReceiptId) return;
+    setLoadingComprobante(true);
+    try {
+      const res = await axios.get<IvaRetention | null>(
+        endpoints.ivaRetentions.byReceipt(cxp.sourceReceiptId)
+      );
+      if (!res.data) {
+        toast.error('Esta cuenta no tiene comprobante de retención.');
+        return;
+      }
+      generateComprobantePdf(res.data);
+    } catch (e) {
+      toast.error(`No se pudo obtener el comprobante: ${(e as Error).message}`);
+    } finally {
+      setLoadingComprobante(false);
+    }
+  };
 
   const handleCancel = (reason: string) => {
     if (!cxp) return;
@@ -166,7 +190,14 @@ export function CxpDetailDrawer({ cxpId, onClose }: Props) {
                 </Box>
               </Box>
 
-              <Stack direction="row" spacing={1} sx={{ mb: 2 }}>
+              {toNumber(cxp.ivaRetentionUsd) > 0 && (
+                <Alert severity="info" sx={{ mb: 2 }}>
+                  IVA retenido al proveedor: <strong>{fmtUsd(cxp.ivaRetentionUsd)}</strong> (ya
+                  descontado del saldo). Entregale el comprobante de retención.
+                </Alert>
+              )}
+
+              <Stack direction="row" spacing={1} sx={{ mb: 2 }} flexWrap="wrap" useFlexGap>
                 {(cxp.status === 'open' || cxp.status === 'partial') && (
                   <Button
                     variant="contained"
@@ -175,6 +206,16 @@ export function CxpDetailDrawer({ cxpId, onClose }: Props) {
                     onClick={() => setPayOpen(true)}
                   >
                     Registrar pago
+                  </Button>
+                )}
+                {toNumber(cxp.ivaRetentionUsd) > 0 && (
+                  <Button
+                    variant="outlined"
+                    startIcon={<Iconify icon="solar:bill-list-bold-duotone" />}
+                    onClick={downloadComprobante}
+                    loading={loadingComprobante}
+                  >
+                    Comprobante de retención
                   </Button>
                 )}
                 {cxp.status === 'open' && toNumber(cxp.paidAmountUsd) === 0 && (
