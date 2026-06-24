@@ -28,6 +28,7 @@ import CircularProgress from '@mui/material/CircularProgress';
 
 import { PageHeader } from '@/shared/ui/page-header';
 
+import { generateComprobantePdf } from '../../model/comprobante-pdf';
 import {
   useAgentConfig,
   saveAgentConfig,
@@ -311,8 +312,8 @@ function ComprobanteDialog({
         <Button color="inherit" onClick={onClose}>
           Cerrar
         </Button>
-        <Button variant="contained" onClick={() => window.print()}>
-          Imprimir
+        <Button variant="contained" onClick={() => generateComprobantePdf(r)}>
+          Descargar PDF
         </Button>
       </DialogActions>
     </Dialog>
