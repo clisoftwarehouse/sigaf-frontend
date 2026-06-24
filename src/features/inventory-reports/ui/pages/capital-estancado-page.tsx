@@ -32,13 +32,13 @@ export default function CapitalEstancadoPage() {
       fmtBs(r.valueStuckUsd),
     ]);
 
-  const file = `capital-estancado-${data?.asOf ?? ''}`;
+  const file = `capital-represado-${data?.asOf ?? ''}`;
   return (
     <ReportLayout
-      title="Capital Estancado"
-      subtitle="Stock sin movimiento (dead stock) con el capital atascado."
-      crumbs={[{ label: 'Reportes' }, { label: 'Capital estancado' }]}
-      summary={data && <Chip size="small" color="error" variant="outlined" label={`Capital atascado: USD ${fmtBs(data.resumen.totalValueUsd)} en ${data.resumen.lines} lotes`} />}
+      title="Capital Represado"
+      subtitle="Stock sin movimiento (dead stock) con el capital represado."
+      crumbs={[{ label: 'Reportes' }, { label: 'Capital represado' }]}
+      summary={data && <Chip size="small" color="error" variant="outlined" label={`Capital represado: USD ${fmtBs(data.resumen.totalValueUsd)} en ${data.resumen.lines} lotes`} />}
       filters={
         <TextField
           type="number"
@@ -49,13 +49,13 @@ export default function CapitalEstancadoPage() {
           sx={{ width: 150 }}
         />
       }
-      onExcel={() => exportXlsx(`${file}.xlsx`, 'Capital estancado', headers, rows())}
-      onPdf={() => exportPdf(`${file}.pdf`, 'Capital Estancado', `Sin movimiento ≥ ${minDays} días · al ${fmtDate(data?.asOf)}`, headers, rows())}
+      onExcel={() => exportXlsx(`${file}.xlsx`, 'Capital represado', headers, rows())}
+      onPdf={() => exportPdf(`${file}.pdf`, 'Capital Represado', `Sin movimiento ≥ ${minDays} días · al ${fmtDate(data?.asOf)}`, headers, rows())}
       exportDisabled={!data || data.rows.length === 0}
       loading={isLoading}
       error={isError ? error : undefined}
       empty={!!data && data.rows.length === 0}
-      emptyMessage="No hay stock estancado con ese umbral."
+      emptyMessage="No hay stock represado con ese umbral."
     >
       <Box sx={{ overflow: 'auto' }}>
         <Table size="small" stickyHeader>

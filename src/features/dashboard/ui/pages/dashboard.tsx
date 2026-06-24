@@ -563,7 +563,7 @@ export default function Page() {
           </Grid>
           <Grid size={{ xs: 12, sm: 6, md: 3 }}>
             <KpiCard
-              label="Capital estancado"
+              label="Capital represado"
               value={fmtUsd(summary?.inventory.stalledCapitalUsd ?? 0)}
               hint="> 90 días sin venderse"
               icon="solar:lock-password-outline"

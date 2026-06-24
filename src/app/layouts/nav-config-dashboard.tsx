@@ -334,7 +334,7 @@ export const navData: NavSectionProps['data'] = [
           { title: 'Riesgo de vencimiento', path: paths.dashboard.admin.reportes.riesgo, icon: ICONS.claims },
           { title: 'Merma', path: paths.dashboard.admin.reportes.merma, icon: ICONS.consignmentReturn },
           { title: 'Días de inventario', path: paths.dashboard.admin.reportes.diasInventario, icon: ICONS.cyclic },
-          { title: 'Capital estancado', path: paths.dashboard.admin.reportes.capitalEstancado, icon: ICONS.prices },
+          { title: 'Capital represado', path: paths.dashboard.admin.reportes.capitalEstancado, icon: ICONS.prices },
           { title: 'Pareto', path: paths.dashboard.admin.reportes.pareto, icon: ICONS.comparator },
           { title: 'Transferencias', path: paths.dashboard.admin.reportes.transferencias, icon: ICONS.transfers },
         ],
