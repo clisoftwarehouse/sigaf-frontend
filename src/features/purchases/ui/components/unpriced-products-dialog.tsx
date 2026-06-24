@@ -76,6 +76,7 @@ export function UnpricedProductsDialog({ receiptId, onClose }: Props) {
   // guardó. El costo viene del item del receipt y no se edita aquí.
   const [draftInputByProduct, setDraftInputByProduct] = useState<Record<string, string>>({});
   const [savedProductIds, setSavedProductIds] = useState<Set<string>>(new Set());
+  const [confirmSkipOpen, setConfirmSkipOpen] = useState(false);
 
   useEffect(() => {
     if (receiptId) {
@@ -142,10 +143,8 @@ export function UnpricedProductsDialog({ receiptId, onClose }: Props) {
 
   const handleSkip = () => {
     if (pendingCount > 0) {
-      const ok = window.confirm(
-        `Aún quedan ${pendingCount} producto(s) sin precio. ¿Saltar de todas formas?`
-      );
-      if (!ok) return;
+      setConfirmSkipOpen(true);
+      return;
     }
     onClose();
   };
@@ -156,6 +155,7 @@ export function UnpricedProductsDialog({ receiptId, onClose }: Props) {
   };
 
   return (
+    <>
     <Dialog open={open} onClose={handleSkip} maxWidth="lg" fullWidth>
       <DialogTitle>
         <Stack direction="row" alignItems="center" spacing={1.5}>
@@ -349,5 +349,36 @@ export function UnpricedProductsDialog({ receiptId, onClose }: Props) {
         </Button>
       </DialogActions>
     </Dialog>
+
+      {/* Confirmación al saltar con productos sin precio (reemplaza window.confirm). */}
+      <Dialog open={confirmSkipOpen} onClose={() => setConfirmSkipOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle>¿Saltar productos sin precio?</DialogTitle>
+        <DialogContent dividers>
+          <Stack direction="row" alignItems="flex-start" spacing={1.5}>
+            <Iconify icon="solar:danger-triangle-bold" width={24} sx={{ color: 'warning.main', mt: 0.25 }} />
+            <Typography variant="body2">
+              Aún {pendingCount === 1 ? 'queda' : 'quedan'} <strong>{pendingCount}</strong>{' '}
+              producto{pendingCount === 1 ? '' : 's'} sin precio publicado. Sin precio no se podrán
+              vender hasta fijarlo en el módulo de Precios.
+            </Typography>
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button color="inherit" onClick={() => setConfirmSkipOpen(false)}>
+            Volver
+          </Button>
+          <Button
+            variant="contained"
+            color="warning"
+            onClick={() => {
+              setConfirmSkipOpen(false);
+              onClose();
+            }}
+          >
+            Saltar de todas formas
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </>
   );
 }
