@@ -39,6 +39,20 @@ import {
 const fmtBs = (n: number | string) =>
   `Bs ${(Number(n) || 0).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
+/**
+ * Valida un RIF venezolano: prefijo V/E/J/G/P + 8 dígitos. Las personas
+ * jurídicas (J/G) exigen el dígito verificador. Devuelve el RIF canónico
+ * (con guiones) o null si es inválido.
+ */
+function normalizeRif(value: string): string | null {
+  const m = /^([VEJGP])-?(\d{8})-?(\d?)$/.exec(value.trim().toUpperCase());
+  if (!m) return null;
+  const [, prefix, digits, check] = m;
+  const needsCheck = prefix === 'J' || prefix === 'G';
+  if (needsCheck && !check) return null;
+  return needsCheck ? `${prefix}-${digits}-${check}` : `${prefix}-${digits}`;
+}
+
 function currentPeriod(): string {
   const d = new Date();
   return `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}`;
@@ -55,6 +69,8 @@ export default function IvaRetentionsPage() {
   const [savingAgent, setSavingAgent] = useState(false);
   const rifValue = agentRif ?? agentQuery.data?.agentRif ?? '';
   const expValue = expediente ?? agentQuery.data?.expediente ?? '';
+  const rifCanonical = normalizeRif(rifValue);
+  const rifInvalid = rifValue.trim() !== '' && !rifCanonical;
 
   const { data, isLoading, isError } = useIvaRetentions(period);
   const voidMutation = useVoidIvaRetention();
@@ -68,9 +84,14 @@ export default function IvaRetentionsPage() {
   }, [data]);
 
   const saveAgent = async () => {
+    if (!rifCanonical) {
+      toast.error('El RIF del agente no es válido. Formato: J-12345678-9.');
+      return;
+    }
     setSavingAgent(true);
     try {
-      await saveAgentConfig({ agentRif: rifValue.trim(), expediente: expValue.trim() });
+      await saveAgentConfig({ agentRif: rifCanonical, expediente: expValue.trim() });
+      setAgentRif(rifCanonical);
       toast.success('Configuración del agente de retención guardada.');
       agentQuery.refetch();
     } catch (e) {
@@ -126,8 +147,10 @@ export default function IvaRetentionsPage() {
               label="RIF del agente"
               size="small"
               value={rifValue}
-              onChange={(e) => setAgentRif(e.target.value)}
+              onChange={(e) => setAgentRif(e.target.value.toUpperCase())}
               placeholder="J-12345678-9"
+              error={rifInvalid}
+              helperText={rifInvalid ? 'RIF inválido. Formato: J-12345678-9' : 'Persona jurídica: incluye el dígito verificador'}
               sx={{ flex: 1 }}
             />
             <TextField
@@ -137,7 +160,12 @@ export default function IvaRetentionsPage() {
               onChange={(e) => setExpediente(e.target.value)}
               sx={{ flex: 1 }}
             />
-            <Button variant="contained" onClick={saveAgent} loading={savingAgent}>
+            <Button
+              variant="contained"
+              onClick={saveAgent}
+              loading={savingAgent}
+              disabled={!rifCanonical}
+            >
               Guardar
             </Button>
           </Stack>
