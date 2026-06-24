@@ -340,9 +340,11 @@ export function ReceiptCreateView() {
   //  que se declare `watchedItems`.)
 
   // Tasa BCV USD→VES más reciente — autofill cuando la moneda nativa es VES.
+  // Fuente BCV EXPLÍCITA: sin ella tomaba la última tasa de cualquier fuente
+  // (ej. REPOSICIÓN), no la oficial BCV que exige la factura de compra.
   const nativeCurrency = watch('nativeCurrency');
   const watchedExchangeRate = watch('exchangeRateUsed');
-  const { data: latestBcvRate } = useLatestExchangeRateQuery('USD', 'VES');
+  const { data: latestBcvRate } = useLatestExchangeRateQuery('USD', 'VES', 'BCV');
   useEffect(() => {
     if (nativeCurrency !== 'VES') return;
     if (methods.getValues('exchangeRateUsed')) return;
@@ -731,6 +733,9 @@ export function ReceiptCreateView() {
     // se muestra porque siempre es 0).
     let taxGrossGeneral = 0;
     let taxGrossReduced = 0;
+    // Monto exento de IVA = subtotal de las líneas que no pagan IVA (productos
+    // exentos / 0%). Se deriva de los ítems, no se teclea a mano.
+    let exemptGross = 0;
     for (const it of watchedItems ?? []) {
       // Subtotal usa la cantidad FACTURADA (lo que cobra el proveedor),
       // no la recibida. La diferencia se documenta como discrepancia y se
@@ -753,6 +758,7 @@ export function ReceiptCreateView() {
       taxGross += lineTax;
       if (product?.taxType === 'reduced') taxGrossReduced += lineTax;
       else if (product?.taxType && product.taxType !== 'exempt') taxGrossGeneral += lineTax;
+      if (lineTaxPct === 0) exemptGross += lineSubtotal;
     }
 
     // QA #104: descuentos comerciales del documento. Orden:
@@ -798,6 +804,7 @@ export function ReceiptCreateView() {
       igtf,
       total,
       avgTaxPct,
+      exemptUsd: exemptGross * taxScale,
     };
   }, [
     watchedItems,
@@ -820,6 +827,14 @@ export function ReceiptCreateView() {
       setValue('taxPct', next);
     }
   }, [totals.avgTaxPct, methods, setValue]);
+
+  // El monto exento se deriva de los ítems exentos (no se teclea).
+  useEffect(() => {
+    const next = totals.exemptUsd ? totals.exemptUsd.toFixed(2) : '0';
+    if (methods.getValues('exemptAmountUsd') !== next) {
+      setValue('exemptAmountUsd', next);
+    }
+  }, [totals.exemptUsd, methods, setValue]);
 
   const orderById = useMemo(
     () => new Map(eligibleOrders.map((o) => [o.id, o] as const)),
@@ -1500,8 +1515,8 @@ export function ReceiptCreateView() {
                 name="exemptAmountUsd"
                 label="Monto exento (USD)"
                 placeholder="0"
-                helperText="Parte sin IVA de la factura"
-                slotProps={{ inputLabel: { shrink: true } }}
+                helperText="Calculado de los ítems exentos de IVA"
+                slotProps={{ inputLabel: { shrink: true }, input: { readOnly: true } }}
                 sx={{ flex: 1 }}
               />
               <Field.Select
