@@ -61,6 +61,11 @@ export const SupplierSchema = z.object({
     .optional()
     .or(z.literal(''))
     .refine((v) => !v || /^\d+(\.\d+)?$/.test(v), { message: 'Debe ser un número' }),
+  ivaRetentionPct: z
+    .string()
+    .optional()
+    .or(z.literal(''))
+    .refine((v) => !v || /^\d+(\.\d+)?$/.test(v), { message: 'Debe ser un número' }),
   invoicesInCurrency: z.enum(['USD', 'VES']),
   // Descuentos comerciales (BI): switch + porcentaje típico opcional.
   hasHeaderDiscount: z.boolean(),
@@ -129,6 +134,7 @@ function toFormValues(s?: Supplier): SupplierFormValues {
     paymentTermsDays: s?.paymentTermsDays != null ? String(s.paymentTermsDays) : '',
     consignmentCommissionPct:
       s?.consignmentCommissionPct != null ? String(s.consignmentCommissionPct) : '',
+    ivaRetentionPct: s?.ivaRetentionPct != null ? String(s.ivaRetentionPct) : '75',
     invoicesInCurrency: s?.invoicesInCurrency ?? 'USD',
     hasHeaderDiscount: s?.hasHeaderDiscount ?? false,
     headerDiscountPct: pct(s?.headerDiscountPct),
@@ -177,6 +183,7 @@ export function SupplierForm({ current, submitting, onSubmit, onCancel }: Props)
       address: values.address?.trim() || undefined,
       isDrugstore: values.isDrugstore,
       paymentTermsDays: values.paymentTermsDays ? Number(values.paymentTermsDays) : undefined,
+      ivaRetentionPct: values.ivaRetentionPct ? Number(values.ivaRetentionPct) : undefined,
       consignmentCommissionPct: values.consignmentCommissionPct
         ? Number(values.consignmentCommissionPct)
         : undefined,
@@ -280,6 +287,14 @@ export function SupplierForm({ current, submitting, onSubmit, onCancel }: Props)
               name="consignmentCommissionPct"
               label="Comisión consignación (%)"
               placeholder="Ej. 15"
+              slotProps={{ inputLabel: { shrink: true } }}
+              sx={{ flex: 1 }}
+            />
+            <Field.Text
+              name="ivaRetentionPct"
+              label="Retención IVA (%)"
+              placeholder="75 o 100"
+              helperText="75 ordinario, 100 excepción"
               slotProps={{ inputLabel: { shrink: true } }}
               sx={{ flex: 1 }}
             />

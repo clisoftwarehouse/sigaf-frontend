@@ -132,6 +132,10 @@ const ReceiptSchema = z
     purchaseOrderIds: z.array(z.string().uuid()),
     supplierInvoiceNumber: z.string().max(50).optional().or(z.literal('')),
     supplierControlNumber: z.string().max(50).optional().or(z.literal('')),
+    supplierInvoiceDate: z.string().optional().or(z.literal('')),
+    exemptAmountUsd: z.string().optional().or(z.literal('')),
+    fiscalDocType: z.enum(['01', '02', '03']),
+    affectedDocNumber: z.string().max(50).optional().or(z.literal('')),
     receiptType: z.enum(['purchase', 'consignment']),
     taxPct: pctString,
     igtfPct: pctString,
@@ -228,6 +232,10 @@ export function ReceiptCreateView() {
       purchaseOrderIds: [],
       supplierInvoiceNumber: '',
       supplierControlNumber: '',
+      supplierInvoiceDate: '',
+      exemptAmountUsd: '',
+      fiscalDocType: '01',
+      affectedDocNumber: '',
       receiptType: 'purchase',
       taxPct: '',
       igtfPct: '',
@@ -488,6 +496,10 @@ export function ReceiptCreateView() {
       supplierId: values.supplierId,
       supplierInvoiceNumber: values.supplierInvoiceNumber?.trim() || undefined,
       supplierControlNumber: values.supplierControlNumber?.trim() || undefined,
+      supplierInvoiceDate: values.supplierInvoiceDate || undefined,
+      exemptAmountUsd: values.exemptAmountUsd ? Number(values.exemptAmountUsd) : undefined,
+      fiscalDocType: values.fiscalDocType || undefined,
+      affectedDocNumber: values.affectedDocNumber?.trim() || undefined,
       receiptType: values.receiptType,
       taxPct: values.taxPct ? Number(values.taxPct) : undefined,
       igtfPct: values.igtfPct ? Number(values.igtfPct) : undefined,
@@ -1473,6 +1485,35 @@ export function ReceiptCreateView() {
                 slotProps={{ inputLabel: { shrink: true } }}
                 sx={{ flex: 1 }}
               />
+            </Stack>
+
+            {/* Datos fiscales para la retención de IVA (contribuyente especial). */}
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+              <Field.Text
+                name="supplierInvoiceDate"
+                label="Fecha de la factura"
+                type="date"
+                slotProps={{ inputLabel: { shrink: true } }}
+                sx={{ flex: 1 }}
+              />
+              <Field.Text
+                name="exemptAmountUsd"
+                label="Monto exento (USD)"
+                placeholder="0"
+                helperText="Parte sin IVA de la factura"
+                slotProps={{ inputLabel: { shrink: true } }}
+                sx={{ flex: 1 }}
+              />
+              <Field.Select
+                name="fiscalDocType"
+                label="Tipo de documento"
+                slotProps={{ inputLabel: { shrink: true } }}
+                sx={{ flex: 1 }}
+              >
+                <MenuItem value="01">01 — Factura</MenuItem>
+                <MenuItem value="02">02 — Nota de Débito</MenuItem>
+                <MenuItem value="03">03 — Nota de Crédito</MenuItem>
+              </Field.Select>
             </Stack>
 
             {/* QA 150: almacén de compra general para toda la recepción. */}

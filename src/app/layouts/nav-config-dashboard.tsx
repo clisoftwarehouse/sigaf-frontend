@@ -400,6 +400,12 @@ export const navData: NavSectionProps['data'] = [
         allowedPermissions: ['compliance.view'],
       },
       {
+        title: 'Retenciones de IVA',
+        path: paths.dashboard.admin.retencionesIva,
+        icon: ICONS.igtf,
+        allowedPermissions: ['compliance.view'],
+      },
+      {
         title: 'Reporte Z',
         path: paths.dashboard.admin.reporteZ,
         icon: ICONS.librosIva,

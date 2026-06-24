@@ -13,6 +13,9 @@ export type Supplier = {
   apiEndpoint: string | null;
   paymentTermsDays: number | null;
   consignmentCommissionPct: number | null;
+  /** % de IVA a retener (contribuyente especial). 75 ordinario, 100 excepción. */
+  ivaRetentionPct: number | null;
+  isSpecialTaxpayer?: boolean;
   invoicesInCurrency: SupplierInvoiceCurrency;
   // Descuentos comerciales (BI). Cada switch + porcentaje típico opcional.
   hasHeaderDiscount: boolean;
@@ -44,6 +47,8 @@ export type CreateSupplierPayload = {
   isDrugstore?: boolean;
   paymentTermsDays?: number;
   consignmentCommissionPct?: number;
+  ivaRetentionPct?: number;
+  isSpecialTaxpayer?: boolean;
   invoicesInCurrency?: SupplierInvoiceCurrency;
   hasHeaderDiscount?: boolean;
   headerDiscountPct?: number;

@@ -113,6 +113,7 @@ export const paths = {
       imports: `${admin}/imports`,
       librosIva: `${admin}/libros-iva`,
       igtf: `${admin}/igtf`,
+      retencionesIva: `${admin}/retenciones-iva`,
       rentabilidad: `${admin}/rentabilidad`,
       libroInventario: `${admin}/libro-inventario`,
       controlados: `${admin}/controlados`,

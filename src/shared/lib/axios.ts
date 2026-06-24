@@ -535,6 +535,11 @@ export const endpoints = {
   igtf: {
     percepcion: '/v1/igtf/percepcion',
   },
+  ivaRetentions: {
+    root: '/v1/iva-retentions',
+    exportTxt: '/v1/iva-retentions/export-txt',
+    voidOne: (id: string) => `/v1/iva-retentions/${id}/void`,
+  },
   rentabilidad: {
     root: '/v1/rentabilidad',
   },

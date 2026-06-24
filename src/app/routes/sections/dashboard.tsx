@@ -39,6 +39,7 @@ import { branchGroupsRoutes } from '@/features/branch-groups/routes';
 import { salesReportsRoutes } from '@/features/sales-reports/routes';
 import { AuthGuard, PermissionGuard } from '@/features/auth/ui/guard';
 import { prescriptionsRoutes } from '@/features/prescriptions/routes';
+import { ivaRetentionsRoutes } from '@/features/iva-retentions/routes';
 import { exchangeRatesRoutes } from '@/features/exchange-rates/routes';
 import { paymentsReportRoutes } from '@/features/payments-report/routes';
 import { purchaseReportsRoutes } from '@/features/purchase-reports/routes';
@@ -190,6 +191,7 @@ export const dashboardRoutes: RouteObject[] = [
             children: [
               ...librosIvaRoutes,
               ...igtfRoutes,
+              ...ivaRetentionsRoutes,
               ...libroInventarioRoutes,
               ...controladosRoutes,
               ...reporteZRoutes,

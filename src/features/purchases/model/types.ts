@@ -250,6 +250,10 @@ export type CreateGoodsReceiptPayload = {
   supplierId: string;
   supplierInvoiceNumber?: string;
   supplierControlNumber?: string;
+  supplierInvoiceDate?: string;
+  exemptAmountUsd?: number;
+  fiscalDocType?: string;
+  affectedDocNumber?: string;
   receiptType?: ReceiptType;
   taxPct?: number;
   igtfPct?: number;
