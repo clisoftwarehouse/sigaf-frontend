@@ -151,6 +151,8 @@ export type ProductFilters = {
   taxType?: TaxType;
   therapeuticUseId?: string;
   isActive?: boolean;
+  needsReview?: boolean;
+  isSeed?: boolean;
   stockStatus?: StockStatus;
   page?: number;
   limit?: number;

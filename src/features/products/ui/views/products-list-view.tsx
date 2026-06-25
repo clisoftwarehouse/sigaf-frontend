@@ -2,7 +2,7 @@ import type { GridColDef } from '@mui/x-data-grid';
 import type { Product } from '../../model/types';
 
 import { toast } from 'sonner';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
@@ -43,7 +43,7 @@ import {
 
 // ----------------------------------------------------------------------
 
-type ActiveFilter = 'active' | 'inactive';
+type ActiveFilter = 'active' | 'inactive' | 'review';
 
 /**
  * Naturaleza del producto para la lista (QA): medicamento vs misceláneo. Misma
@@ -64,13 +64,30 @@ export function ProductsListView() {
   const router = useRouter();
   const [filter, setFilter] = useState<ActiveFilter>('active');
   const [therapeuticUseId, setTherapeuticUseId] = useState<string>('');
+  const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 50 });
   const [toDeactivate, setToDeactivate] = useState<{ id: string; name: string } | null>(null);
   const [toRestore, setToRestore] = useState<{ id: string; name: string } | null>(null);
 
+  // Debounce de la búsqueda server-side (evita pegarle al backend en cada tecla).
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search.trim()), 350);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  // Volver a la primera página cuando cambia un filtro o la búsqueda.
+  useEffect(() => {
+    setPaginationModel((prev) => ({ ...prev, page: 0 }));
+  }, [filter, debouncedSearch, therapeuticUseId]);
+
   const { data, isLoading, isError, error, refetch } = useProductsQuery({
-    page: 1,
-    limit: 1000,
-    isActive: filter === 'active',
+    page: paginationModel.page + 1,
+    limit: paginationModel.pageSize,
+    // 'review' = borradores del seed pendientes de revisión (inactivos).
+    isActive: filter === 'review' ? false : filter === 'active',
+    needsReview: filter === 'review' ? true : undefined,
+    search: debouncedSearch || undefined,
     therapeuticUseId: therapeuticUseId || undefined,
   });
   const deactivateMutation = useDeleteProductMutation();
@@ -464,25 +481,36 @@ export function ProductsListView() {
           >
             <ToggleButton value="active">Activos</ToggleButton>
             <ToggleButton value="inactive">Inactivos</ToggleButton>
+            <ToggleButton value="review">Por revisar</ToggleButton>
           </ToggleButtonGroup>
 
-          <TextField
-            select
-            size="small"
-            label="Acción terapéutica"
-            value={therapeuticUseId}
-            onChange={(e) => setTherapeuticUseId(e.target.value)}
-            disabled={loadingUses}
-            slotProps={{ inputLabel: { shrink: true } }}
-            sx={{ minWidth: 260 }}
-          >
-            <MenuItem value="">— Todas —</MenuItem>
-            {therapeuticUseOpts.map((opt) => (
-              <MenuItem key={opt.id} value={opt.id}>
-                {opt.label}
-              </MenuItem>
-            ))}
-          </TextField>
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ flex: 1 }} justifyContent="flex-end">
+            <TextField
+              size="small"
+              placeholder="Buscar por nombre o código de barras"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              sx={{ minWidth: 280 }}
+            />
+
+            <TextField
+              select
+              size="small"
+              label="Acción terapéutica"
+              value={therapeuticUseId}
+              onChange={(e) => setTherapeuticUseId(e.target.value)}
+              disabled={loadingUses}
+              slotProps={{ inputLabel: { shrink: true } }}
+              sx={{ minWidth: 240 }}
+            >
+              <MenuItem value="">— Todas —</MenuItem>
+              {therapeuticUseOpts.map((opt) => (
+                <MenuItem key={opt.id} value={opt.id}>
+                  {opt.label}
+                </MenuItem>
+              ))}
+            </TextField>
+          </Stack>
         </Stack>
 
         {isError && (
@@ -507,6 +535,11 @@ export function ProductsListView() {
             loading={isLoading}
             disableRowSelectionOnClick
             autoHeight
+            paginationMode="server"
+            rowCount={data?.total ?? 0}
+            paginationModel={paginationModel}
+            onPaginationModelChange={setPaginationModel}
+            pageSizeOptions={[25, 50, 100]}
             initialState={{
               columns: {
                 columnVisibilityModel: {

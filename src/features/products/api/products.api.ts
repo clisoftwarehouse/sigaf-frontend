@@ -24,6 +24,8 @@ export async function fetchProducts(
   if (filters.taxType) params.taxType = filters.taxType;
   if (filters.therapeuticUseId) params.therapeuticUseId = filters.therapeuticUseId;
   if (filters.isActive !== undefined) params.isActive = String(filters.isActive);
+  if (filters.needsReview !== undefined) params.needsReview = String(filters.needsReview);
+  if (filters.isSeed !== undefined) params.isSeed = String(filters.isSeed);
   if (filters.stockStatus) params.stockStatus = filters.stockStatus;
   params.page = String(filters.page ?? 1);
   params.limit = String(filters.limit ?? 20);
