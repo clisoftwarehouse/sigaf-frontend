@@ -432,6 +432,8 @@ export const endpoints = {
       `/v1/purchases/comparator/products/${encodeURIComponent(id)}`,
     productHistory: (id: string) =>
       `/v1/purchases/comparator/products/${encodeURIComponent(id)}/history`,
+    lastPurchase: (barcode: string) =>
+      `/v1/purchases/comparator/last-purchase/${encodeURIComponent(barcode)}`,
     ingredientProducts: (name: string) =>
       `/v1/purchases/comparator/active-ingredients/${encodeURIComponent(name)}/products`,
     providers: '/v1/purchases/comparator/providers',

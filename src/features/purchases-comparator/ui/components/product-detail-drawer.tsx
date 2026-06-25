@@ -20,6 +20,7 @@ import { Iconify } from '@/app/components/iconify';
 
 import { formatBs } from './format-money';
 import { PriceHistoryChart } from './price-history-chart';
+import { LastPurchasePanel } from './last-purchase-panel';
 import { useComparatorProductDetailQuery } from '../../api/purchases-comparator.queries';
 
 // ----------------------------------------------------------------------
@@ -154,6 +155,10 @@ export function ProductDetailDrawer({ externalId, onClose }: Props) {
                 />
               )}
             </Stack>
+
+            <Divider sx={{ mb: 1.5 }} />
+
+            <LastPurchasePanel barcode={product.externalId} />
 
             <Divider sx={{ mb: 1 }} />
 

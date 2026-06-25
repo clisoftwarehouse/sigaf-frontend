@@ -11,6 +11,7 @@ import {
   fetchProducts,
   fetchProviders,
   fetchComparison,
+  fetchLastPurchase,
   fetchProductDetail,
   fetchProductHistory,
   fetchComparatorBrands,
@@ -36,6 +37,7 @@ export const comparatorKeys = {
     [...comparatorKeys.all, 'active-ingredients', filters] as const,
   categories: (filters: LookupFilters) => [...comparatorKeys.all, 'categories', filters] as const,
   brands: (filters: LookupFilters) => [...comparatorKeys.all, 'brands', filters] as const,
+  lastPurchase: (barcode: string) => [...comparatorKeys.all, 'last-purchase', barcode] as const,
 };
 
 // El backend cachea 5 min en server. Acá usamos 4 min de staleTime para que
@@ -120,6 +122,15 @@ export function useComparatorBrandsQuery(filters: LookupFilters = {}) {
   return useQuery({
     queryKey: comparatorKeys.brands(filters),
     queryFn: () => fetchComparatorBrands(filters),
+    ...baseQueryOptions,
+  });
+}
+
+export function useLastPurchaseQuery(barcode: string | undefined) {
+  return useQuery({
+    queryKey: comparatorKeys.lastPurchase(barcode ?? ''),
+    queryFn: () => fetchLastPurchase(barcode as string),
+    enabled: Boolean(barcode),
     ...baseQueryOptions,
   });
 }

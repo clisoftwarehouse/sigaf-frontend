@@ -151,6 +151,36 @@ export type HistoryFilters = {
   to?: string;
 };
 
+// ─── Última compra interna (cruce contra goods_receipts de SIGAF) ─────
+
+export type LastPurchaseEntry = {
+  receiptId: string;
+  receiptNumber: string;
+  receiptDate: string;
+  supplierId: string;
+  supplierName: string;
+  supplierRif: string;
+  unitCostUsd: number | null;
+  unitCostNative: number | null;
+  /** Costo unitario en Bs a la tasa de la fecha de compra. */
+  unitCostBs: number | null;
+  nativeCurrency: 'USD' | 'VES';
+  exchangeRateUsed: number | null;
+  /** Tasa USD→VES usada (congelada en la recepción o BCV del día). */
+  rateUsed: number | null;
+  quantity: number | null;
+  lotNumber: string;
+};
+
+export type LastPurchaseResult = {
+  found: boolean;
+  barcode: string;
+  product: { id: string; name: string } | null;
+  lastPurchase: LastPurchaseEntry | null;
+  /** Último precio que cobró cada proveedor (más reciente primero). */
+  bySupplier: LastPurchaseEntry[];
+};
+
 // ─── Lookups (catálogos para filtros) ─────────────────────────────────
 
 export type LookupItem = {

@@ -9,6 +9,7 @@ import type {
   ComparisonGroup,
   ComparisonFilters,
   PriceHistoryEntry,
+  LastPurchaseResult,
 } from '../model/types';
 
 import axios, { endpoints } from '@/shared/lib/axios';
@@ -100,5 +101,12 @@ export async function fetchComparatorBrands(
   const res = await axios.get<{ data: LookupItem[] }>(endpoints.purchasesComparator.brands, {
     params: paramsFromFilters(filters),
   });
+  return res.data;
+}
+
+export async function fetchLastPurchase(barcode: string): Promise<LastPurchaseResult> {
+  const res = await axios.get<LastPurchaseResult>(
+    endpoints.purchasesComparator.lastPurchase(barcode)
+  );
   return res.data;
 }
