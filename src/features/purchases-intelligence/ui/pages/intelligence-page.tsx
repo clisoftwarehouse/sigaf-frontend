@@ -7,13 +7,14 @@ import Container from '@mui/material/Container';
 import { PageHeader } from '@/shared/ui/page-header';
 
 import { PortfolioView } from '../views/portfolio-view';
+import { LostSalesView } from '../views/lost-sales-view';
 import { ConditionsView } from '../views/conditions-view';
 import { SuggestionsView } from '../views/suggestions-view';
 import { BranchSelector } from '../components/branch-selector';
 import { ProfitabilityView } from '../views/profitability-view';
 import { IntelligenceDashboardView } from '../views/dashboard-view';
 
-type TabKey = 'dashboard' | 'suggestions' | 'portfolio' | 'profitability' | 'conditions';
+type TabKey = 'dashboard' | 'suggestions' | 'portfolio' | 'profitability' | 'lost-sales' | 'conditions';
 
 export default function IntelligencePage() {
   const [tab, setTab] = useState<TabKey>('dashboard');
@@ -38,6 +39,7 @@ export default function IntelligencePage() {
         <Tab value="suggestions" label="Sugerido" />
         <Tab value="portfolio" label="Portafolio ABCD" />
         <Tab value="profitability" label="Rentabilidad" />
+        <Tab value="lost-sales" label="Ventas perdidas" />
         <Tab value="conditions" label="Condiciones comerciales" />
       </Tabs>
 
@@ -45,6 +47,7 @@ export default function IntelligencePage() {
       {tab === 'suggestions' && <SuggestionsView branchId={branchId} />}
       {tab === 'portfolio' && <PortfolioView branchId={branchId} />}
       {tab === 'profitability' && <ProfitabilityView branchId={branchId} />}
+      {tab === 'lost-sales' && <LostSalesView branchId={branchId} />}
       {tab === 'conditions' && <ConditionsView />}
     </Container>
   );

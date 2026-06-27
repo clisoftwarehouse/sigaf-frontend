@@ -475,6 +475,9 @@ export const endpoints = {
     suggestionsCreateOrders: '/v1/purchases-intelligence/suggestions/create-orders',
     profitability: '/v1/purchases-intelligence/profitability',
   },
+  lostSales: {
+    report: '/v1/lost-sales/report',
+  },
   prescribers: resource('/v1/prescribers'),
   accountsPayable: {
     root: '/v1/accounts-payable',

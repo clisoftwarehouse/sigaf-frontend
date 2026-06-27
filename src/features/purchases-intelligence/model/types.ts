@@ -204,3 +204,28 @@ export type ProfitabilityFilters = {
   quadrant?: ProfitabilityQuadrant;
   limit?: number;
 };
+
+// ─── Ventas perdidas por faltante de stock ──────────────────────────
+
+export type LostSaleItem = {
+  productId: string;
+  productName: string;
+  events: number;
+  lostUnits: number;
+  lostRevenueUsd: number;
+  lastOccurredAt: string;
+};
+
+export type LostSalesResult = {
+  period: { preset: ProfitabilityPeriod; from: string; to: string; days: number };
+  summary: { events: number; lostUnits: number; lostRevenueUsd: number; products: number };
+  items: LostSaleItem[];
+};
+
+export type LostSalesFilters = {
+  period?: ProfitabilityPeriod;
+  from?: string;
+  to?: string;
+  branchId?: string;
+  limit?: number;
+};

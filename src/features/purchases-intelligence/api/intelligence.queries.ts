@@ -1,4 +1,4 @@
-import type { ProfitabilityFilters } from '../model/types';
+import type { LostSalesFilters, ProfitabilityFilters } from '../model/types';
 
 import { useQuery, useMutation, useQueryClient, type UseMutationOptions } from '@tanstack/react-query';
 
@@ -10,6 +10,7 @@ import {
   fetchProfitability,
   generateSuggestions,
   listClassifications,
+  fetchLostSalesReport,
   recalculatePortfolio,
   comparatorForProduct,
   listDrugstoreConditions,
@@ -37,6 +38,13 @@ export function useProfitability(filters: ProfitabilityFilters) {
   return useQuery({
     queryKey: intelligenceKeys.profitability(filters),
     queryFn: () => fetchProfitability(filters),
+  });
+}
+
+export function useLostSalesReport(filters: LostSalesFilters) {
+  return useQuery({
+    queryKey: [...intelligenceKeys.all, 'lost-sales', filters],
+    queryFn: () => fetchLostSalesReport(filters),
   });
 }
 

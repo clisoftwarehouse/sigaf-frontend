@@ -1,7 +1,9 @@
 import type {
   LabCondition,
   SuggestionRun,
+  LostSalesResult,
   ComparatorResult,
+  LostSalesFilters,
   RecalculateResult,
   LabConditionInput,
   SuggestionDecision,
@@ -168,6 +170,19 @@ export async function fetchProfitability(
     endpoints.purchasesIntelligence.profitability,
     { params },
   );
+  return data;
+}
+
+// ─── Ventas perdidas (demanda no atendida) ──────────────────────────
+
+export async function fetchLostSalesReport(
+  filters: LostSalesFilters = {},
+): Promise<LostSalesResult> {
+  const params: Record<string, string> = {};
+  for (const [k, v] of Object.entries(filters)) {
+    if (v !== undefined && v !== null && v !== '') params[k] = String(v);
+  }
+  const { data } = await axiosInstance.get<LostSalesResult>(endpoints.lostSales.report, { params });
   return data;
 }
 
