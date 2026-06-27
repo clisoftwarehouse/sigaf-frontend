@@ -34,17 +34,19 @@ export const intelligenceKeys = {
     [...intelligenceKeys.all, 'profitability', filters] as const,
 };
 
-export function useProfitability(filters: ProfitabilityFilters) {
+export function useProfitability(filters: ProfitabilityFilters, enabled = true) {
   return useQuery({
     queryKey: intelligenceKeys.profitability(filters),
     queryFn: () => fetchProfitability(filters),
+    enabled,
   });
 }
 
-export function useLostSalesReport(filters: LostSalesFilters) {
+export function useLostSalesReport(filters: LostSalesFilters, enabled = true) {
   return useQuery({
     queryKey: [...intelligenceKeys.all, 'lost-sales', filters],
     queryFn: () => fetchLostSalesReport(filters),
+    enabled,
   });
 }
 

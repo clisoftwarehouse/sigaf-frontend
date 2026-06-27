@@ -26,7 +26,7 @@ const PERIODS: Array<{ value: ProfitabilityPeriod; label: string }> = [
   { value: 'quarter', label: 'Trimestre' },
   { value: 'semester', label: 'Semestre' },
   { value: 'year', label: 'Año' },
-  { value: 'custom', label: 'Rango custom' },
+  { value: 'custom', label: 'Rango personalizado' },
 ];
 
 const fmtDate = (s: string | null | undefined) => (s ? new Date(s).toLocaleDateString('es-VE') : '—');
@@ -57,13 +57,17 @@ export function LostSalesView({ branchId }: { branchId: string }) {
     }
   }, [period]);
 
-  const { data, isLoading, isError } = useLostSalesReport({
-    period,
-    branchId: branchId || undefined,
-    from: period === 'custom' ? from || undefined : undefined,
-    to: period === 'custom' ? to || undefined : undefined,
-    limit: 200,
-  });
+  const isCustomReady = period !== 'custom' || Boolean(from);
+  const { data, isLoading, isError } = useLostSalesReport(
+    {
+      period,
+      branchId: branchId || undefined,
+      from: period === 'custom' ? from || undefined : undefined,
+      to: period === 'custom' ? to || undefined : undefined,
+      limit: 200,
+    },
+    isCustomReady,
+  );
 
   return (
     <Stack spacing={2}>
@@ -114,6 +118,7 @@ export function LostSalesView({ branchId }: { branchId: string }) {
         </Stack>
       </Card>
 
+      {!isCustomReady && <Alert severity="info">Elegí la fecha inicial para el rango personalizado.</Alert>}
       {isLoading && <LinearProgress />}
       {isError && <Alert severity="error">No se pudo cargar el reporte de ventas perdidas.</Alert>}
 

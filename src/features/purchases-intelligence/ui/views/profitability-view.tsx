@@ -28,7 +28,7 @@ const PERIODS: Array<{ value: ProfitabilityPeriod; label: string }> = [
   { value: 'quarter', label: 'Trimestre' },
   { value: 'semester', label: 'Semestre' },
   { value: 'year', label: 'Año' },
-  { value: 'custom', label: 'Rango custom' },
+  { value: 'custom', label: 'Rango personalizado' },
 ];
 
 export function ProfitabilityView({ branchId }: { branchId: string }) {
@@ -38,14 +38,17 @@ export function ProfitabilityView({ branchId }: { branchId: string }) {
   const [quadrant, setQuadrant] = useState<'' | ProfitabilityQuadrant>('');
 
   const isCustomReady = period !== 'custom' || Boolean(from);
-  const { data, isLoading, isError } = useProfitability({
-    period,
-    branchId: branchId || undefined,
-    quadrant: quadrant || undefined,
-    from: period === 'custom' ? from || undefined : undefined,
-    to: period === 'custom' ? to || undefined : undefined,
-    limit: 200,
-  });
+  const { data, isLoading, isError } = useProfitability(
+    {
+      period,
+      branchId: branchId || undefined,
+      quadrant: quadrant || undefined,
+      from: period === 'custom' ? from || undefined : undefined,
+      to: period === 'custom' ? to || undefined : undefined,
+      limit: 200,
+    },
+    isCustomReady,
+  );
 
   return (
     <Stack spacing={2}>
@@ -114,7 +117,7 @@ export function ProfitabilityView({ branchId }: { branchId: string }) {
         </Stack>
       </Card>
 
-      {!isCustomReady && <Alert severity="info">Elegí la fecha inicial para el rango custom.</Alert>}
+      {!isCustomReady && <Alert severity="info">Elegí la fecha inicial para el rango personalizado.</Alert>}
       {isLoading && <LinearProgress />}
       {isError && <Alert severity="error">No se pudo cargar la rentabilidad.</Alert>}
 
