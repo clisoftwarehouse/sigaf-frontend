@@ -18,6 +18,7 @@ import { useRouter } from '@/app/routes/hooks';
 import { Iconify } from '@/app/components/iconify';
 import { PageHeader } from '@/shared/ui/page-header';
 
+import { CUSTOMER_TYPE_LABELS } from '../../model/types';
 import { useClinicalProfileQuery } from '../../api/customers.queries';
 
 // ----------------------------------------------------------------------
@@ -123,12 +124,23 @@ export function CustomerDetailView() {
                   <Field label="Teléfono" value={customer.phone} />
                 </Grid>
                 <Grid size={{ xs: 6 }}>
+                  <Field label="Correo" value={customer.email} />
+                </Grid>
+                <Grid size={{ xs: 6 }}>
                   <Field label="Fecha de nacimiento" value={fmtDate(customer.birthDate)} />
+                </Grid>
+                <Grid size={{ xs: 12 }}>
+                  <Field label="Dirección" value={customer.address} />
                 </Grid>
                 <Grid size={{ xs: 6 }}>
                   <Field
                     label="Tipo"
-                    value={<Chip size="small" label={customer.customerType} />}
+                    value={
+                      <Chip
+                        size="small"
+                        label={CUSTOMER_TYPE_LABELS[customer.customerType] ?? customer.customerType}
+                      />
+                    }
                   />
                 </Grid>
                 {customer.notes && (

@@ -4,6 +4,13 @@ export type CustomerDocumentType = (typeof CUSTOMER_DOCUMENT_TYPES)[number];
 export const CUSTOMER_TYPES = ['retail', 'frecuente', 'corporativo'] as const;
 export type CustomerType = (typeof CUSTOMER_TYPES)[number];
 
+/** Etiquetas legibles del tipo de cliente (la DB guarda el valor crudo). */
+export const CUSTOMER_TYPE_LABELS: Record<string, string> = {
+  retail: 'Mostrador',
+  frecuente: 'Frecuente',
+  corporativo: 'Corporativo',
+};
+
 export type Customer = {
   id: string;
   documentType: CustomerDocumentType;
@@ -65,6 +72,8 @@ export type ClinicalProfile = {
     documentType: string;
     documentNumber: string;
     phone: string | null;
+    email: string | null;
+    address: string | null;
     customerType: string;
     allergies: string | null;
     chronicConditions: string | null;
