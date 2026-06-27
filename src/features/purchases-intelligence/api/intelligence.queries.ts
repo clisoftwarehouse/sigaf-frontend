@@ -1,3 +1,5 @@
+import type { ProfitabilityFilters } from '../model/types';
+
 import { useQuery, useMutation, useQueryClient, type UseMutationOptions } from '@tanstack/react-query';
 
 import {
@@ -5,6 +7,7 @@ import {
   createLabCondition,
   updateLabCondition,
   deleteLabCondition,
+  fetchProfitability,
   generateSuggestions,
   listClassifications,
   recalculatePortfolio,
@@ -26,7 +29,16 @@ export const intelligenceKeys = {
     [...intelligenceKeys.all, 'classifications', filters] as const,
   comparator: (productId: string, quantity: number) =>
     [...intelligenceKeys.all, 'comparator', productId, quantity] as const,
+  profitability: (filters: Record<string, unknown>) =>
+    [...intelligenceKeys.all, 'profitability', filters] as const,
 };
+
+export function useProfitability(filters: ProfitabilityFilters) {
+  return useQuery({
+    queryKey: intelligenceKeys.profitability(filters),
+    queryFn: () => fetchProfitability(filters),
+  });
+}
 
 // ─── Conditions queries ─────────────────────────────────────────────
 

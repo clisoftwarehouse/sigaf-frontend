@@ -164,3 +164,43 @@ export type ComparatorResult = {
   quantity: number;
   candidates: ComparatorCandidate[];
 };
+
+// ─── Rentabilidad por rotación ──────────────────────────────────────
+
+export type ProfitabilityPeriod = 'month' | 'quarter' | 'semester' | 'year' | 'custom';
+export type ProfitabilityQuadrant = 'star' | 'niche' | 'traffic' | 'dog' | 'no_sales';
+
+export type ProfitabilityItem = {
+  productId: string;
+  name: string | null;
+  unitsSold: number;
+  marginPerUnit: number;
+  marginPct: number;
+  totalMarginUsd: number;
+  turnover: number | null;
+  turnoverAnnual: number | null;
+  quadrant: ProfitabilityQuadrant;
+};
+
+export type ProfitabilityResult = {
+  period: { preset: ProfitabilityPeriod; from: string; to: string; days: number };
+  summary: {
+    star: number;
+    niche: number;
+    traffic: number;
+    dog: number;
+    no_sales: number;
+    totalMarginUsd: number;
+  };
+  count: number;
+  items: ProfitabilityItem[];
+};
+
+export type ProfitabilityFilters = {
+  period?: ProfitabilityPeriod;
+  from?: string;
+  to?: string;
+  branchId?: string;
+  quadrant?: ProfitabilityQuadrant;
+  limit?: number;
+};

@@ -473,6 +473,7 @@ export const endpoints = {
       `/v1/purchases-intelligence/classifications/${productId}`,
     suggestionsGenerate: '/v1/purchases-intelligence/suggestions/generate',
     suggestionsCreateOrders: '/v1/purchases-intelligence/suggestions/create-orders',
+    profitability: '/v1/purchases-intelligence/profitability',
   },
   prescribers: resource('/v1/prescribers'),
   accountsPayable: {

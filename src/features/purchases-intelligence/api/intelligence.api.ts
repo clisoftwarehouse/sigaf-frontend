@@ -6,6 +6,8 @@ import type {
   LabConditionInput,
   SuggestionDecision,
   DrugstoreCondition,
+  ProfitabilityResult,
+  ProfitabilityFilters,
   ProductClassification,
   DrugstoreConditionInput,
 } from '../model/types';
@@ -149,6 +151,22 @@ export async function createOrdersFromSuggestions(payload: {
   const { data } = await axiosInstance.post(
     endpoints.purchasesIntelligence.suggestionsCreateOrders,
     payload,
+  );
+  return data;
+}
+
+// ─── Profitability (rentabilidad por rotación) ──────────────────────
+
+export async function fetchProfitability(
+  filters: ProfitabilityFilters = {},
+): Promise<ProfitabilityResult> {
+  const params: Record<string, string> = {};
+  for (const [k, v] of Object.entries(filters)) {
+    if (v !== undefined && v !== null && v !== '') params[k] = String(v);
+  }
+  const { data } = await axiosInstance.get<ProfitabilityResult>(
+    endpoints.purchasesIntelligence.profitability,
+    { params },
   );
   return data;
 }

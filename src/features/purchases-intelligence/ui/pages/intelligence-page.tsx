@@ -10,9 +10,10 @@ import { PortfolioView } from '../views/portfolio-view';
 import { ConditionsView } from '../views/conditions-view';
 import { SuggestionsView } from '../views/suggestions-view';
 import { BranchSelector } from '../components/branch-selector';
+import { ProfitabilityView } from '../views/profitability-view';
 import { IntelligenceDashboardView } from '../views/dashboard-view';
 
-type TabKey = 'dashboard' | 'suggestions' | 'portfolio' | 'conditions';
+type TabKey = 'dashboard' | 'suggestions' | 'portfolio' | 'profitability' | 'conditions';
 
 export default function IntelligencePage() {
   const [tab, setTab] = useState<TabKey>('dashboard');
@@ -36,12 +37,14 @@ export default function IntelligencePage() {
         <Tab value="dashboard" label="Dashboard" />
         <Tab value="suggestions" label="Sugerido" />
         <Tab value="portfolio" label="Portafolio ABCD" />
+        <Tab value="profitability" label="Rentabilidad" />
         <Tab value="conditions" label="Condiciones comerciales" />
       </Tabs>
 
       {tab === 'dashboard' && <IntelligenceDashboardView branchId={branchId} />}
       {tab === 'suggestions' && <SuggestionsView branchId={branchId} />}
       {tab === 'portfolio' && <PortfolioView branchId={branchId} />}
+      {tab === 'profitability' && <ProfitabilityView branchId={branchId} />}
       {tab === 'conditions' && <ConditionsView />}
     </Container>
   );
