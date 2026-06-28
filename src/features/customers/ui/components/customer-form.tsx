@@ -44,6 +44,7 @@ export const CustomerSchema = z.object({
   allergies: z.string().optional().or(z.literal('')),
   chronicConditions: z.string().optional().or(z.literal('')),
   birthDate: z.string().optional().or(z.literal('')),
+  refillReminders: z.boolean(),
   isActive: z.boolean(),
 });
 
@@ -70,6 +71,7 @@ const defaults = (current?: Customer): CustomerFormValues => ({
   allergies: current?.allergies ?? '',
   chronicConditions: current?.chronicConditions ?? '',
   birthDate: current?.birthDate ?? '',
+  refillReminders: !(current?.refillRemindersOptOut ?? false),
   isActive: current?.isActive ?? true,
 });
 
@@ -115,6 +117,7 @@ export function CustomerForm({ current, submitting, onSubmit, onCancel }: Props)
       allergies: values.allergies?.trim() || null,
       chronicConditions: values.chronicConditions?.trim() || null,
       birthDate: values.birthDate?.trim() || null,
+      refillRemindersOptOut: !values.refillReminders,
       isActive: values.isActive,
     };
     await onSubmit(payload);
@@ -237,6 +240,10 @@ export function CustomerForm({ current, submitting, onSubmit, onCancel }: Props)
               placeholder="Diabetes, hipertensión, asma…"
               multiline
               minRows={2}
+            />
+            <Field.Switch
+              name="refillReminders"
+              label="Recibir recordatorios de recompra por correo"
             />
           </Stack>
         </Card>

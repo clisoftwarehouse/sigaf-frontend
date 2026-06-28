@@ -26,6 +26,7 @@ export type Customer = {
   allergies: string | null;
   chronicConditions: string | null;
   birthDate: string | null;
+  refillRemindersOptOut: boolean;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -60,6 +61,7 @@ export type CreateCustomerPayload = {
   allergies?: string | null;
   chronicConditions?: string | null;
   birthDate?: string | null;
+  refillRemindersOptOut?: boolean;
   isActive?: boolean;
 };
 
@@ -80,6 +82,7 @@ export type ClinicalProfile = {
     birthDate: string | null;
     isBirthdayToday: boolean;
     notes: string | null;
+    refillRemindersOptOut: boolean;
   };
   commercial: {
     purchaseCount: number;
