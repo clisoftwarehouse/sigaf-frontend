@@ -21,11 +21,18 @@ import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 import { useBranchOptions } from '@/features/branches/api/branches.options';
 import { useProductOptions } from '@/features/products/api/products.options';
 
+import { fetchSuggestedMargins } from '../../api/prices.api';
 import { useCreatePriceMutation, useUpdatePriceMutation } from '../../api/prices.queries';
 
 // ----------------------------------------------------------------------
 
 const MIN_JUSTIFICATION = 10;
+
+const MARGIN_SOURCE_LABEL: Record<'product' | 'category' | 'global', string> = {
+  product: 'del producto',
+  category: 'de la categoría',
+  global: 'global por defecto',
+};
 
 type Props = {
   open: boolean;
@@ -68,6 +75,7 @@ export function PriceFormDialog({ open, onClose, defaultProductId, editingPrice 
   const [effectiveFrom, setEffectiveFrom] = useState(() => new Date().toISOString().slice(0, 10));
   const [notes, setNotes] = useState('');
   const [justification, setJustification] = useState('');
+  const [suggestedSource, setSuggestedSource] = useState<'product' | 'category' | 'global' | null>(null);
 
   const { data: productOpts = [], isLoading: loadingProducts } = useProductOptions();
   const { data: branchOpts = [], isLoading: loadingBranches } = useBranchOptions();
@@ -102,6 +110,35 @@ export function PriceFormDialog({ open, onClose, defaultProductId, editingPrice 
       setJustification('');
     }
   }, [open, defaultProductId, editingPrice]);
+
+  // Margen objetivo precargado: al elegir producto (en creación) traemos el
+  // margen sugerido (cascada producto→categoría→global), cambiamos a modo
+  // "costo + margen" y pre-llenamos el campo. El usuario lo ajusta a gusto.
+  useEffect(() => {
+    if (!open || isEdit || !productId) {
+      setSuggestedSource(null);
+      return undefined;
+    }
+    let cancelled = false;
+    fetchSuggestedMargins([productId])
+      .then((map) => {
+        if (cancelled) return;
+        const s = map[productId];
+        if (s) {
+          setMode('margin');
+          setMarginPct(String(s.marginPct));
+          setSuggestedSource(s.source);
+        } else {
+          setSuggestedSource(null);
+        }
+      })
+      .catch(() => {
+        /* sugerencia best-effort: si falla, el campo queda vacío como antes */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [open, isEdit, productId]);
 
   /** Precio USD calculado o ingresado directamente, siempre >= 0 o null. */
   const calculatedPrice = useMemo<number | null>(() => {
@@ -294,7 +331,11 @@ export function PriceFormDialog({ open, onClose, defaultProductId, editingPrice 
                 required
                 value={marginPct}
                 onChange={(e) => setMarginPct(e.target.value)}
-                helperText="Margen sobre precio de venta. Ej: 30% → precio = costo / 0.7"
+                helperText={
+                  suggestedSource
+                    ? `Precargado: margen ${MARGIN_SOURCE_LABEL[suggestedSource]}. Ajustá si querés.`
+                    : 'Margen sobre precio de venta. Ej: 30% → precio = costo / 0.7'
+                }
                 slotProps={{
                   inputLabel: { shrink: true },
                   input: {

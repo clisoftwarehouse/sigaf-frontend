@@ -79,3 +79,21 @@ export async function fetchRevaluationFactor(): Promise<RevaluationFactor> {
   const res = await axios.get<RevaluationFactor>(endpoints.prices.revaluationFactor);
   return res.data;
 }
+
+export type SuggestedMargin = { marginPct: number; source: 'product' | 'category' | 'global' };
+
+/**
+ * Margen objetivo sugerido por producto (cascada producto→categoría→global)
+ * para precargar el campo de margen al fijar precio. Retorna null por producto
+ * cuando nada lo define.
+ */
+export async function fetchSuggestedMargins(
+  productIds: string[],
+): Promise<Record<string, SuggestedMargin | null>> {
+  if (productIds.length === 0) return {};
+  const res = await axios.post<Record<string, SuggestedMargin | null>>(
+    endpoints.prices.suggestedMargins,
+    { productIds },
+  );
+  return res.data;
+}

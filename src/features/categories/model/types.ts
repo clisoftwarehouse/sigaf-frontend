@@ -4,6 +4,8 @@ export type Category = {
   name: string;
   code: string | null;
   isPharmaceutical: boolean;
+  /** Margen por defecto (% sobre venta) para precargar al fijar precio. */
+  defaultMarginPct: number | null;
   isActive: boolean;
   createdAt: string;
 };
@@ -17,6 +19,7 @@ export type CreateCategoryPayload = {
   code?: string;
   parentId?: string;
   isPharmaceutical?: boolean;
+  defaultMarginPct?: number;
 };
 
 export type UpdateCategoryPayload = Partial<CreateCategoryPayload>;

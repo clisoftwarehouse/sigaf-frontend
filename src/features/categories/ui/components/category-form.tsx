@@ -19,6 +19,13 @@ export const CategorySchema = z.object({
   code: z.string().max(20).optional().or(z.literal('')),
   parentId: z.string().optional().or(z.literal('')),
   isPharmaceutical: z.boolean(),
+  defaultMarginPct: z
+    .string()
+    .optional()
+    .or(z.literal(''))
+    .refine((v) => !v || (/^\d+(\.\d+)?$/.test(v) && Number(v) >= 0 && Number(v) <= 99.99), {
+      message: 'Margen entre 0 y 99.99',
+    }),
 });
 
 export type CategoryFormValues = z.infer<typeof CategorySchema>;
@@ -40,6 +47,7 @@ export function CategoryForm({ current, parents, submitting, onSubmit, onCancel 
       code: current?.code ?? '',
       parentId: current?.parentId ?? '',
       isPharmaceutical: current?.isPharmaceutical ?? false,
+      defaultMarginPct: current?.defaultMarginPct != null ? String(current.defaultMarginPct) : '',
     },
   });
 
@@ -52,6 +60,7 @@ export function CategoryForm({ current, parents, submitting, onSubmit, onCancel 
         code: current.code ?? '',
         parentId: current.parentId ?? '',
         isPharmaceutical: current.isPharmaceutical,
+        defaultMarginPct: current.defaultMarginPct != null ? String(current.defaultMarginPct) : '',
       });
     }
   }, [current, reset]);
@@ -62,6 +71,7 @@ export function CategoryForm({ current, parents, submitting, onSubmit, onCancel 
       code: values.code ? values.code.trim() : undefined,
       parentId: values.parentId ? values.parentId : undefined,
       isPharmaceutical: values.isPharmaceutical,
+      defaultMarginPct: values.defaultMarginPct ? Number(values.defaultMarginPct) : undefined,
     });
   });
 
@@ -92,6 +102,14 @@ export function CategoryForm({ current, parents, submitting, onSubmit, onCancel 
             placeholder="Buscar categoría por nombre…"
             helperText="Déjalo vacío para una categoría raíz."
             options={parentOptions.map((c) => ({ id: c.id, label: c.name }))}
+          />
+
+          <Field.Text
+            name="defaultMarginPct"
+            label="Margen por defecto (% sobre venta)"
+            placeholder="Ej. 30"
+            helperText="Se precarga al fijar precio de los productos de esta categoría (editable). Vacío = usa el margen global."
+            slotProps={{ inputLabel: { shrink: true }, htmlInput: { inputMode: 'decimal', min: 0, max: 99.99, step: 0.5 } }}
           />
 
           <Field.Switch name="isPharmaceutical" label="Es categoría farmacéutica" />

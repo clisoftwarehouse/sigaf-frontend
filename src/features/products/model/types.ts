@@ -67,6 +67,7 @@ export type Product = {
   presentation: string | null;
   taxType: TaxType;
   pmvp: number | string | null;
+  targetMarginPct: number | string | null;
   conservationType: ConservationType | null;
   minTemperature: number | string | null;
   maxTemperature: number | string | null;
@@ -124,6 +125,7 @@ export type CreateProductPayload = {
   presentation?: string;
   taxType?: TaxType;
   pmvp?: number;
+  targetMarginPct?: number;
   conservationType?: ConservationType;
   minTemperature?: number;
   maxTemperature?: number;

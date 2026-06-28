@@ -595,6 +595,7 @@ export const endpoints = {
     current: '/v1/prices/current',
     effective: '/v1/prices/effective',
     revaluationFactor: '/v1/prices/revaluation-factor',
+    suggestedMargins: '/v1/prices/suggested-margins',
   },
   promotions: {
     root: '/v1/promotions',

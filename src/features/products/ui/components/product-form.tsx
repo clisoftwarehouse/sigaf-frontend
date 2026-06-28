@@ -126,6 +126,7 @@ export const ProductSchema = z.object({
   unitOfMeasure: z.enum(['UND', 'KG', 'G', 'L', 'ML']),
   decimalPlaces: optionalNumber,
   pmvp: optionalNumber,
+  targetMarginPct: optionalNumber,
   conservationType: z
     .enum(['ambient', 'cold_chain', 'frozen'])
     .optional()
@@ -238,6 +239,7 @@ function toFormValues(p?: Product): ProductFormValues {
     unitOfMeasure: (p?.unitOfMeasure as UnitOfMeasure) ?? 'UND',
     decimalPlaces: p?.decimalPlaces != null ? String(p.decimalPlaces) : '0',
     pmvp: p?.pmvp != null ? String(p.pmvp) : '',
+    targetMarginPct: p?.targetMarginPct != null ? String(p.targetMarginPct) : '',
     conservationType: (p?.conservationType as ConservationType | null) ?? 'ambient',
     minTemperature: p?.minTemperature != null ? String(p.minTemperature) : '',
     maxTemperature: p?.maxTemperature != null ? String(p.maxTemperature) : '',
@@ -540,6 +542,7 @@ export function ProductForm({
       unitOfMeasure: derivedUnitOfMeasure,
       decimalPlaces: values.decimalPlaces ? Number(values.decimalPlaces) : undefined,
       pmvp: values.pmvp ? Number(values.pmvp) : undefined,
+      targetMarginPct: values.targetMarginPct ? Number(values.targetMarginPct) : undefined,
       conservationType: values.conservationType ? values.conservationType : undefined,
       minTemperature: values.minTemperature ? Number(values.minTemperature) : undefined,
       maxTemperature: values.maxTemperature ? Number(values.maxTemperature) : undefined,
@@ -1247,6 +1250,29 @@ export function ProductForm({
                 </Stack>
               </Box>
             </Stack>
+          </Box>
+
+          {/* -------- Margen objetivo (precarga al fijar precio) -------- */}
+          <Divider sx={{ borderStyle: 'dashed' }} />
+          <Box>
+            <Typography variant="subtitle2" sx={{ color: 'text.secondary' }}>
+              Margen objetivo
+            </Typography>
+            <Typography variant="caption" sx={{ color: 'text.disabled' }}>
+              Override por producto. Se precarga al fijar precio (margen sobre venta, editable). Si lo
+              dejas vacío se usa el de la categoría y, en su defecto, el margen global.
+            </Typography>
+            <Box sx={{ mt: 2, maxWidth: 280 }}>
+              <Field.Text
+                name="targetMarginPct"
+                label="Margen objetivo (% sobre venta)"
+                placeholder="Ej. 35"
+                slotProps={{
+                  inputLabel: { shrink: true },
+                  htmlInput: { inputMode: 'decimal', min: 0, max: 99.99, step: 0.5 },
+                }}
+              />
+            </Box>
           </Box>
 
           {/* -------- Códigos de barras (solo create) -------- */}

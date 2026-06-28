@@ -29,12 +29,19 @@ import { paths } from '@/app/routes/paths';
 import { useRouter } from '@/app/routes/hooks';
 import { Iconify } from '@/app/components/iconify';
 import { useCreatePriceMutation } from '@/features/prices/api/prices.queries';
+import { type SuggestedMargin, fetchSuggestedMargins } from '@/features/prices/api/prices.api';
 
 import { useUnpricedProductsByReceiptQuery } from '../../api/purchases.queries';
 
 // ----------------------------------------------------------------------
 
 type PriceMode = 'fixed' | 'margin';
+
+const MARGIN_SOURCE_LABEL: Record<SuggestedMargin['source'], string> = {
+  product: 'producto',
+  category: 'categoría',
+  global: 'global',
+};
 
 const usdFmt = new Intl.NumberFormat('en-US', {
   style: 'currency',
@@ -77,11 +84,14 @@ export function UnpricedProductsDialog({ receiptId, onClose }: Props) {
   const [draftInputByProduct, setDraftInputByProduct] = useState<Record<string, string>>({});
   const [savedProductIds, setSavedProductIds] = useState<Set<string>>(new Set());
   const [confirmSkipOpen, setConfirmSkipOpen] = useState(false);
+  // Margen objetivo sugerido por producto (cascada producto→categoría→global).
+  const [suggestedByProduct, setSuggestedByProduct] = useState<Record<string, SuggestedMargin | null>>({});
 
   useEffect(() => {
     if (receiptId) {
       setDraftInputByProduct({});
       setSavedProductIds(new Set());
+      setSuggestedByProduct({});
       setMode('fixed');
     }
   }, [receiptId]);
@@ -89,6 +99,36 @@ export function UnpricedProductsDialog({ receiptId, onClose }: Props) {
   const open = Boolean(receiptId);
   const data = query.data ?? [];
   const loading = query.isLoading;
+  const productKey = data.map((d) => d.productId).join(',');
+
+  // Al cargar la lista, traemos el margen sugerido de todos los productos. Si
+  // hay al menos uno, pasamos a modo "costo + margen" y pre-llenamos cada fila
+  // con su margen sugerido (editable). El operador solo ajusta lo que quiera.
+  useEffect(() => {
+    if (!open || !productKey) return undefined;
+    let cancelled = false;
+    fetchSuggestedMargins(productKey.split(','))
+      .then((map) => {
+        if (cancelled) return;
+        setSuggestedByProduct(map);
+        if (Object.values(map).some(Boolean)) {
+          setMode('margin');
+          setDraftInputByProduct((prev) => {
+            const next = { ...prev };
+            for (const [pid, s] of Object.entries(map)) {
+              if (s && !next[pid]) next[pid] = String(s.marginPct);
+            }
+            return next;
+          });
+        }
+      })
+      .catch(() => {
+        /* sugerencia best-effort: si falla, el modal funciona como antes */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [open, productKey]);
   const pendingCount = data.filter((p) => !savedProductIds.has(p.productId)).length;
 
   /**
@@ -195,10 +235,18 @@ export function UnpricedProductsDialog({ receiptId, onClose }: Props) {
                 exclusive
                 value={mode}
                 onChange={(_, next: PriceMode | null) => {
-                  if (next) {
-                    setMode(next);
-                    // Limpiamos los inputs al cambiar de modo porque el significado
-                    // del número cambia (USD vs %).
+                  if (!next) return;
+                  setMode(next);
+                  // El significado del número cambia (USD vs %). Al volver a
+                  // "margen" re-precargamos el margen sugerido de cada producto;
+                  // a "precio fijo" limpiamos.
+                  if (next === 'margin') {
+                    const seeded: Record<string, string> = {};
+                    for (const [pid, s] of Object.entries(suggestedByProduct)) {
+                      if (s) seeded[pid] = String(s.marginPct);
+                    }
+                    setDraftInputByProduct(seeded);
+                  } else {
                     setDraftInputByProduct({});
                   }
                 }}
@@ -238,6 +286,7 @@ export function UnpricedProductsDialog({ receiptId, onClose }: Props) {
                     const saved = savedProductIds.has(item.productId);
                     const raw = draftInputByProduct[item.productId] ?? '';
                     const computed = computePriceUsd(item, raw);
+                    const suggested = suggestedByProduct[item.productId];
                     return (
                       <TableRow key={item.productId} hover>
                         <TableCell>
@@ -292,6 +341,11 @@ export function UnpricedProductsDialog({ receiptId, onClose }: Props) {
                             }}
                             fullWidth
                           />
+                          {mode === 'margin' && suggested && !saved && (
+                            <Typography variant="caption" sx={{ color: 'text.disabled', mt: 0.25, display: 'block' }}>
+                              sugerido {suggested.marginPct}% ({MARGIN_SOURCE_LABEL[suggested.source]})
+                            </Typography>
+                          )}
                         </TableCell>
                         <TableCell align="right">
                           {computed != null ? (

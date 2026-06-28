@@ -61,6 +61,20 @@ export const CONFIG_GROUPS: ConfigGroup[] = [
     ],
   },
   {
+    title: 'Precios',
+    description:
+      'Margen por defecto usado al fijar precio cuando el producto y su categoría no definen uno propio. Es el último eslabón de la cascada producto → categoría → global.',
+    keys: [
+      {
+        key: 'default_margin_pct',
+        label: 'Margen por defecto',
+        description: 'Margen sobre el precio de venta que se precarga al fijar precio (editable).',
+        unit: '%',
+        type: 'decimal',
+      },
+    ],
+  },
+  {
     title: 'Promociones',
     description:
       'Límite de seguridad al combinar promociones en una misma línea del POS. Evita que un combo agresivo deje el producto casi gratis.',
