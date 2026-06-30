@@ -1,8 +1,8 @@
 import type { Customer, CreateCustomerPayload } from '../../model/types';
 
 import * as z from 'zod';
-import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
+import { useState, useEffect } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 
 import Card from '@mui/material/Card';
@@ -13,8 +13,13 @@ import Typography from '@mui/material/Typography';
 
 import { FormFooter } from '@/shared/ui/form-footer';
 import { Form, Field } from '@/app/components/hook-form';
+import { ConditionsMultiSelect } from '@/features/clinical-conditions/ui/conditions-multi-select';
+import { type ClinicalCondition } from '@/features/clinical-conditions/api/clinical-conditions.api';
 
 import { CUSTOMER_TYPES, CUSTOMER_DOCUMENT_TYPES } from '../../model/types';
+
+const toConditions = (current?: Customer): ClinicalCondition[] =>
+  (current?.clinicalConditions ?? []).map((c) => ({ ...c, isSeed: false, isActive: true }));
 
 // ----------------------------------------------------------------------
 
@@ -41,8 +46,6 @@ export const CustomerSchema = z.object({
     .max(100, { message: 'Máximo 100%' }),
   creditLimitUsd: z.number().min(0, { message: 'No puede ser negativo' }),
   notes: z.string().optional().or(z.literal('')),
-  allergies: z.string().optional().or(z.literal('')),
-  chronicConditions: z.string().optional().or(z.literal('')),
   birthDate: z.string().optional().or(z.literal('')),
   refillReminders: z.boolean(),
   isActive: z.boolean(),
@@ -68,8 +71,6 @@ const defaults = (current?: Customer): CustomerFormValues => ({
   defaultDiscountPercent: Number(current?.defaultDiscountPercent ?? 0),
   creditLimitUsd: Number(current?.creditLimitUsd ?? 0),
   notes: current?.notes ?? '',
-  allergies: current?.allergies ?? '',
-  chronicConditions: current?.chronicConditions ?? '',
   birthDate: current?.birthDate ?? '',
   refillReminders: !(current?.refillRemindersOptOut ?? false),
   isActive: current?.isActive ?? true,
@@ -98,9 +99,19 @@ export function CustomerForm({ current, submitting, onSubmit, onCancel }: Props)
 
   const { handleSubmit, reset } = methods;
 
+  // Condiciones estructuradas (catálogo). Una sola fuente; cada select filtra
+  // por tipo. Se sincroniza al cambiar el cliente cargado.
+  const [conditions, setConditions] = useState<ClinicalCondition[]>(toConditions(current));
+
   useEffect(() => {
-    if (current) reset(defaults(current));
+    if (current) {
+      reset(defaults(current));
+      setConditions(toConditions(current));
+    }
   }, [current, reset]);
+
+  const allergies = conditions.filter((c) => c.type === 'allergy');
+  const chronic = conditions.filter((c) => c.type === 'chronic');
 
   const submit = handleSubmit(async (values) => {
     const payload: CreateCustomerPayload = {
@@ -114,8 +125,7 @@ export function CustomerForm({ current, submitting, onSubmit, onCancel }: Props)
       defaultDiscountPercent: values.defaultDiscountPercent,
       creditLimitUsd: values.creditLimitUsd,
       notes: values.notes?.trim() || null,
-      allergies: values.allergies?.trim() || null,
-      chronicConditions: values.chronicConditions?.trim() || null,
+      conditionIds: conditions.map((c) => c.id),
       birthDate: values.birthDate?.trim() || null,
       refillRemindersOptOut: !values.refillReminders,
       isActive: values.isActive,
@@ -227,19 +237,19 @@ export function CustomerForm({ current, submitting, onSubmit, onCancel }: Props)
               slotProps={{ inputLabel: { shrink: true } }}
               sx={{ width: { md: 240 } }}
             />
-            <Field.Text
-              name="allergies"
+            <ConditionsMultiSelect
+              type="allergy"
               label="Alergias"
               placeholder="Penicilina, AINEs, sulfas…"
-              multiline
-              minRows={2}
+              value={allergies}
+              onChange={(next) => setConditions([...chronic, ...next])}
             />
-            <Field.Text
-              name="chronicConditions"
+            <ConditionsMultiSelect
+              type="chronic"
               label="Condiciones crónicas"
               placeholder="Diabetes, hipertensión, asma…"
-              multiline
-              minRows={2}
+              value={chronic}
+              onChange={(next) => setConditions([...allergies, ...next])}
             />
             <Field.Switch
               name="refillReminders"

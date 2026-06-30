@@ -157,8 +157,34 @@ export function CustomerDetailView() {
                 Ficha clínica
               </Typography>
               <Stack spacing={2}>
-                <Field label="Alergias" value={customer.allergies} />
-                <Field label="Condiciones crónicas" value={customer.chronicConditions} />
+                <Field
+                  label="Alergias"
+                  value={
+                    [
+                      (customer.conditions ?? [])
+                        .filter((c) => c.type === 'allergy')
+                        .map((c) => c.name)
+                        .join(', '),
+                      customer.allergies,
+                    ]
+                      .filter(Boolean)
+                      .join(' · ') || null
+                  }
+                />
+                <Field
+                  label="Condiciones crónicas"
+                  value={
+                    [
+                      (customer.conditions ?? [])
+                        .filter((c) => c.type === 'chronic')
+                        .map((c) => c.name)
+                        .join(', '),
+                      customer.chronicConditions,
+                    ]
+                      .filter(Boolean)
+                      .join(' · ') || null
+                  }
+                />
               </Stack>
             </Card>
           </Stack>

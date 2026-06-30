@@ -504,6 +504,7 @@ export const endpoints = {
   },
   brands: resource('/v1/brands'),
   categories: resource('/v1/categories'),
+  clinicalConditions: resource('/v1/clinical-conditions'),
   commercialLines: resource('/v1/commercial-lines'),
   commercialVariants: resource('/v1/commercial-variants'),
   dosageForms: { root: '/v1/dosage-forms' },

@@ -25,6 +25,8 @@ export type Customer = {
   notes: string | null;
   allergies: string | null;
   chronicConditions: string | null;
+  /** Alergias + condiciones crónicas estructuradas (catálogo). */
+  clinicalConditions?: Array<{ id: string; type: 'allergy' | 'chronic'; name: string }>;
   birthDate: string | null;
   refillRemindersOptOut: boolean;
   isActive: boolean;
@@ -60,6 +62,8 @@ export type CreateCustomerPayload = {
   notes?: string | null;
   allergies?: string | null;
   chronicConditions?: string | null;
+  /** IDs de alergias / condiciones crónicas del catálogo (multi-select). */
+  conditionIds?: string[];
   birthDate?: string | null;
   refillRemindersOptOut?: boolean;
   isActive?: boolean;
@@ -79,6 +83,7 @@ export type ClinicalProfile = {
     customerType: string;
     allergies: string | null;
     chronicConditions: string | null;
+    conditions: Array<{ id: string; type: 'allergy' | 'chronic'; name: string }>;
     birthDate: string | null;
     isBirthdayToday: boolean;
     notes: string | null;
