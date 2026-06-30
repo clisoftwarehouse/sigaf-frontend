@@ -5,12 +5,12 @@ import Tabs from '@mui/material/Tabs';
 import Container from '@mui/material/Container';
 
 import { PageHeader } from '@/shared/ui/page-header';
+import { useBranchScope } from '@/features/branches/ui/branch-scope-context';
 
 import { PortfolioView } from '../views/portfolio-view';
 import { LostSalesView } from '../views/lost-sales-view';
 import { ConditionsView } from '../views/conditions-view';
 import { SuggestionsView } from '../views/suggestions-view';
-import { BranchSelector } from '../components/branch-selector';
 import { ProfitabilityView } from '../views/profitability-view';
 import { IntelligenceDashboardView } from '../views/dashboard-view';
 
@@ -18,7 +18,9 @@ type TabKey = 'dashboard' | 'suggestions' | 'portfolio' | 'profitability' | 'los
 
 export default function IntelligencePage() {
   const [tab, setTab] = useState<TabKey>('dashboard');
-  const [branchId, setBranchId] = useState('');
+  // Sucursal del selector global del topbar (null = "Todas" → '' = sin filtro).
+  const { selectedBranchId } = useBranchScope();
+  const branchId = selectedBranchId ?? '';
 
   return (
     <Container maxWidth="xl" sx={{ pb: 6 }}>
@@ -27,8 +29,6 @@ export default function IntelligencePage() {
         subtitle="Motor ABCD + Pareto + sugerido + comparador interno. Datos en USD."
         crumbs={[{ label: 'Compras' }, { label: 'Inteligencia' }]}
       />
-
-      <BranchSelector value={branchId} onChange={setBranchId} />
 
       <Tabs
         value={tab}

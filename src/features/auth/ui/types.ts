@@ -17,6 +17,11 @@ export type SigafUser = {
    * para gating de UI vía `usePermissions()`.
    */
   permissions?: string[];
+  /**
+   * Sucursales donde el usuario puede operar (de `/auth/me`). Vacío/ausente =
+   * sin restricción (todas). Lo usa el BranchScope para aislar la UI por sucursal.
+   */
+  authorizedBranches?: { id: string; name?: string }[];
   isActive: boolean;
   lastLoginAt?: string | null;
   createdAt?: string;

@@ -12,7 +12,9 @@ import { iconButtonClasses } from '@mui/material/IconButton';
 
 import { Logo } from '@/app/components/logo';
 import { useSettingsContext } from '@/app/components/settings';
+import { BranchSwitcher } from '@/features/branches/ui/branch-switcher';
 import { useAuthContext, usePermissions } from '@/features/auth/ui/hooks';
+import { BranchScopeProvider } from '@/features/branches/ui/branch-scope-context';
 
 import { NavMobile } from './nav-mobile';
 import { VerticalDivider } from './content';
@@ -152,7 +154,9 @@ export function DashboardLayout({
         </>
       ),
       rightArea: (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0, sm: 0.75 } }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0.5, sm: 1 } }}>
+          {/** @slot Selector de sucursal (aislamiento por farmacia) */}
+          <BranchSwitcher />
           {/** @slot Account drawer */}
           <AccountDrawer data={_account} />
         </Box>
@@ -192,6 +196,7 @@ export function DashboardLayout({
   const renderMain = () => <MainSection {...slotProps?.main}>{children}</MainSection>;
 
   return (
+    <BranchScopeProvider>
     <LayoutSection
       /** **************************************
        * @Header
@@ -226,5 +231,6 @@ export function DashboardLayout({
     >
       {renderMain()}
     </LayoutSection>
+    </BranchScopeProvider>
   );
 }

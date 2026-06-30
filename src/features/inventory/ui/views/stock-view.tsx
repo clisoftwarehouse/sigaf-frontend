@@ -19,6 +19,7 @@ import { useRouter } from '@/app/routes/hooks';
 import { Iconify } from '@/app/components/iconify';
 import { PageHeader } from '@/shared/ui/page-header';
 import { useBranchOptions } from '@/features/branches/api/branches.options';
+import { useBranchScope } from '@/features/branches/ui/branch-scope-context';
 import { useProductOptions } from '@/features/products/api/products.options';
 import { DataTable, createFkFilterOperators } from '@/app/components/data-table';
 import { useWarehouseOptions } from '@/features/warehouses/api/warehouses.options';
@@ -48,10 +49,13 @@ export function StockView() {
   const [pickerRow, setPickerRow] = useState<StockRow | null>(null);
   const [adjustmentLot, setAdjustmentLot] = useState<InventoryLot | null>(null);
 
+  // Sucursal del selector global (null = "Todas" → sin filtro).
+  const { selectedBranchId } = useBranchScope();
   const { data, isLoading, isError, error, refetch } = useStockQuery({
     byLocation: true,
     page: 1,
     limit: 1000,
+    branchId: selectedBranchId ?? undefined,
   });
   const rows = (data?.data ?? []) as StockRow[];
 
