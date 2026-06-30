@@ -27,6 +27,7 @@ import DialogActions from '@mui/material/DialogActions';
 import CircularProgress from '@mui/material/CircularProgress';
 
 import { PageHeader } from '@/shared/ui/page-header';
+import { useBranchScope } from '@/features/branches/ui/branch-scope-context';
 
 import { generateComprobantePdf } from '../../model/comprobante-pdf';
 import {
@@ -60,6 +61,7 @@ function currentPeriod(): string {
 }
 
 export default function IvaRetentionsPage() {
+  const { selectedBranchId } = useBranchScope();
   const [period, setPeriod] = useState(currentPeriod());
   const [downloading, setDownloading] = useState(false);
   const [comprobante, setComprobante] = useState<IvaRetention | null>(null);
@@ -73,7 +75,7 @@ export default function IvaRetentionsPage() {
   const rifCanonical = normalizeRif(rifValue);
   const rifInvalid = rifValue.trim() !== '' && !rifCanonical;
 
-  const { data, isLoading, isError } = useIvaRetentions(period);
+  const { data, isLoading, isError } = useIvaRetentions(period, selectedBranchId ?? undefined);
   const voidMutation = useVoidIvaRetention();
 
   const totals = useMemo(() => {
@@ -105,7 +107,7 @@ export default function IvaRetentionsPage() {
   const exportTxt = async () => {
     setDownloading(true);
     try {
-      await downloadRetentionTxt(period);
+      await downloadRetentionTxt(period, selectedBranchId ?? undefined);
       toast.success(`TXT de retención ${period} descargado.`);
     } catch (e) {
       toast.error(`No se pudo generar el TXT: ${(e as Error).message}`);

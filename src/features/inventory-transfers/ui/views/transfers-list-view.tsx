@@ -18,6 +18,7 @@ import { Iconify } from '@/app/components/iconify';
 import { PageHeader } from '@/shared/ui/page-header';
 import { DataTable } from '@/app/components/data-table';
 import { useBranchOptions } from '@/features/branches/api/branches.options';
+import { useBranchScope } from '@/features/branches/ui/branch-scope-context';
 import { useWarehouseOptions } from '@/features/warehouses/api/warehouses.options';
 
 import { TypeChip, StatusChip } from '../components/transfer-chips';
@@ -27,7 +28,10 @@ import { useTransfersQuery } from '../../api/inventory-transfers.queries';
 
 export function TransfersListView() {
   const router = useRouter();
-  const { data: paginated, isLoading, isError, error, refetch } = useTransfersQuery();
+  const { selectedBranchId } = useBranchScope();
+  const { data: paginated, isLoading, isError, error, refetch } = useTransfersQuery({
+    branchId: selectedBranchId ?? undefined,
+  });
   const transfers = paginated?.data ?? [];
 
   const { data: branchOpts = [] } = useBranchOptions();

@@ -32,4 +32,5 @@ export type RentabilidadParams = {
   from?: string;
   to?: string;
   groupBy?: RentabilidadGroupBy;
+  branchId?: string;
 };

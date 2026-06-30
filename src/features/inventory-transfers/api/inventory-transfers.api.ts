@@ -15,6 +15,7 @@ import axios, { endpoints } from '@/shared/lib/axios';
 export async function fetchTransfers(filters: TransferFilters = {}): Promise<PaginatedTransfers> {
   const params: Record<string, string> = {};
   if (filters.transferType) params.transferType = filters.transferType;
+  if (filters.branchId) params.branchId = filters.branchId;
   if (filters.fromBranchId) params.fromBranchId = filters.fromBranchId;
   if (filters.toBranchId) params.toBranchId = filters.toBranchId;
   if (filters.fromLocationId) params.fromLocationId = filters.fromLocationId;

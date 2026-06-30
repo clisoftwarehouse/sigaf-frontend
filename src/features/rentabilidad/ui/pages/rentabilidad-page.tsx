@@ -22,6 +22,7 @@ import LinearProgress from '@mui/material/LinearProgress';
 
 import { Iconify } from '@/app/components/iconify';
 import { PageHeader } from '@/shared/ui/page-header';
+import { useBranchScope } from '@/features/branches/ui/branch-scope-context';
 
 import { useRentabilidad } from '../../api/rentabilidad.queries';
 import { fmtUsd, fmtDate, exportPdf, exportXlsx } from '../../../libros-iva/model/format';
@@ -39,11 +40,17 @@ const fmtQty = (n: number): string => (Number(n) || 0).toLocaleString('es-VE', {
 const fmtPct = (n: number): string => `${(Number(n) || 0).toLocaleString('es-VE', { maximumFractionDigits: 2 })}%`;
 
 export default function RentabilidadPage() {
+  const { selectedBranchId } = useBranchScope();
   const [from, setFrom] = useState(firstOfMonth);
   const [to, setTo] = useState(today);
   const [groupBy, setGroupBy] = useState<RentabilidadGroupBy>('product');
 
-  const { data, isLoading, isError, error } = useRentabilidad({ from, to, groupBy });
+  const { data, isLoading, isError, error } = useRentabilidad({
+    from,
+    to,
+    groupBy,
+    branchId: selectedBranchId ?? undefined,
+  });
 
   const fileBase = `rentabilidad-${groupBy}-${from}_${to}`;
   const colLabel = groupBy === 'category' ? 'Categoría' : 'Producto';

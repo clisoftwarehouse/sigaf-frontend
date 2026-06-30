@@ -75,6 +75,7 @@ export type CancelTransferPayload = {
 
 export type TransferFilters = {
   transferType?: TransferType;
+  branchId?: string;
   fromBranchId?: string;
   toBranchId?: string;
   fromLocationId?: string;
