@@ -30,30 +30,10 @@ import { PageHeader } from '@/shared/ui/page-header';
 import { useBranchScope } from '@/features/branches/ui/branch-scope-context';
 
 import { generateComprobantePdf } from '../../model/comprobante-pdf';
-import {
-  useAgentConfig,
-  saveAgentConfig,
-  useIvaRetentions,
-  useVoidIvaRetention,
-  downloadRetentionTxt,
-} from '../../api/queries';
+import { useIvaRetentions, useVoidIvaRetention, downloadRetentionTxt } from '../../api/queries';
 
 const fmtBs = (n: number | string) =>
   `Bs ${(Number(n) || 0).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-
-/**
- * Valida un RIF venezolano: prefijo V/E/J/G/P + 8 dígitos. Las personas
- * jurídicas (J/G) exigen el dígito verificador. Devuelve el RIF canónico
- * (con guiones) o null si es inválido.
- */
-function normalizeRif(value: string): string | null {
-  const m = /^([VEJGP])-?(\d{8})-?(\d?)$/.exec(value.trim().toUpperCase());
-  if (!m) return null;
-  const [, prefix, digits, check] = m;
-  const needsCheck = prefix === 'J' || prefix === 'G';
-  if (needsCheck && !check) return null;
-  return needsCheck ? `${prefix}-${digits}-${check}` : `${prefix}-${digits}`;
-}
 
 function currentPeriod(): string {
   const d = new Date();
@@ -66,15 +46,6 @@ export default function IvaRetentionsPage() {
   const [downloading, setDownloading] = useState(false);
   const [comprobante, setComprobante] = useState<IvaRetention | null>(null);
 
-  const agentQuery = useAgentConfig();
-  const [agentRif, setAgentRif] = useState<string | null>(null);
-  const [expediente, setExpediente] = useState<string | null>(null);
-  const [savingAgent, setSavingAgent] = useState(false);
-  const rifValue = agentRif ?? agentQuery.data?.agentRif ?? '';
-  const expValue = expediente ?? agentQuery.data?.expediente ?? '';
-  const rifCanonical = normalizeRif(rifValue);
-  const rifInvalid = rifValue.trim() !== '' && !rifCanonical;
-
   const { data, isLoading, isError } = useIvaRetentions(period, selectedBranchId ?? undefined);
   const voidMutation = useVoidIvaRetention();
 
@@ -85,24 +56,6 @@ export default function IvaRetentionsPage() {
       retainedBs: rows.reduce((s, r) => s + (Number(r.vatRetainedBs) || 0), 0),
     };
   }, [data]);
-
-  const saveAgent = async () => {
-    if (!rifCanonical) {
-      toast.error('El RIF del agente no es válido. Formato: J-12345678-9.');
-      return;
-    }
-    setSavingAgent(true);
-    try {
-      await saveAgentConfig({ agentRif: rifCanonical, expediente: expValue.trim() });
-      setAgentRif(rifCanonical);
-      toast.success('Configuración del agente de retención guardada.');
-      agentQuery.refetch();
-    } catch (e) {
-      toast.error(`No se pudo guardar: ${(e as Error).message}`);
-    } finally {
-      setSavingAgent(false);
-    }
-  };
 
   const exportTxt = async () => {
     setDownloading(true);
@@ -133,47 +86,12 @@ export default function IvaRetentionsPage() {
         crumbs={[{ label: 'Admin' }, { label: 'Retenciones de IVA' }]}
       />
 
-      {/* Config del agente de retención */}
-      <Card sx={{ mb: 2 }}>
-        <CardContent>
-          <Typography variant="overline" color="text.secondary">
-            Agente de retención
-          </Typography>
-          {!agentQuery.data?.agentRif && (
-            <Alert severity="warning" sx={{ my: 1 }}>
-              Sin RIF del agente, las retenciones NO se generan. Configúralo para activar la
-              retención al recibir compras.
-            </Alert>
-          )}
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mt: 1 }} alignItems="flex-start">
-            <TextField
-              label="RIF del agente"
-              size="small"
-              value={rifValue}
-              onChange={(e) => setAgentRif(e.target.value.toUpperCase())}
-              placeholder="J-12345678-9"
-              error={rifInvalid}
-              helperText={rifInvalid ? 'RIF inválido. Formato: J-12345678-9' : 'Persona jurídica: incluye el dígito verificador'}
-              sx={{ flex: 1 }}
-            />
-            <TextField
-              label="Número de expediente"
-              size="small"
-              value={expValue}
-              onChange={(e) => setExpediente(e.target.value)}
-              sx={{ flex: 1 }}
-            />
-            <Button
-              variant="contained"
-              onClick={saveAgent}
-              loading={savingAgent}
-              disabled={!rifCanonical}
-            >
-              Guardar
-            </Button>
-          </Stack>
-        </CardContent>
-      </Card>
+      {/* El agente de retención (RIF + expediente) se configura por sucursal */}
+      <Alert severity="info" sx={{ mb: 2 }}>
+        Cada sucursal retiene con su propio RIF y expediente. Configurá qué sucursales son agente de
+        retención (contribuyente especial) en <strong>Administración › Sucursales</strong>. Solo esas
+        generan comprobante al recibir compras, con correlativo propio.
+      </Alert>
 
       {/* Filtro período + export */}
       <Card sx={{ mb: 2 }}>

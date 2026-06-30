@@ -8,7 +8,9 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import Card from '@mui/material/Card';
 import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
+import Divider from '@mui/material/Divider';
 import MenuItem from '@mui/material/MenuItem';
+import Typography from '@mui/material/Typography';
 
 import { FormFooter } from '@/shared/ui/form-footer';
 import { Form, Field } from '@/app/components/hook-form';
@@ -40,6 +42,8 @@ export const BranchSchema = z.object({
     .or(z.literal(''))
     .refine((v) => !v || /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v), { message: 'Email inválido' }),
   branchGroupId: z.string().optional().or(z.literal('')),
+  isWithholdingAgent: z.boolean().optional(),
+  retentionExpediente: z.string().max(30).optional().or(z.literal('')),
 });
 
 export type BranchFormValues = z.infer<typeof BranchSchema>;
@@ -64,10 +68,13 @@ export function BranchForm({ current, submitting, onSubmit, onCancel }: Props) {
       phone: current?.phone ?? '',
       email: current?.email ?? '',
       branchGroupId: current?.branchGroupId ?? '',
+      isWithholdingAgent: current?.isWithholdingAgent ?? false,
+      retentionExpediente: current?.retentionExpediente ?? '',
     },
   });
 
-  const { handleSubmit, reset } = methods;
+  const { handleSubmit, reset, watch } = methods;
+  const isWithholdingAgent = watch('isWithholdingAgent');
 
   useEffect(() => {
     if (current) {
@@ -78,6 +85,8 @@ export function BranchForm({ current, submitting, onSubmit, onCancel }: Props) {
         phone: current.phone ?? '',
         email: current.email ?? '',
         branchGroupId: current.branchGroupId ?? '',
+        isWithholdingAgent: current.isWithholdingAgent ?? false,
+        retentionExpediente: current.retentionExpediente ?? '',
       });
     }
   }, [current, reset]);
@@ -90,6 +99,10 @@ export function BranchForm({ current, submitting, onSubmit, onCancel }: Props) {
       phone: values.phone?.trim() || undefined,
       email: values.email?.trim() || undefined,
       branchGroupId: values.branchGroupId?.trim() || undefined,
+      isWithholdingAgent: values.isWithholdingAgent ?? false,
+      retentionExpediente: values.isWithholdingAgent
+        ? values.retentionExpediente?.trim() || null
+        : null,
     });
   });
 
@@ -144,6 +157,26 @@ export function BranchForm({ current, submitting, onSubmit, onCancel }: Props) {
                 </MenuItem>
               ))}
           </Field.Select>
+
+          <Divider />
+
+          <Stack spacing={1}>
+            <Typography variant="subtitle2">Retención de IVA (SENIAT)</Typography>
+            <Field.Switch
+              name="isWithholdingAgent"
+              label="Esta sucursal es agente de retención (contribuyente especial)"
+              helperText="Si se activa, cada recepción de compra genera comprobante de retención con el RIF y expediente de esta sucursal, con correlativo propio."
+            />
+            {isWithholdingAgent && (
+              <Field.Text
+                name="retentionExpediente"
+                label="Número de expediente del agente"
+                placeholder="Ej. 12345"
+                helperText="Asignado por el SENIAT al contribuyente especial. Aparece en la columna P del TXT."
+                slotProps={{ inputLabel: { shrink: true } }}
+              />
+            )}
+          </Stack>
         </Stack>
       </Card>
 
