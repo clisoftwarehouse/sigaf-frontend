@@ -6,6 +6,14 @@ import autoTable from 'jspdf-autotable';
 const bs = (n: number | string) =>
   `Bs ${(Number(n) || 0).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
+/** Fecha DD/MM/AAAA para el comprobante; '—' si no hay. */
+const fmtDate = (d: string | null): string => {
+  if (!d) return '—';
+  const date = new Date(d);
+  if (Number.isNaN(date.getTime())) return '—';
+  return date.toLocaleDateString('es-VE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+};
+
 const DOC_LABEL: Record<string, string> = {
   '01': 'Factura',
   '02': 'Nota de Débito',
@@ -64,7 +72,7 @@ export function generateComprobantePdf(r: IvaRetention): void {
         DOC_LABEL[r.fiscalDocType] ?? r.fiscalDocType,
         r.invoiceNumber ?? '—',
         r.controlNumber ?? '—',
-        r.invoiceDate ?? '—',
+        fmtDate(r.invoiceDate),
         r.affectedDocNumber ?? '—',
       ],
     ],

@@ -14,6 +14,7 @@ import {
   fetchStock,
   fetchKardex,
   fetchStockFefo,
+  fetchCostHistory,
   setLotQuarantine,
   createAdjustment,
   fetchAverageCost,
@@ -32,6 +33,8 @@ export const inventoryKeys = {
   kardex: (filters: KardexFilters) => [...inventoryKeys.all, 'kardex', filters] as const,
   averageCost: (productId: string, branchId?: string) =>
     [...inventoryKeys.all, 'average-cost', productId, branchId ?? ''] as const,
+  costHistory: (productId: string, branchId?: string) =>
+    [...inventoryKeys.all, 'cost-history', productId, branchId ?? ''] as const,
 };
 
 // ----------------------------------------------------------------------
@@ -100,6 +103,15 @@ export function useAverageCostQuery(productId: string | undefined, branchId?: st
   return useQuery({
     queryKey: inventoryKeys.averageCost(productId ?? '', branchId),
     queryFn: () => fetchAverageCost(productId as string, branchId),
+    enabled: Boolean(productId),
+    staleTime: 30_000,
+  });
+}
+
+export function useProductCostHistoryQuery(productId: string | undefined, branchId?: string) {
+  return useQuery({
+    queryKey: inventoryKeys.costHistory(productId ?? '', branchId),
+    queryFn: () => fetchCostHistory(productId as string, branchId),
     enabled: Boolean(productId),
     staleTime: 30_000,
   });

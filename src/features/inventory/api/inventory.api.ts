@@ -121,3 +121,23 @@ export async function fetchAverageCost(productId: string, branchId?: string): Pr
   const res = await axios.get<AverageCost>(endpoints.inventory.averageCost(productId), { params });
   return res.data;
 }
+
+// ----------------------------------------------------------------------
+
+export type CostHistoryEntry = {
+  branchId: string;
+  date: string;
+  costUsd: number;
+};
+
+export async function fetchCostHistory(
+  productId: string,
+  branchId?: string
+): Promise<CostHistoryEntry[]> {
+  const params: Record<string, string> = {};
+  if (branchId) params.branchId = branchId;
+  const res = await axios.get<CostHistoryEntry[]>(endpoints.inventory.costHistory(productId), {
+    params,
+  });
+  return res.data;
+}

@@ -27,6 +27,7 @@ import { useWarehouseOptions } from '@/features/warehouses/api/warehouses.option
 import { useStockQuery } from '../../api/inventory.queries';
 import { LotPickerDialog } from '../components/lot-picker-dialog';
 import { AdjustmentDialog } from '../components/adjustment-dialog';
+import { StockComparativeView } from '../components/stock-comparative-view';
 
 // ----------------------------------------------------------------------
 
@@ -41,6 +42,8 @@ type StockRow = {
   lastCountDate?: string | null;
   lastCountQuantity?: number | string | null;
   lastMovementDate?: string | null;
+  costUsd?: number | string | null;
+  salePriceUsd?: number | string | null;
 };
 
 export function StockView() {
@@ -251,41 +254,49 @@ export function StockView() {
         crumbs={[{ label: 'Inventario' }, { label: 'Stock' }]}
       />
 
-      <Card>
-        {isError && (
-          <Box sx={{ p: 2 }}>
-            <Alert
-              severity="error"
-              action={
-                <Button color="inherit" size="small" onClick={() => refetch()}>
-                  Reintentar
-                </Button>
-              }
-            >
-              {(error as Error)?.message ?? 'Error al cargar stock'}
-            </Alert>
-          </Box>
-        )}
-
-        <Box sx={{ width: '100%' }}>
-          <DataTable
-            columns={columns}
-            rows={rowsWithId}
-            loading={isLoading}
-            disableRowSelectionOnClick
-            autoHeight
-            initialState={{
-              columns: {
-                columnVisibilityModel: {
-                  quantityReserved: false,
-                  lastCountDate: false,
-                  lastMovementDate: false,
-                },
-              },
-            }}
-          />
+      {isError && (
+        <Box sx={{ mb: 2 }}>
+          <Alert
+            severity="error"
+            action={
+              <Button color="inherit" size="small" onClick={() => refetch()}>
+                Reintentar
+              </Button>
+            }
+          >
+            {(error as Error)?.message ?? 'Error al cargar stock'}
+          </Alert>
         </Box>
-      </Card>
+      )}
+
+      {selectedBranchId === null ? (
+        <StockComparativeView
+          rows={rows}
+          productNameById={productNameById}
+          branchNameById={branchNameById}
+        />
+      ) : (
+        <Card>
+          <Box sx={{ width: '100%' }}>
+            <DataTable
+              columns={columns}
+              rows={rowsWithId}
+              loading={isLoading}
+              disableRowSelectionOnClick
+              autoHeight
+              initialState={{
+                columns: {
+                  columnVisibilityModel: {
+                    quantityReserved: false,
+                    lastCountDate: false,
+                    lastMovementDate: false,
+                  },
+                },
+              }}
+            />
+          </Box>
+        </Card>
+      )}
 
       <LotPickerDialog
         open={!!pickerRow}

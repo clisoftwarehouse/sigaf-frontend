@@ -424,6 +424,7 @@ export const endpoints = {
     adjustments: '/v1/inventory/adjustments',
     kardex: '/v1/inventory/kardex',
     averageCost: (productId: string) => `/v1/inventory/products/${productId}/average-cost`,
+    costHistory: (productId: string) => `/v1/inventory/products/${productId}/cost-history`,
   },
   purchasesComparator: {
     comparison: '/v1/purchases/comparator/comparison',

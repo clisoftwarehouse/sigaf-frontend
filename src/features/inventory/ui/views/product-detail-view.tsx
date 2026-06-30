@@ -33,6 +33,7 @@ import { useWarehouseOptions } from '@/features/warehouses/api/warehouses.option
 
 import { AdjustmentDialog } from '../components/adjustment-dialog';
 import { QuarantineDialog } from '../components/quarantine-dialog';
+import { CostHistoryChart } from '../components/cost-history-chart';
 import { ExpirySignalChip } from '../components/expiry-signal-chip';
 import { useFefoQuery, useStockQuery, useAverageCostQuery } from '../../api/inventory.queries';
 
@@ -588,6 +589,12 @@ export function InventoryProductDetailView() {
                   autoHeight
                 />
               </Box>
+            </Card>
+          )}
+
+          {id && (
+            <Card sx={{ p: 2.5 }}>
+              <CostHistoryChart productId={id} />
             </Card>
           )}
 
