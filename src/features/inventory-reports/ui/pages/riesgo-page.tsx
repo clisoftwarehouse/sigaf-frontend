@@ -10,6 +10,8 @@ import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
 import Typography from '@mui/material/Typography';
 
+import { useBranchScope } from '@/features/branches/ui/branch-scope-context';
+
 import { ReportLayout } from '../components/report-layout';
 import { useRiesgo } from '../../api/inventory-reports.queries';
 import { fmtBs, fmtQty, fmtDate, exportPdf, exportXlsx } from '../../model/helpers';
@@ -18,8 +20,9 @@ const STATUS_COLOR = { vencido: 'error', critico: 'warning', proximo: 'default' 
 const STATUS_LABEL = { vencido: 'Vencido', critico: 'Crítico', proximo: 'Próximo' } as const;
 
 export default function RiesgoPage() {
+  const { selectedBranchId } = useBranchScope();
   const [horizonDays, setHorizonDays] = useState(90);
-  const { data, isLoading, isError, error } = useRiesgo({ horizonDays });
+  const { data, isLoading, isError, error } = useRiesgo({ horizonDays, branchId: selectedBranchId ?? undefined });
 
   const headers = ['Producto', 'Código', 'Proveedor', 'Lote', 'Vence', 'Días', 'Cantidad', 'Costo comprometido USD', 'Estado'];
   const rows = (): (string | number)[][] =>

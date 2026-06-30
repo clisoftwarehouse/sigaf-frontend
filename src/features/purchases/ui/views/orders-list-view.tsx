@@ -19,6 +19,7 @@ import { useRouter } from '@/app/routes/hooks';
 import { Iconify } from '@/app/components/iconify';
 import { PageHeader } from '@/shared/ui/page-header';
 import { useBranchOptions } from '@/features/branches/api/branches.options';
+import { useBranchScope } from '@/features/branches/ui/branch-scope-context';
 import { useSupplierOptions } from '@/features/suppliers/api/suppliers.options';
 import { DataTable, createFkFilterOperators } from '@/app/components/data-table';
 
@@ -35,10 +36,12 @@ import {
 
 export function OrdersListView() {
   const router = useRouter();
+  const { selectedBranchId } = useBranchScope();
 
   const { data, isLoading, isError, error, refetch } = useOrdersQuery({
     page: 1,
     limit: 1000,
+    branchId: selectedBranchId ?? undefined,
   });
   const orders = data?.data ?? [];
 

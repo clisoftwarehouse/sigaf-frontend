@@ -9,14 +9,17 @@ import TableHead from '@mui/material/TableHead';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
 
+import { useBranchScope } from '@/features/branches/ui/branch-scope-context';
+
 import { useTicketPromedio } from '../../api/sales-reports.queries';
 import { ReportLayout } from '../../../inventory-reports/ui/components/report-layout';
 import { fmtBs, today, fmtQty, fmtDate, exportPdf, exportXlsx, firstOfMonth } from '../../../inventory-reports/model/helpers';
 
 export default function TicketPromedioPage() {
+  const { selectedBranchId } = useBranchScope();
   const [from, setFrom] = useState(firstOfMonth);
   const [to, setTo] = useState(today);
-  const { data, isLoading, isError, error } = useTicketPromedio({ from, to });
+  const { data, isLoading, isError, error } = useTicketPromedio({ from, to, branchId: selectedBranchId ?? undefined });
 
   const headers = ['Fecha', 'Franja', 'Tickets', 'Unidades', 'UPT', 'VPT USD'];
   const rows = (): (string | number)[][] =>

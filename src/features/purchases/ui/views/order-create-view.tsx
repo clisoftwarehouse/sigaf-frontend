@@ -31,6 +31,7 @@ import { PageHeader } from '@/shared/ui/page-header';
 import { Form, Field } from '@/app/components/hook-form';
 import { useBranchesQuery } from '@/features/branches/api/branches.queries';
 import { useProductsQuery } from '@/features/products/api/products.queries';
+import { useBranchScope } from '@/features/branches/ui/branch-scope-context';
 import { useSuppliersQuery } from '@/features/suppliers/api/suppliers.queries';
 import { fetchSupplierProducts } from '@/features/suppliers/api/suppliers.api';
 
@@ -98,6 +99,7 @@ export function OrderCreateView({ editingOrder }: Props = {}) {
   const createMutation = useCreateOrderMutation();
   const updateMutation = useUpdateOrderMutation();
   const mutation = isEdit ? updateMutation : createMutation;
+  const { selectedBranchId } = useBranchScope();
 
   const { data: branches = [] } = useBranchesQuery();
   const { data: suppliers = [] } = useSuppliersQuery({ isActive: true });
@@ -124,7 +126,7 @@ export function OrderCreateView({ editingOrder }: Props = {}) {
             })) ?? [{ productId: '', quantity: '', unitCost: '', discountPct: '' }],
         }
       : {
-          branchId: '',
+          branchId: selectedBranchId ?? '',
           supplierId: '',
           orderType: 'purchase',
           expectedDate: '',

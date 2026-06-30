@@ -15,6 +15,7 @@ import { useRouter } from '@/app/routes/hooks';
 import { Iconify } from '@/app/components/iconify';
 import { PageHeader } from '@/shared/ui/page-header';
 import { useBranchOptions } from '@/features/branches/api/branches.options';
+import { useBranchScope } from '@/features/branches/ui/branch-scope-context';
 import { useSupplierOptions } from '@/features/suppliers/api/suppliers.options';
 import { DataTable, createFkFilterOperators } from '@/app/components/data-table';
 
@@ -24,8 +25,11 @@ import { useReturnsQuery } from '../../api/consignments.queries';
 
 export function ReturnsListView() {
   const router = useRouter();
+  const { selectedBranchId } = useBranchScope();
 
-  const { data: returns = [], isLoading, isError, error, refetch } = useReturnsQuery({});
+  const { data: returns = [], isLoading, isError, error, refetch } = useReturnsQuery({
+    branchId: selectedBranchId ?? undefined,
+  });
 
   const { data: branchOpts = [] } = useBranchOptions();
   const { data: supplierOpts = [] } = useSupplierOptions();

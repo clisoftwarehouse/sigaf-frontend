@@ -13,6 +13,7 @@ import Typography from '@mui/material/Typography';
 import TableFooter from '@mui/material/TableFooter';
 
 import { paths } from '@/app/routes/paths';
+import { useBranchScope } from '@/features/branches/ui/branch-scope-context';
 
 import { useTransacciones } from '../../api/sales-reports.queries';
 import { ReportLayout } from '../../../inventory-reports/ui/components/report-layout';
@@ -20,9 +21,10 @@ import { fmtBs, today, fmtQty, fmtPct, fmtDate, exportPdf, exportXlsx, firstOfMo
 
 export default function TransaccionesPage() {
   const navigate = useNavigate();
+  const { selectedBranchId } = useBranchScope();
   const [from, setFrom] = useState(firstOfMonth);
   const [to, setTo] = useState(today);
-  const { data, isLoading, isError, error } = useTransacciones({ from, to });
+  const { data, isLoading, isError, error } = useTransacciones({ from, to, branchId: selectedBranchId ?? undefined });
 
   const headers = ['Fecha', 'Ticket', 'Cajero', 'Categoría', 'EAN', 'Producto', 'Cant', 'Precio USD', 'Desc %', 'Final USD', 'Costo USD', 'Margen USD'];
   const rows = (): (string | number)[][] =>

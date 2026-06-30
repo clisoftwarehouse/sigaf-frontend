@@ -19,6 +19,7 @@ import { useRouter } from '@/app/routes/hooks';
 import { Iconify } from '@/app/components/iconify';
 import { PageHeader } from '@/shared/ui/page-header';
 import { useBranchOptions } from '@/features/branches/api/branches.options';
+import { useBranchScope } from '@/features/branches/ui/branch-scope-context';
 import { useSupplierOptions } from '@/features/suppliers/api/suppliers.options';
 import { DataTable, createFkFilterOperators } from '@/app/components/data-table';
 
@@ -29,8 +30,11 @@ import { RECEIPT_TYPE_LABEL, RECEIPT_TYPE_OPTIONS } from '../../model/constants'
 
 export function ReceiptsListView() {
   const router = useRouter();
+  const { selectedBranchId } = useBranchScope();
 
-  const { data: receipts, isLoading, isError, error, refetch } = useReceiptsQuery();
+  const { data: receipts, isLoading, isError, error, refetch } = useReceiptsQuery({
+    branchId: selectedBranchId ?? undefined,
+  });
   const { data: ordersData } = useOrdersQuery({ page: 1, limit: 1000 });
   const orderNumberById = useMemo(
     () => new Map((ordersData?.data ?? []).map((o) => [o.id, o.orderNumber] as const)),

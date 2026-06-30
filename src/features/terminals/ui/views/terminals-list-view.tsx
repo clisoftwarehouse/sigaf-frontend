@@ -22,6 +22,7 @@ import { Iconify } from '@/app/components/iconify';
 import { PageHeader } from '@/shared/ui/page-header';
 import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
 import { useBranchOptions } from '@/features/branches/api/branches.options';
+import { useBranchScope } from '@/features/branches/ui/branch-scope-context';
 import { DataTable, createFkFilterOperators } from '@/app/components/data-table';
 
 import {
@@ -34,6 +35,7 @@ import {
 
 export function TerminalsListView() {
   const router = useRouter();
+  const { selectedBranchId } = useBranchScope();
   const [toDelete, setToDelete] = useState<{ id: string; name: string } | null>(null);
   // Cuando está activo, la lista muestra los terminales DESACTIVADOS (para
   // reactivarlos). Por defecto muestra los activos.
@@ -45,7 +47,7 @@ export function TerminalsListView() {
     isError,
     error,
     refetch,
-  } = useTerminalsQuery({ isActive: !viewInactive });
+  } = useTerminalsQuery({ isActive: !viewInactive, branchId: selectedBranchId ?? undefined });
   const deleteMutation = useDeleteTerminalMutation();
   const restoreMutation = useRestoreTerminalMutation();
 

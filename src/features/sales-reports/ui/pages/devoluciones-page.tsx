@@ -10,14 +10,17 @@ import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
 import TableFooter from '@mui/material/TableFooter';
 
+import { useBranchScope } from '@/features/branches/ui/branch-scope-context';
+
 import { useDevoluciones } from '../../api/sales-reports.queries';
 import { ReportLayout } from '../../../inventory-reports/ui/components/report-layout';
 import { fmtBs, today, fmtDate, exportPdf, exportXlsx, firstOfMonth } from '../../../inventory-reports/model/helpers';
 
 export default function DevolucionesPage() {
+  const { selectedBranchId } = useBranchScope();
   const [from, setFrom] = useState(firstOfMonth);
   const [to, setTo] = useState(today);
-  const { data, isLoading, isError, error } = useDevoluciones({ from, to });
+  const { data, isLoading, isError, error } = useDevoluciones({ from, to, branchId: selectedBranchId ?? undefined });
 
   const headers = ['Fecha', 'Sucursal', 'Cajero', 'Nota de crédito', 'Ticket original', 'Ítems', 'Monto USD', 'Reembolso'];
   const rows = (): (string | number)[][] =>

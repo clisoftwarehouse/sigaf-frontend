@@ -11,6 +11,8 @@ import TableCell from '@mui/material/TableCell';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 
+import { useBranchScope } from '@/features/branches/ui/branch-scope-context';
+
 import { ReportLayout } from '../components/report-layout';
 import { useTransferencias } from '../../api/inventory-reports.queries';
 import { today, fmtQty, fmtDate, exportPdf, exportXlsx, firstOfMonth } from '../../model/helpers';
@@ -32,7 +34,8 @@ export default function TransferenciasPage() {
   const [from, setFrom] = useState(firstOfMonth);
   const [to, setTo] = useState(today);
   const [status, setStatus] = useState('');
-  const { data, isLoading, isError, error } = useTransferencias({ from, to, status: status || undefined });
+  const { selectedBranchId } = useBranchScope();
+  const { data, isLoading, isError, error } = useTransferencias({ from, to, status: status || undefined, branchId: selectedBranchId ?? undefined });
 
   const headers = ['Número', 'Fecha', 'Tipo', 'Origen', 'Destino', 'Ítems', 'Cantidad', 'Estatus'];
   const rows = (): (string | number)[][] =>

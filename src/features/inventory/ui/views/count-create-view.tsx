@@ -18,6 +18,7 @@ import { paths } from '@/app/routes/paths';
 import { useRouter } from '@/app/routes/hooks';
 import { Form, Field } from '@/app/components/hook-form';
 import { useBranchOptions } from '@/features/branches/api/branches.options';
+import { useBranchScope } from '@/features/branches/ui/branch-scope-context';
 import { useProductOptions } from '@/features/products/api/products.options';
 import { useCategoryOptions } from '@/features/categories/api/categories.options';
 import { useWarehousesQuery } from '@/features/warehouses/api/warehouses.queries';
@@ -41,6 +42,7 @@ type FormValues = z.infer<typeof CountSchema>;
 export function CountCreateView() {
   const router = useRouter();
   const mutation = useCreateCountMutation();
+  const { selectedBranchId: scopeBranchId } = useBranchScope();
 
   const { data: branchOpts = [] } = useBranchOptions();
   const { data: productOpts = [] } = useProductOptions();
@@ -50,7 +52,7 @@ export function CountCreateView() {
     mode: 'onBlur',
     resolver: zodResolver(CountSchema),
     defaultValues: {
-      branchId: '',
+      branchId: scopeBranchId ?? '',
       countType: 'full',
       categoryId: '',
       locationId: '',

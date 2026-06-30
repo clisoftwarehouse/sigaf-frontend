@@ -8,6 +8,8 @@ import TableCell from '@mui/material/TableCell';
 import Typography from '@mui/material/Typography';
 import TableFooter from '@mui/material/TableFooter';
 
+import { useBranchScope } from '@/features/branches/ui/branch-scope-context';
+
 import { useSaldosProveedores } from '../../api/purchase-reports.queries';
 import { ReportLayout } from '../../../inventory-reports/ui/components/report-layout';
 import { fmtBs, fmtDate, exportPdf, exportXlsx } from '../../../inventory-reports/model/helpers';
@@ -19,7 +21,8 @@ const STATUS: Record<string, { label: string; color: 'success' | 'warning' | 'er
 };
 
 export default function SaldosProveedoresPage() {
-  const { data, isLoading, isError, error } = useSaldosProveedores({});
+  const { selectedBranchId } = useBranchScope();
+  const { data, isLoading, isError, error } = useSaldosProveedores({ branchId: selectedBranchId ?? undefined });
 
   const headers = ['Proveedor', 'RIF', 'Factura', 'Fecha factura', 'Vence', 'Días crédito', 'Días vencidos', 'Original USD', 'Saldo USD', 'Estatus'];
   const rows = (): (string | number)[][] =>

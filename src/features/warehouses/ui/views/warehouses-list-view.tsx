@@ -21,6 +21,7 @@ import { Iconify } from '@/app/components/iconify';
 import { PageHeader } from '@/shared/ui/page-header';
 import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
 import { useBranchOptions } from '@/features/branches/api/branches.options';
+import { useBranchScope } from '@/features/branches/ui/branch-scope-context';
 import { DataTable, createFkFilterOperators } from '@/app/components/data-table';
 
 import { useWarehousesQuery, useDeleteWarehouseMutation } from '../../api/warehouses.queries';
@@ -29,9 +30,12 @@ import { useWarehousesQuery, useDeleteWarehouseMutation } from '../../api/wareho
 
 export function WarehousesListView() {
   const router = useRouter();
+  const { selectedBranchId } = useBranchScope();
   const [toDelete, setToDelete] = useState<{ id: string; name: string } | null>(null);
 
-  const { data: warehouses = [], isLoading, isError, error, refetch } = useWarehousesQuery();
+  const { data: warehouses = [], isLoading, isError, error, refetch } = useWarehousesQuery({
+    branchId: selectedBranchId ?? undefined,
+  });
   const deleteMutation = useDeleteWarehouseMutation();
 
   const { data: branchOpts = [] } = useBranchOptions();

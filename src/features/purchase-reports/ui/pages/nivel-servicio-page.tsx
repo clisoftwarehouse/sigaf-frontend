@@ -9,6 +9,8 @@ import TableHead from '@mui/material/TableHead';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
 
+import { useBranchScope } from '@/features/branches/ui/branch-scope-context';
+
 import { useNivelServicio } from '../../api/purchase-reports.queries';
 import { ReportLayout } from '../../../inventory-reports/ui/components/report-layout';
 import { today, fmtQty, fmtPct, fmtDate, exportPdf, exportXlsx, firstOfMonth } from '../../../inventory-reports/model/helpers';
@@ -20,9 +22,10 @@ const STATUS: Record<string, { label: string; color: 'default' | 'warning' | 'su
 };
 
 export default function NivelServicioPage() {
+  const { selectedBranchId } = useBranchScope();
   const [from, setFrom] = useState(firstOfMonth);
   const [to, setTo] = useState(today);
-  const { data, isLoading, isError, error } = useNivelServicio({ from, to });
+  const { data, isLoading, isError, error } = useNivelServicio({ from, to, branchId: selectedBranchId ?? undefined });
 
   const headers = ['OC', 'Fecha', 'Proveedor', 'Sucursal', 'Ordenado', 'Recibido', 'Faltante', 'Fill rate %', 'Estatus', 'Esperada', 'Entregada', 'Días retraso'];
   const rows = (): (string | number)[][] =>

@@ -10,6 +10,8 @@ import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
 import Typography from '@mui/material/Typography';
 
+import { useBranchScope } from '@/features/branches/ui/branch-scope-context';
+
 import { ReportLayout } from '../components/report-layout';
 import { usePareto } from '../../api/inventory-reports.queries';
 import { fmtBs, today, fmtQty, fmtPct, fmtDate, exportPdf, exportXlsx, firstOfQuarter } from '../../model/helpers';
@@ -17,9 +19,10 @@ import { fmtBs, today, fmtQty, fmtPct, fmtDate, exportPdf, exportXlsx, firstOfQu
 const ABC_COLOR = { A: 'success', B: 'info', C: 'default' } as const;
 
 export default function ParetoPage() {
+  const { selectedBranchId } = useBranchScope();
   const [from, setFrom] = useState(firstOfQuarter);
   const [to, setTo] = useState(today);
-  const { data, isLoading, isError, error } = usePareto({ from, to });
+  const { data, isLoading, isError, error } = usePareto({ from, to, branchId: selectedBranchId ?? undefined });
 
   const headers = ['Producto', 'Código', 'Categoría', 'Ventas USD', 'Participación %', 'Acumulado %', 'Clase', 'Unidades'];
   const rows = (): (string | number)[][] =>

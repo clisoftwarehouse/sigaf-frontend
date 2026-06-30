@@ -20,6 +20,7 @@ import Pagination from '@mui/material/Pagination';
 import LinearProgress from '@mui/material/LinearProgress';
 
 import { Iconify } from '@/app/components/iconify';
+import { useBranchScope } from '@/features/branches/ui/branch-scope-context';
 
 import { AgingChip } from '../components/aging-chip';
 import { StatusChip } from '../components/status-chip';
@@ -44,11 +45,12 @@ const STATUSES: Array<{ value: CxpStatus | ''; label: string }> = [
 ];
 
 export function AccountsPayableListView() {
+  const { selectedBranchId } = useBranchScope();
   const [filters, setFilters] = useState<CxpFilters>({ page: 1, limit: 25 });
   const [selectedCxp, setSelectedCxp] = useState<string | null>(null);
 
-  const { data: aging } = useAgingSummary(filters.branchId);
-  const { data, isLoading, isError } = useCxpList(filters);
+  const { data: aging } = useAgingSummary(selectedBranchId ?? filters.branchId);
+  const { data, isLoading, isError } = useCxpList({ ...filters, branchId: selectedBranchId ?? filters.branchId });
 
   const setBucketFilter = (bucket?: AgingBucket) => {
     setFilters((p) => ({ ...p, agingBucket: bucket, page: 1 }));

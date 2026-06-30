@@ -20,6 +20,7 @@ import LinearProgress from '@mui/material/LinearProgress';
 
 import { Iconify } from '@/app/components/iconify';
 import { PageHeader } from '@/shared/ui/page-header';
+import { useBranchScope } from '@/features/branches/ui/branch-scope-context';
 
 import { useIgtfPercepcion } from '../../api/igtf.queries';
 import { PeriodSelector } from '../../../libros-iva/ui/components/period-selector';
@@ -32,7 +33,13 @@ export default function IgtfPage() {
     month: now.getMonth() + 1,
   });
 
-  const { data, isLoading, isError, error } = useIgtfPercepcion(period.year, period.month);
+  const { selectedBranchId } = useBranchScope();
+
+  const { data, isLoading, isError, error } = useIgtfPercepcion(
+    period.year,
+    period.month,
+    selectedBranchId ?? undefined,
+  );
 
   const fileBase = `igtf-percepcion-${period.year}-${String(period.month).padStart(2, '0')}`;
   const headers = [

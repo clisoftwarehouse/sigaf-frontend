@@ -22,6 +22,7 @@ import { PageHeader } from '@/shared/ui/page-header';
 import { DataTable } from '@/app/components/data-table';
 import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
 import { useBranchOptions } from '@/features/branches/api/branches.options';
+import { useBranchScope } from '@/features/branches/ui/branch-scope-context';
 import { useProductOptions } from '@/features/products/api/products.options';
 
 import { PriceFormDialog } from '../components/price-form-dialog';
@@ -34,6 +35,7 @@ import {
 // ----------------------------------------------------------------------
 
 export function PricesListView() {
+  const { selectedBranchId } = useBranchScope();
   const [includeHistory, setIncludeHistory] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
   const [toExpire, setToExpire] = useState<Price | null>(null);
@@ -43,6 +45,7 @@ export function PricesListView() {
     includeHistory,
     page: 1,
     limit: 500,
+    branchId: selectedBranchId ?? undefined,
   });
 
   const expireMutation = useExpirePriceMutation();

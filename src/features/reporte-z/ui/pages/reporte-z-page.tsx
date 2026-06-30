@@ -6,11 +6,13 @@ import Stack from '@mui/material/Stack';
 import Container from '@mui/material/Container';
 
 import { PageHeader } from '@/shared/ui/page-header';
+import { useBranchScope } from '@/features/branches/ui/branch-scope-context';
 import { PeriodSelector } from '@/features/libros-iva/ui/components/period-selector';
 
 import { ReporteZView } from '../views/reporte-z-view';
 
 export default function ReporteZPage() {
+  const { selectedBranchId } = useBranchScope();
   const now = new Date();
   const [period, setPeriod] = useState<LibroPeriod>({
     year: now.getFullYear(),
@@ -34,7 +36,7 @@ export default function ReporteZPage() {
         <PeriodSelector value={period} onChange={setPeriod} />
       </Stack>
 
-      <ReporteZView period={period} />
+      <ReporteZView period={period} branchId={selectedBranchId ?? undefined} />
     </Container>
   );
 }

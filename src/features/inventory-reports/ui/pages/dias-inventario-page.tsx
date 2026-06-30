@@ -10,6 +10,8 @@ import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
 import Typography from '@mui/material/Typography';
 
+import { useBranchScope } from '@/features/branches/ui/branch-scope-context';
+
 import { ReportLayout } from '../components/report-layout';
 import { fmtQty, exportPdf, exportXlsx } from '../../model/helpers';
 import { useDiasInventario } from '../../api/inventory-reports.queries';
@@ -21,8 +23,9 @@ const STATUS = {
 } as const;
 
 export default function DiasInventarioPage() {
+  const { selectedBranchId } = useBranchScope();
   const [windowDays, setWindowDays] = useState(30);
-  const { data, isLoading, isError, error } = useDiasInventario({ windowDays });
+  const { data, isLoading, isError, error } = useDiasInventario({ windowDays, branchId: selectedBranchId ?? undefined });
 
   const headers = ['Producto', 'Código', 'Categoría', 'Stock actual', 'Prom. venta diaria', 'Días proyectados', 'Estado'];
   const rows = (): (string | number)[][] =>

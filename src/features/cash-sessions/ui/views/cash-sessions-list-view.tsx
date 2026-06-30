@@ -21,6 +21,7 @@ import { useRouter } from '@/app/routes/hooks';
 import { Iconify } from '@/app/components/iconify';
 import { PageHeader } from '@/shared/ui/page-header';
 import { DataTable } from '@/app/components/data-table';
+import { useBranchScope } from '@/features/branches/ui/branch-scope-context';
 
 import { CASH_SESSION_STATUSES } from '../../model/types';
 import { useCashSessionsQuery } from '../../api/cash-sessions.queries';
@@ -47,10 +48,12 @@ const usdFmt = new Intl.NumberFormat('en-US', {
 
 export function CashSessionsListView() {
   const router = useRouter();
+  const { selectedBranchId } = useBranchScope();
   const [status, setStatus] = useState<CashSessionStatus | ''>('');
 
   const { data, isLoading, isError, error, refetch } = useCashSessionsQuery({
     status: status || undefined,
+    branchId: selectedBranchId ?? undefined,
     limit: 100,
   });
   const rows = data?.data ?? [];

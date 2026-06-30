@@ -18,6 +18,7 @@ import { useRouter } from '@/app/routes/hooks';
 import { Iconify } from '@/app/components/iconify';
 import { PageHeader } from '@/shared/ui/page-header';
 import { useBranchOptions } from '@/features/branches/api/branches.options';
+import { useBranchScope } from '@/features/branches/ui/branch-scope-context';
 import { useSupplierOptions } from '@/features/suppliers/api/suppliers.options';
 import { DataTable, createFkFilterOperators } from '@/app/components/data-table';
 
@@ -28,6 +29,7 @@ import { LIQUIDATION_STATUS_COLOR, LIQUIDATION_STATUS_OPTIONS } from '../../mode
 
 export function LiquidationsListView() {
   const router = useRouter();
+  const { selectedBranchId } = useBranchScope();
 
   const {
     data: liquidations = [],
@@ -35,7 +37,7 @@ export function LiquidationsListView() {
     isError,
     error,
     refetch,
-  } = useLiquidationsQuery({});
+  } = useLiquidationsQuery({ branchId: selectedBranchId ?? undefined });
 
   const { data: branchOpts = [] } = useBranchOptions();
   const { data: supplierOpts = [] } = useSupplierOptions();

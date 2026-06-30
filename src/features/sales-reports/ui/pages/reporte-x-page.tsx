@@ -15,6 +15,7 @@ import Typography from '@mui/material/Typography';
 import { paths } from '@/app/routes/paths';
 import { useRouter } from '@/app/routes/hooks';
 import { Iconify } from '@/app/components/iconify';
+import { useBranchScope } from '@/features/branches/ui/branch-scope-context';
 
 import { useReporteX } from '../../api/sales-reports.queries';
 import { ReportLayout } from '../../../inventory-reports/ui/components/report-layout';
@@ -24,9 +25,10 @@ const fmtDT = (s: string | null): string => (s ? new Date(s).toLocaleString('es-
 
 export default function ReporteXPage() {
   const router = useRouter();
+  const { selectedBranchId } = useBranchScope();
   const [from, setFrom] = useState(firstOfMonth);
   const [to, setTo] = useState(today);
-  const { data, isLoading, isError, error } = useReporteX({ from, to });
+  const { data, isLoading, isError, error } = useReporteX({ from, to, branchId: selectedBranchId ?? undefined });
 
   const headers = ['Sesión', 'Terminal', 'Cajero', 'Apertura', 'Cierre', 'Estatus', '1er ticket', 'Últ. ticket', 'Total USD', 'Diferencia USD'];
   const rows = (): (string | number)[][] =>

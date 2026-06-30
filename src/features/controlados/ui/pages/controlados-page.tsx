@@ -22,6 +22,7 @@ import LinearProgress from '@mui/material/LinearProgress';
 
 import { Iconify } from '@/app/components/iconify';
 import { PageHeader } from '@/shared/ui/page-header';
+import { useBranchScope } from '@/features/branches/ui/branch-scope-context';
 
 import { useControlados } from '../../api/controlados.queries';
 import { fmtDate, exportPdf, exportXlsx } from '../../../libros-iva/model/format';
@@ -39,7 +40,13 @@ export default function ControladosPage() {
     month: now.getMonth() + 1,
   });
 
-  const { data, isLoading, isError, error } = useControlados(period.year, period.month);
+  const { selectedBranchId } = useBranchScope();
+
+  const { data, isLoading, isError, error } = useControlados(
+    period.year,
+    period.month,
+    selectedBranchId ?? undefined,
+  );
 
   const fileBase = `controlados-${tab}-${period.year}-${String(period.month).padStart(2, '0')}`;
 

@@ -9,13 +9,16 @@ import TableHead from '@mui/material/TableHead';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
 
+import { useBranchScope } from '@/features/branches/ui/branch-scope-context';
+
 import { useFlujoCaja } from '../../api/crm-finance-reports.queries';
 import { ReportLayout } from '../../../inventory-reports/ui/components/report-layout';
 import { fmtBs, fmtDate, exportPdf, exportXlsx } from '../../../inventory-reports/model/helpers';
 
 export default function FlujoCajaPage() {
+  const { selectedBranchId } = useBranchScope();
   const [weeks, setWeeks] = useState(8);
-  const { data, isLoading, isError, error } = useFlujoCaja({ weeks });
+  const { data, isLoading, isError, error } = useFlujoCaja({ weeks, branchId: selectedBranchId ?? undefined });
 
   const headers = ['Semana', 'Ingreso proyectado USD', 'CxP por vencer USD', 'Neto USD', 'Acumulado USD'];
   const rows = (): (string | number)[][] =>

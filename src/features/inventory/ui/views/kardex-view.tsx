@@ -17,6 +17,7 @@ import { paths } from '@/app/routes/paths';
 import { Iconify } from '@/app/components/iconify';
 import { PageHeader } from '@/shared/ui/page-header';
 import { useBranchOptions } from '@/features/branches/api/branches.options';
+import { useBranchScope } from '@/features/branches/ui/branch-scope-context';
 import { useProductOptions } from '@/features/products/api/products.options';
 import { DataTable, createFkFilterOperators } from '@/app/components/data-table';
 
@@ -41,6 +42,7 @@ type KardexRow = {
 
 export function KardexView() {
   const navigate = useNavigate();
+  const { selectedBranchId } = useBranchScope();
   const [searchParams] = useSearchParams();
   const productIdFilter = searchParams.get('productId') ?? undefined;
   const lotIdFilter = searchParams.get('lotId') ?? undefined;
@@ -49,7 +51,7 @@ export function KardexView() {
   const { data, isLoading, isError, error, refetch } = useKardexQuery({
     productId: productIdFilter,
     lotId: lotIdFilter,
-    branchId: branchIdFilter,
+    branchId: branchIdFilter ?? selectedBranchId ?? undefined,
     page: 1,
     limit: 1000,
   });

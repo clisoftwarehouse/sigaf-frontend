@@ -8,6 +8,7 @@ import Stack from '@mui/material/Stack';
 import Container from '@mui/material/Container';
 
 import { PageHeader } from '@/shared/ui/page-header';
+import { useBranchScope } from '@/features/branches/ui/branch-scope-context';
 
 import { LibroVentasView } from '../views/libro-ventas-view';
 import { PeriodSelector } from '../components/period-selector';
@@ -16,6 +17,7 @@ import { LibroComprasView } from '../views/libro-compras-view';
 type TabKey = 'ventas' | 'compras';
 
 export default function LibrosIvaPage() {
+  const { selectedBranchId } = useBranchScope();
   const now = new Date();
   const [tab, setTab] = useState<TabKey>('ventas');
   const [period, setPeriod] = useState<LibroPeriod>({
@@ -45,8 +47,12 @@ export default function LibrosIvaPage() {
         <PeriodSelector value={period} onChange={setPeriod} />
       </Stack>
 
-      {tab === 'ventas' && <LibroVentasView period={period} />}
-      {tab === 'compras' && <LibroComprasView period={period} />}
+      {tab === 'ventas' && (
+        <LibroVentasView period={period} branchId={selectedBranchId ?? undefined} />
+      )}
+      {tab === 'compras' && (
+        <LibroComprasView period={period} branchId={selectedBranchId ?? undefined} />
+      )}
     </Container>
   );
 }

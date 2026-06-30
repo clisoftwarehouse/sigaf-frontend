@@ -21,6 +21,7 @@ import { Iconify } from '@/app/components/iconify';
 import { PageHeader } from '@/shared/ui/page-header';
 import { Chart, useChart } from '@/app/components/chart';
 import { useBranchOptions } from '@/features/branches/api/branches.options';
+import { useBranchScope } from '@/features/branches/ui/branch-scope-context';
 import { DataTable, createFkFilterOperators } from '@/app/components/data-table';
 
 import { useCountsQuery, useAccuracyQuery } from '../../api/counts.queries';
@@ -36,8 +37,13 @@ import {
 
 export function CountsListView() {
   const router = useRouter();
+  const { selectedBranchId } = useBranchScope();
 
-  const { data, isLoading, isError, error, refetch } = useCountsQuery({ page: 1, limit: 1000 });
+  const { data, isLoading, isError, error, refetch } = useCountsQuery({
+    page: 1,
+    limit: 1000,
+    branchId: selectedBranchId ?? undefined,
+  });
   const counts = data?.data ?? [];
 
   const { data: accuracy } = useAccuracyQuery();

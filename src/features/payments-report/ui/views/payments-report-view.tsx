@@ -21,7 +21,7 @@ import { paths } from '@/app/routes/paths';
 import { Iconify } from '@/app/components/iconify';
 import { PageHeader } from '@/shared/ui/page-header';
 import { DataTable } from '@/app/components/data-table';
-import { useBranchesQuery } from '@/features/branches/api/branches.queries';
+import { useBranchScope } from '@/features/branches/ui/branch-scope-context';
 import { useTerminalsQuery } from '@/features/terminals/api/terminals.queries';
 
 import { PAYMENT_METHODS, PAYMENT_METHOD_LABEL } from '../../model/types';
@@ -126,30 +126,29 @@ function SummaryCard({ row }: { row: PaymentsSummaryRow }) {
 
 export function PaymentsReportView() {
   const navigate = useNavigate();
+  const { selectedBranchId } = useBranchScope();
   // Por defecto: hoy.
   const today = new Date().toISOString().slice(0, 10);
   const [from, setFrom] = useState<string>(today);
   const [to, setTo] = useState<string>(today);
-  const [branchId, setBranchId] = useState<string>('');
   const [terminalId, setTerminalId] = useState<string>('');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | ''>('');
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(25);
 
-  const branchesQuery = useBranchesQuery();
-  const terminalsQuery = useTerminalsQuery(branchId ? { branchId } : {});
+  const terminalsQuery = useTerminalsQuery(selectedBranchId ? { branchId: selectedBranchId } : {});
 
   const filters = useMemo(
     () => ({
       from: toIsoStart(from),
       to: toIsoEnd(to),
-      branchId: branchId || undefined,
+      branchId: selectedBranchId ?? undefined,
       terminalId: terminalId || undefined,
       paymentMethod: paymentMethod || undefined,
       page: page + 1,
       limit: pageSize,
     }),
-    [from, to, branchId, terminalId, paymentMethod, page, pageSize]
+    [from, to, selectedBranchId, terminalId, paymentMethod, page, pageSize]
   );
 
   const reportQuery = usePaymentsReportQuery(filters);
@@ -328,32 +327,13 @@ export function PaymentsReportView() {
           <TextField
             select
             size="small"
-            label="Sucursal"
-            value={branchId}
-            onChange={(e) => {
-              setBranchId(e.target.value);
-              setTerminalId('');
-              setPage(0);
-            }}
-            sx={{ minWidth: 180 }}
-          >
-            <MenuItem value="">Todas</MenuItem>
-            {(branchesQuery.data ?? []).map((b) => (
-              <MenuItem key={b.id} value={b.id}>
-                {b.name}
-              </MenuItem>
-            ))}
-          </TextField>
-          <TextField
-            select
-            size="small"
             label="Terminal"
             value={terminalId}
             onChange={(e) => {
               setTerminalId(e.target.value);
               setPage(0);
             }}
-            disabled={!branchId}
+            disabled={!selectedBranchId}
             sx={{ minWidth: 180 }}
           >
             <MenuItem value="">Todos</MenuItem>

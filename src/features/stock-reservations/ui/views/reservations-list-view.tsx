@@ -22,6 +22,7 @@ import CircularProgress from '@mui/material/CircularProgress';
 
 import { PageHeader } from '@/shared/ui/page-header';
 import { useBranchOptions } from '@/features/branches/api/branches.options';
+import { useBranchScope } from '@/features/branches/ui/branch-scope-context';
 import { useProductOptions } from '@/features/products/api/products.options';
 
 import { RESERVATION_STATUS_LABEL } from '../../model/types';
@@ -40,11 +41,11 @@ const qty = (v: number | string) => Number(v).toFixed(3).replace(/\.?0+$/, '');
 const dt = (s: string | null) => (s ? new Date(s).toLocaleString('es-VE') : '—');
 
 export function ReservationsListView() {
-  const [branchId, setBranchId] = useState('');
+  const { selectedBranchId } = useBranchScope();
   const [status, setStatus] = useState<ReservationStatus | ''>('');
 
   const { data = [], isLoading, isError, error } = useReservationsQuery({
-    branchId: branchId || undefined,
+    branchId: selectedBranchId ?? undefined,
     status: status || undefined,
   });
   const cancelMutation = useCancelReservationMutation();
@@ -79,21 +80,6 @@ export function ReservationsListView() {
 
       <Card sx={{ p: 2, mb: 2 }}>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-          <TextField
-            select
-            label="Sucursal (destino)"
-            size="small"
-            value={branchId}
-            onChange={(e) => setBranchId(e.target.value)}
-            sx={{ minWidth: 220 }}
-          >
-            <MenuItem value="">Todas</MenuItem>
-            {branchOpts.map((b) => (
-              <MenuItem key={b.id} value={b.id}>
-                {b.label}
-              </MenuItem>
-            ))}
-          </TextField>
           <TextField
             select
             label="Estado"

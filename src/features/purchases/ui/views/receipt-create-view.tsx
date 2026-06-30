@@ -27,6 +27,7 @@ import { PageHeader } from '@/shared/ui/page-header';
 import { Form, Field } from '@/app/components/hook-form';
 import { useBranchesQuery } from '@/features/branches/api/branches.queries';
 import { useProductsQuery } from '@/features/products/api/products.queries';
+import { useBranchScope } from '@/features/branches/ui/branch-scope-context';
 import { useConfigQuery } from '@/features/config-global/api/config.queries';
 import { useSuppliersQuery } from '@/features/suppliers/api/suppliers.queries';
 import { fetchSupplierProducts } from '@/features/suppliers/api/suppliers.api';
@@ -202,6 +203,7 @@ const emptyItem: FormValues['items'][number] = {
 export function ReceiptCreateView() {
   const router = useRouter();
   const mutation = useCreateReceiptMutation();
+  const { selectedBranchId: scopeBranchId } = useBranchScope();
 
   // ID del último receipt creado, para abrir el modal de productos sin precio.
   // Cuando el modal cierra, redirigimos al listado.
@@ -227,7 +229,7 @@ export function ReceiptCreateView() {
     mode: 'onBlur',
     resolver: zodResolver(ReceiptSchema),
     defaultValues: {
-      branchId: '',
+      branchId: scopeBranchId ?? '',
       supplierId: '',
       purchaseOrderIds: [],
       supplierInvoiceNumber: '',

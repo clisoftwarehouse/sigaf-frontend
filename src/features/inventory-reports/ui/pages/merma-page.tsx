@@ -11,14 +11,17 @@ import TableCell from '@mui/material/TableCell';
 import Typography from '@mui/material/Typography';
 import TableFooter from '@mui/material/TableFooter';
 
+import { useBranchScope } from '@/features/branches/ui/branch-scope-context';
+
 import { ReportLayout } from '../components/report-layout';
 import { useMerma } from '../../api/inventory-reports.queries';
 import { fmtBs, today, fmtQty, fmtDate, exportPdf, exportXlsx, firstOfMonth } from '../../model/helpers';
 
 export default function MermaPage() {
+  const { selectedBranchId } = useBranchScope();
   const [from, setFrom] = useState(firstOfMonth);
   const [to, setTo] = useState(today);
-  const { data, isLoading, isError, error } = useMerma({ from, to });
+  const { data, isLoading, isError, error } = useMerma({ from, to, branchId: selectedBranchId ?? undefined });
 
   const headers = ['Fecha', 'Producto', 'Código', 'Lote', 'Cantidad', 'Costo perdido USD', 'Causa', 'Motivo'];
   const rows = (): (string | number)[][] =>

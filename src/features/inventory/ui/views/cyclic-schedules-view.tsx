@@ -32,6 +32,7 @@ import { Iconify } from '@/app/components/iconify';
 import { PageHeader } from '@/shared/ui/page-header';
 import { DataTable } from '@/app/components/data-table';
 import { useBranchOptions } from '@/features/branches/api/branches.options';
+import { useBranchScope } from '@/features/branches/ui/branch-scope-context';
 
 import { ABC_CLASSES, RISK_LEVELS, RISK_LEVEL_LABEL } from '../../model/counts-types';
 import {
@@ -65,7 +66,10 @@ const emptyDraft = (): Draft => ({
 });
 
 export function CyclicSchedulesView() {
-  const { data: schedules = [], isLoading, isError, error, refetch } = useCyclicSchedulesQuery();
+  const { selectedBranchId } = useBranchScope();
+  const { data: schedules = [], isLoading, isError, error, refetch } = useCyclicSchedulesQuery({
+    branchId: selectedBranchId ?? undefined,
+  });
   const createMutation = useCreateCyclicScheduleMutation();
   const updateMutation = useUpdateCyclicScheduleMutation();
 

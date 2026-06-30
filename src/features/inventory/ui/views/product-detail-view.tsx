@@ -27,6 +27,7 @@ import { usePricesQuery } from '@/features/prices/api/prices.queries';
 import { PRODUCT_TYPE_LABEL } from '@/features/products/model/constants';
 import { useProductQuery } from '@/features/products/api/products.queries';
 import { useBranchOptions } from '@/features/branches/api/branches.options';
+import { useBranchScope } from '@/features/branches/ui/branch-scope-context';
 import { useCategoriesQuery } from '@/features/categories/api/categories.queries';
 import { useWarehouseOptions } from '@/features/warehouses/api/warehouses.options';
 
@@ -48,18 +49,25 @@ type StockRow = {
 export function InventoryProductDetailView() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
+  const { selectedBranchId } = useBranchScope();
 
   const [adjustmentLot, setAdjustmentLot] = useState<InventoryLot | null>(null);
   const [quarantineLot, setQuarantineLot] = useState<InventoryLot | null>(null);
 
   const { data: product, isLoading: loadingProduct, isError, error } = useProductQuery(id);
-  const { data: fefoLots = [], isLoading: loadingLots } = useFefoQuery(id || undefined, undefined);
-  const { data: stockData } = useStockQuery({ productId: id || undefined });
+  const { data: fefoLots = [], isLoading: loadingLots } = useFefoQuery(
+    id || undefined,
+    selectedBranchId ?? undefined
+  );
+  const { data: stockData } = useStockQuery({
+    productId: id || undefined,
+    branchId: selectedBranchId ?? undefined,
+  });
   // Lista completa de precios vigentes del producto (global + por sucursal).
   // Reemplaza la card de "Precio actual" único, que era ambigua cuando
   // existen precios distintos por sucursal.
   const { data: pricesData } = usePricesQuery({ productId: id, includeHistory: false });
-  const { data: avgCost } = useAverageCostQuery(id);
+  const { data: avgCost } = useAverageCostQuery(id, selectedBranchId ?? undefined);
 
   const { flat: categories } = useCategoriesQuery();
   const { data: brands = [] } = useBrandsQuery();

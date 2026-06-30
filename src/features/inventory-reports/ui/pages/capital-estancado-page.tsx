@@ -11,13 +11,16 @@ import TableCell from '@mui/material/TableCell';
 import Typography from '@mui/material/Typography';
 import TableFooter from '@mui/material/TableFooter';
 
+import { useBranchScope } from '@/features/branches/ui/branch-scope-context';
+
 import { ReportLayout } from '../components/report-layout';
 import { useCapitalEstancado } from '../../api/inventory-reports.queries';
 import { fmtBs, fmtQty, fmtDate, exportPdf, exportXlsx } from '../../model/helpers';
 
 export default function CapitalEstancadoPage() {
+  const { selectedBranchId } = useBranchScope();
   const [minDays, setMinDays] = useState(90);
-  const { data, isLoading, isError, error } = useCapitalEstancado({ minDays });
+  const { data, isLoading, isError, error } = useCapitalEstancado({ minDays, branchId: selectedBranchId ?? undefined });
 
   const headers = ['Producto', 'Código', 'Proveedor', 'Lote', 'Última venta', 'Días sin mov.', 'Unidades', 'Capital atascado USD'];
   const rows = (): (string | number)[][] =>

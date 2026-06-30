@@ -34,11 +34,13 @@ export type DashboardSummary = {
   };
 };
 
-export function useDashboardSummary() {
+export function useDashboardSummary(branchId?: string) {
   return useQuery({
-    queryKey: ['dashboard', 'summary'],
+    queryKey: ['dashboard', 'summary', branchId ?? 'all'],
     queryFn: async () => {
-      const { data } = await axiosInstance.get<DashboardSummary>(endpoints.dashboard.summary);
+      const { data } = await axiosInstance.get<DashboardSummary>(endpoints.dashboard.summary, {
+        params: branchId ? { branchId } : {},
+      });
       return data;
     },
     staleTime: 60_000,

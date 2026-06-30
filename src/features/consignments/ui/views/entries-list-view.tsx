@@ -18,6 +18,7 @@ import { useRouter } from '@/app/routes/hooks';
 import { Iconify } from '@/app/components/iconify';
 import { PageHeader } from '@/shared/ui/page-header';
 import { useBranchOptions } from '@/features/branches/api/branches.options';
+import { useBranchScope } from '@/features/branches/ui/branch-scope-context';
 import { useSupplierOptions } from '@/features/suppliers/api/suppliers.options';
 import { DataTable, createFkFilterOperators } from '@/app/components/data-table';
 
@@ -28,10 +29,12 @@ import { CONSIGNMENT_STATUS_COLOR, CONSIGNMENT_STATUS_OPTIONS } from '../../mode
 
 export function EntriesListView() {
   const router = useRouter();
+  const { selectedBranchId } = useBranchScope();
 
   const { data, isLoading, isError, error, refetch } = useEntriesQuery({
     page: 1,
     limit: 1000,
+    branchId: selectedBranchId ?? undefined,
   });
   const entries = data?.data ?? [];
 

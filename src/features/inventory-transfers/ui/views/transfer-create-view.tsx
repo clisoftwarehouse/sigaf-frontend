@@ -27,6 +27,7 @@ import { FormFooter } from '@/shared/ui/form-footer';
 import { PageHeader } from '@/shared/ui/page-header';
 import { useLotsQuery } from '@/features/inventory/api/inventory.queries';
 import { useBranchesQuery } from '@/features/branches/api/branches.queries';
+import { useBranchScope } from '@/features/branches/ui/branch-scope-context';
 import { useProductOptions } from '@/features/products/api/products.options';
 import { useWarehousesQuery } from '@/features/warehouses/api/warehouses.queries';
 
@@ -50,9 +51,10 @@ export function TransferCreateView() {
   const router = useRouter();
   const createMutation = useCreateTransferMutation();
   const createFromReceiptMutation = useCreateTransferFromReceiptMutation();
+  const { selectedBranchId } = useBranchScope();
 
   const [transferType, setTransferType] = useState<TransferType>('intra_branch');
-  const [fromBranchId, setFromBranchId] = useState('');
+  const [fromBranchId, setFromBranchId] = useState(() => selectedBranchId ?? '');
   const [toBranchId, setToBranchId] = useState('');
   const [fromLocationId, setFromLocationId] = useState('');
   const [toLocationId, setToLocationId] = useState('');

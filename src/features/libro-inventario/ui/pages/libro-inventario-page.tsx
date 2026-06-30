@@ -22,6 +22,7 @@ import LinearProgress from '@mui/material/LinearProgress';
 
 import { Iconify } from '@/app/components/iconify';
 import { PageHeader } from '@/shared/ui/page-header';
+import { useBranchScope } from '@/features/branches/ui/branch-scope-context';
 
 import { useLibroInventario } from '../../api/libro-inventario.queries';
 import { fmtBs, exportPdf, exportXlsx } from '../../../libros-iva/model/format';
@@ -116,7 +117,13 @@ export default function LibroInventarioPage() {
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
 
-  const { data, isLoading, isError, error } = useLibroInventario({ year, month });
+  const { selectedBranchId } = useBranchScope();
+
+  const { data, isLoading, isError, error } = useLibroInventario({
+    year,
+    month,
+    branchId: selectedBranchId ?? undefined,
+  });
 
   const fileBase = `libro-inventario-${year}-${String(month).padStart(2, '0')}`;
 

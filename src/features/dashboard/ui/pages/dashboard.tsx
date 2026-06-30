@@ -21,6 +21,7 @@ import { Chart, useChart } from '@/app/components/chart';
 import { useAuthContext } from '@/features/auth/ui/hooks';
 import { useBranchesQuery } from '@/features/branches/api/branches.queries';
 import { useProductsQuery } from '@/features/products/api/products.queries';
+import { useBranchScope } from '@/features/branches/ui/branch-scope-context';
 import { useReceiptsQuery } from '@/features/purchases/api/purchases.queries';
 import { useSuppliersQuery } from '@/features/suppliers/api/suppliers.queries';
 import { useLotsQuery, useStockQuery } from '@/features/inventory/api/inventory.queries';
@@ -206,17 +207,27 @@ export default function Page() {
   const { user } = useAuthContext();
   const router = useRouter();
 
-  // All queries use minimal limit since we only need the `total` count.
+  // Sucursal del selector global (null = "Todas" → undefined = consolidado).
+  const { selectedBranchId } = useBranchScope();
+  const branchId = selectedBranchId ?? undefined;
+
+  // Productos/proveedores/sucursales son data GLOBAL → no se filtran por sucursal.
   const { data: productsData, isLoading: loadingProducts } = useProductsQuery({ limit: 1 });
-  const { data: lotsData, isLoading: loadingLots } = useLotsQuery({ limit: 1 });
+  const { data: lotsData, isLoading: loadingLots } = useLotsQuery({ limit: 1, branchId });
   const { data: expiredLots, isLoading: loadingExpired } = useLotsQuery({
     limit: 1,
     expirySignal: 'EXPIRED',
+    branchId,
   });
-  const { data: redLots, isLoading: loadingRed } = useLotsQuery({ limit: 1, expirySignal: 'RED' });
+  const { data: redLots, isLoading: loadingRed } = useLotsQuery({
+    limit: 1,
+    expirySignal: 'RED',
+    branchId,
+  });
   const { data: stockData, isLoading: loadingStock } = useStockQuery({
     stockStatus: 'out',
     limit: 1,
+    branchId,
   });
   const { data: branches = [], isLoading: loadingBranches } = useBranchesQuery();
   const { data: suppliers = [], isLoading: loadingSuppliers } = useSuppliersQuery({
@@ -227,17 +238,19 @@ export default function Page() {
   const { data: stockNormal, isLoading: loadingNormal } = useStockQuery({
     stockStatus: 'normal',
     limit: 1,
+    branchId,
   });
   const { data: stockLow, isLoading: loadingLow } = useStockQuery({
     stockStatus: 'low',
     limit: 1,
+    branchId,
   });
-  const { data: stockOut } = useStockQuery({ stockStatus: 'out', limit: 1 });
+  const { data: stockOut } = useStockQuery({ stockStatus: 'out', limit: 1, branchId });
 
-  const { data: receipts, isLoading: loadingReceipts } = useReceiptsQuery();
+  const { data: receipts, isLoading: loadingReceipts } = useReceiptsQuery({ branchId });
 
   // KPIs agregados (ventas, rentabilidad, finanzas, inventario).
-  const { data: summary, isLoading: loadingSummary } = useDashboardSummary();
+  const { data: summary, isLoading: loadingSummary } = useDashboardSummary(branchId);
 
   // ── Área: tendencia de ventas (30 días) ─────────────────────────────
   const salesTrendOptions = useChart({

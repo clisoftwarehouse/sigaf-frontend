@@ -10,14 +10,17 @@ import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
 import Typography from '@mui/material/Typography';
 
+import { useBranchScope } from '@/features/branches/ui/branch-scope-context';
+
 import { useVariacion } from '../../api/purchase-reports.queries';
 import { ReportLayout } from '../../../inventory-reports/ui/components/report-layout';
 import { fmtBs, today, fmtPct, fmtDate, exportPdf, exportXlsx, firstOfMonth } from '../../../inventory-reports/model/helpers';
 
 export default function VariacionPreciosPage() {
+  const { selectedBranchId } = useBranchScope();
   const [from, setFrom] = useState(firstOfMonth);
   const [to, setTo] = useState(today);
-  const { data, isLoading, isError, error } = useVariacion({ from, to });
+  const { data, isLoading, isError, error } = useVariacion({ from, to, branchId: selectedBranchId ?? undefined });
 
   const headers = ['Fecha', 'Recepción', 'Proveedor', 'Producto', 'Costo OC USD', 'Costo facturado USD', 'Variación USD', 'Variación %', 'Causa', 'Aprobó'];
   const rows = (): (string | number)[][] =>
