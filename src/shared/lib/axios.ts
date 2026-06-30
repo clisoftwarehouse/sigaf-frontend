@@ -649,6 +649,7 @@ export const endpoints = {
     apiKeys: (terminalId: string) => `/v1/terminals/${terminalId}/api-keys`,
     revokeKey: (terminalId: string, keyId: string) =>
       `/v1/terminals/${terminalId}/api-keys/${keyId}/revoke`,
+    armFiscalPairing: (terminalId: string) => `/v1/terminals/${terminalId}/fiscal-printer/arm`,
   },
   authPin: {
     setMyPin: '/v1/auth/me/pin',

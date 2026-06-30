@@ -14,6 +14,7 @@ import { useRouter } from '@/app/routes/hooks';
 
 import { TerminalForm } from '../components/terminal-form';
 import { TerminalPairingPanel } from '../components/terminal-pairing-panel';
+import { TerminalFiscalPairingPanel } from '../components/terminal-fiscal-pairing-panel';
 import { useTerminalQuery, useUpdateTerminalMutation } from '../../api/terminals.queries';
 
 // ----------------------------------------------------------------------
@@ -66,6 +67,10 @@ export function TerminalEditView() {
 
           <Box sx={{ mt: 4 }}>
             <TerminalPairingPanel terminalId={terminal.id} />
+          </Box>
+
+          <Box sx={{ mt: 4 }}>
+            <TerminalFiscalPairingPanel terminalId={terminal.id} />
           </Box>
         </>
       )}

@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   revokeApiKey,
   issuePairingCode,
+  armFiscalPairing,
   fetchTerminalApiKeys,
 } from './terminal-pairing.api';
 
@@ -34,6 +35,12 @@ export function useIssuePairingCodeMutation(terminalId: string | undefined) {
         qc.invalidateQueries({ queryKey: terminalPairingKeys.apiKeys(terminalId) });
       }
     },
+  });
+}
+
+export function useArmFiscalPairingMutation(terminalId: string | undefined) {
+  return useMutation({
+    mutationFn: () => armFiscalPairing(terminalId as string),
   });
 }
 

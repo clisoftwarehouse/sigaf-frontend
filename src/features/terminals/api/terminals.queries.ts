@@ -26,11 +26,15 @@ export function useTerminalsQuery(filters: TerminalFilters = {}) {
   });
 }
 
-export function useTerminalQuery(id: string | undefined) {
+export function useTerminalQuery(
+  id: string | undefined,
+  options?: { refetchInterval?: number | false },
+) {
   return useQuery({
     queryKey: terminalKeys.detail(id ?? ''),
     queryFn: () => fetchTerminal(id as string),
     enabled: Boolean(id),
+    refetchInterval: options?.refetchInterval,
   });
 }
 

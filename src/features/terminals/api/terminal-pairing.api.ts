@@ -34,3 +34,16 @@ export async function issuePairingCode(terminalId: string): Promise<IssuedPairin
 export async function revokeApiKey(terminalId: string, keyId: string): Promise<void> {
   await axios.post(endpoints.terminalsPairing.revokeKey(terminalId, keyId));
 }
+
+export type ArmedFiscalPairing = {
+  armedAt: string;
+  expiresAt: string;
+};
+
+/** Habilita (arma) la vinculación de impresora fiscal de la caja. El POS la toma. */
+export async function armFiscalPairing(terminalId: string): Promise<ArmedFiscalPairing> {
+  const res = await axios.post<ArmedFiscalPairing>(
+    endpoints.terminalsPairing.armFiscalPairing(terminalId)
+  );
+  return res.data;
+}

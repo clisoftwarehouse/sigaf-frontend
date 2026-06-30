@@ -4,6 +4,10 @@ export type Terminal = {
   code: string;
   name: string | null;
   fiscalPrinterConfig: Record<string, unknown> | null;
+  /** Serial de la impresora fiscal vinculada a esta caja (null = sin vincular). */
+  fiscalPrinterSerial: string | null;
+  /** Cuándo el admin armó la vinculación fiscal (null = no armada). */
+  fiscalPairingArmedAt: string | null;
   scaleConfig: Record<string, unknown> | null;
   cashDrawerConfig: Record<string, unknown> | null;
   lastSyncAt: string | null;
