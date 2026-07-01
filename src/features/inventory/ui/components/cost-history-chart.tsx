@@ -56,13 +56,12 @@ export function CostHistoryChart({ productId }: Props) {
   }, [data, branchNameById]);
 
   const chartOptions = useChart({
-    chart: { type: 'bar' },
+    chart: { type: 'line' },
     xaxis: {
       type: 'datetime',
       labels: { datetimeUTC: false },
     },
     yaxis: {
-      title: { text: 'Costo USD' },
       labels: {
         formatter: (v: number) =>
           `$${v.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`,
@@ -80,7 +79,8 @@ export function CostHistoryChart({ productId }: Props) {
       fontSize: '12px',
       markers: { size: 6 },
     },
-    plotOptions: { bar: { columnWidth: '60%' } },
+    stroke: { curve: 'straight', width: 2 },
+    markers: { size: 3, hover: { size: 5 } },
   } as ApexOptions);
 
   if (isError) {
@@ -100,7 +100,7 @@ export function CostHistoryChart({ productId }: Props) {
         Una serie por sucursal. Cada barra corresponde a una recepción de mercancía.
       </Typography>
       <Chart
-        type="bar"
+        type="line"
         height={280}
         loading={isLoading}
         series={series}
